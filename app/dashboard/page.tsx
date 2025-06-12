@@ -1,78 +1,68 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-
-export default async function DashboardPage() {
-  const supabase = createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
+export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Civil Q Dashboard
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
-                Welcome, {user.email}
-              </span>
-              <form action="/auth/logout" method="post">
-                <button
-                  type="submit"
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Welcome to Civil Q - Site Proof MVP
+        </p>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Total Projects</h3>
+          </div>
+          <div className="text-2xl font-bold">0</div>
+          <p className="text-xs text-muted-foreground">
+            No projects created yet
+          </p>
+        </div>
+        
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Active Lots</h3>
+          </div>
+          <div className="text-2xl font-bold">0</div>
+          <p className="text-xs text-muted-foreground">
+            No active lots
+          </p>
+        </div>
+        
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Inspections</h3>
+          </div>
+          <div className="text-2xl font-bold">0</div>
+          <p className="text-xs text-muted-foreground">
+            No inspections completed
+          </p>
+        </div>
+        
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Compliance</h3>
+          </div>
+          <div className="text-2xl font-bold">100%</div>
+          <p className="text-xs text-muted-foreground">
+            All checks passed
+          </p>
+        </div>
+      </div>
+      
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="p-6">
+          <h3 className="text-lg font-medium">Getting Started</h3>
+          <p className="text-sm text-muted-foreground mt-2">
+            Create your first project to start managing construction site quality assurance.
+          </p>
+          <div className="mt-4">
+            <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+              Create Project
+            </button>
           </div>
         </div>
       </div>
-
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                🎉 Authentication Working!
-              </h2>
-              <p className="text-lg text-gray-600 mb-6">
-                You have successfully logged in to Civil Q - Site Proof MVP
-              </p>
-              <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-green-800">
-                      Phase 1 Complete
-                    </h3>
-                    <div className="mt-2 text-sm text-green-700">
-                      <p>
-                        Clean Next.js application with Supabase authentication is now working properly.
-                        Ready for Phase 2 development!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
   )
 }
