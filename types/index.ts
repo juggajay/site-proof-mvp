@@ -10,3 +10,32 @@ export interface Project {
   location: string;
   organization_id: string;
 }
+
+export interface Itp {
+  id: string;
+  title: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Lot {
+  id: string;
+  lot_number: string;
+  description: string | null;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'APPROVED';
+  project_id: string;
+  itp_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// A joined type for displaying the list
+export interface LotWithItp extends Lot {
+  itps: { title: string | null } | null;
+}
+
+// An ITP with its checklist items
+export interface ItpWithItems extends Itp {
+  itp_items: any[]; // Use 'any' for now, can be refined later
+}
