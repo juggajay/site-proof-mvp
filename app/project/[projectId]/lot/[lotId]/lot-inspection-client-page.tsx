@@ -61,7 +61,7 @@ export default function LotInspectionClientPage({ lotData }: LotInspectionClient
     } finally {
       setIsSaving(false)
     }
-  }, [lotData.id, supabase])
+  }, [lotData.id, lotData.itps.itp_items, supabase])
 
   const getCompletionStats = () => {
     const totalItems = lotData.itps.itp_items.length
@@ -187,7 +187,7 @@ export default function LotInspectionClientPage({ lotData }: LotInspectionClient
               <div className="text-center">
                 <h3 className="text-lg font-medium mb-2">No checklist items</h3>
                 <p className="text-muted-foreground">
-                  This ITP template doesn't have any checklist items defined.
+                  This ITP template doesn&apos;t have any checklist items defined.
                 </p>
               </div>
             </CardContent>
