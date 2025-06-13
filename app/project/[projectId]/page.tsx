@@ -1,15 +1,13 @@
 import { createClient } from '../../../lib/supabase/server'
 import { notFound } from 'next/navigation'
-import ClientPage from './client-page'
+import { ProjectClientPage } from './client-page'
 import type { Project, LotWithItp } from '../../../types'
 
-interface ProjectPageProps {
-  params: {
-    projectId: string
-  }
+interface PageProps {
+  params: { projectId: string }
 }
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
+export default async function ProjectDetailPage({ params }: PageProps) {
   const supabase = createClient()
 
   // Fetch project details
@@ -39,10 +37,5 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     console.error('Error fetching lots:', lotsError)
   }
 
-  const lotsWithItp: LotWithItp[] = lots?.map(lot => ({
-    ...lot,
-    itps: lot.itps ? { title: lot.itps.title } : null
-  })) || []
-
-  return <ClientPage project={project} initialLots={lotsWithItp} />
+  return <ProjectClientPage project={project} lots={lots as LotWithItp[] ?? []} />
 }
