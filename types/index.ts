@@ -1,6 +1,7 @@
 // Centralized type exports
 export * from './database'
 export * from './compliance'
+export * from './conformance'
 
 // Re-export commonly used types for convenience
 export type {
@@ -33,3 +34,11 @@ export type {
   ComplianceCheck as ComplianceCheckType,
   UpdateComplianceCheckForm as UpdateComplianceForm
 } from './compliance'
+
+export type {
+  ConformanceRecord,
+  CreateConformanceRecord,
+  UpdateConformanceRecord,
+  ConformanceRecordWithAttachments,
+  ConformanceStats
+} from './conformance'
