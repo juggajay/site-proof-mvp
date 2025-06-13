@@ -39,8 +39,8 @@ export class ITPService {
     return [
       {
         id: uuidv4(),
-        name: 'John Rodriguez',
-        email: 'john@company.com',
+        name: 'Jack Gammell',
+        email: 'jack@company.com',
         role: 'Senior Inspector',
         certifications: ['Concrete Testing', 'Highway Construction'],
         current_workload: 65,
@@ -48,8 +48,8 @@ export class ITPService {
       },
       {
         id: uuidv4(),
-        name: 'Sarah Chen',
-        email: 'sarah@company.com',
+        name: 'Kenny Gammell',
+        email: 'kenny@company.com',
         role: 'Quality Engineer',
         certifications: ['Asphalt Testing', 'Quality Control'],
         current_workload: 40,
