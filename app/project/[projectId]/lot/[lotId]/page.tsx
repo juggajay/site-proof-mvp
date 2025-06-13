@@ -1,57 +1,57 @@
 interface LotPageProps {
-  params: { 
+  params: {
     projectId: string
-    lotId: string 
+    lotId: string
   }
 }
 
 export default function LotPage({ params }: LotPageProps) {
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
             Lot Details
           </h1>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Project ID
               </label>
-              <p className="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded">
+              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm bg-gray-100 dark:bg-gray-700 p-2 rounded">
                 {params.projectId}
               </p>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Lot ID
               </label>
-              <p className="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded">
+              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm bg-gray-100 dark:bg-gray-700 p-2 rounded">
                 {params.lotId}
               </p>
             </div>
           </div>
 
-          <div className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Inspection Details</h2>
-            <p className="text-gray-600">
+          <div className="border-t dark:border-gray-700 pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Inspection Details</h2>
+            <p className="text-gray-600 dark:text-gray-300">
               ✅ Route is working! This page is now accessible.
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
               You can now add your inspection lot functionality here.
             </p>
           </div>
 
           <div className="mt-6 flex gap-3">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">
               Start Inspection
             </button>
-            <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 transition-colors">
+            <button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded transition-colors">
               Edit Lot
             </button>
-            <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 transition-colors">
+            <button className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 rounded transition-colors">
               View History
             </button>
           </div>
