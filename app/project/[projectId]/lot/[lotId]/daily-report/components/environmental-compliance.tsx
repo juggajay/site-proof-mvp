@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Leaf, Camera, CheckCircle, XCircle, Minus, AlertTriangle, Calendar } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '../../../../../../../lib/supabase/client';
 
 interface EnvironmentalItem {
   id: string;
@@ -125,7 +125,7 @@ export default function EnvironmentalCompliance({ dailyReportId, projectId }: En
   const [saving, setSaving] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {

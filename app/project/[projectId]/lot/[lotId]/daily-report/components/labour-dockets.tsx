@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Users, Clock, DollarSign, Trash2, Edit } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '../../../../../../../lib/supabase/client';
 
 interface LabourDocket {
   id: string;
@@ -53,7 +53,7 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
     notes: ''
   });
 
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   // Load existing dockets
   useEffect(() => {

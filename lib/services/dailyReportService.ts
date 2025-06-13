@@ -1,9 +1,9 @@
 // lib/services/dailyReportService.ts
-import { createBrowserClient } from '@supabase/ssr'
-import type { 
-  Project, 
-  Lot, 
-  LotWithProject, 
+import { createClient } from '../supabase/client'
+import type {
+  Project,
+  Lot,
+  LotWithProject,
   DailyLotReport,
   DiaryEntry,
   LabourDocket,
@@ -19,10 +19,7 @@ import type {
 } from '../../types/database'
 
 class DailyReportService {
-  private supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  private supabase = createClient()
 
   /**
    * Get lot with associated project data

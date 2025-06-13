@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertTriangle, Clock, Camera, FileText } from 'lucide-react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '../../../../../../../lib/supabase/client';
 import { AssignITPButton } from '@/components/assign-itp-button-simple';
 import { ErrorBoundary } from '@/components/error-boundary';
 
@@ -40,7 +40,7 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   useEffect(() => {
     loadITPData();

@@ -1,15 +1,17 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '../components/theme-provider'
+import { AuthProvider } from '../contexts/auth-context'
+import { Metadata } from 'next'
 
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
 })
 
-export const metadata = {
-  title: 'Civil Q - Site Proof MVP',
-  description: 'Professional QA conformance management system',
+export const metadata: Metadata = {
+  title: 'Site Proof MVP',
+  description: 'Civil works QA conformance management system',
 }
 
 export default function RootLayout({
@@ -20,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system">
-          {children}
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider defaultTheme="system">
+            {children}
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

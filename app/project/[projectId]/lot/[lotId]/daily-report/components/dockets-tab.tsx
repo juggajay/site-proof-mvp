@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '../../../../../../../lib/supabase/client'
 
 interface DocketsTabProps {
   lot: any
@@ -54,10 +54,7 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
   const [materialDockets, setMaterialDocket] = useState<MaterialDocket[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   // Load all dockets on mount
   useEffect(() => {

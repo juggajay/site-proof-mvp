@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '../../../../../../lib/supabase/client'
 import { SiteDiaryTab } from './components/site-diary-tab'
 import LabourDockets from './components/labour-dockets'
 import QAInspection from './components/qa-inspection'
@@ -14,10 +14,7 @@ function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   const testInsert = async () => {
     setIsSubmitting(true)
@@ -248,10 +245,7 @@ function SimpleDocketsTab({ dailyReport, onUpdate }: { dailyReport: any, onUpdat
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   // Load labour entries
   useEffect(() => {
@@ -546,10 +540,7 @@ export default function DailyLotReport({ params }: { params: { projectId: string
   const [dailyReport, setDailyReport] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   const loadData = async () => {
     try {
