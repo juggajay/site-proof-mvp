@@ -2,7 +2,7 @@
 
 import { createClient } from '../../../../../lib/supabase/server';
 import { notFound } from "next/navigation";
-import LotInspectionClientPage from "./lot-inspection-client-page";
+import { LotInspectionClientPage } from "./client-page";
 import { FullLotData, ItpItem, ConformanceRecordWithAttachments } from '../../../../../types'; // Import the specific types we need
 
 type LotInspectionPageProps = {
