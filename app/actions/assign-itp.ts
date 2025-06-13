@@ -70,7 +70,33 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
       throw new Error(`Failed to create assignment: ${error.message}`)
     }
 
-    console.log('✅ Assignment successful!', data)
+    console.log('✅ Assignment saved to database!', data)
+
+    // Create activity log for audit trail
+    const activityResult = await supabase.from('activity_logs').insert({
+      user_id: user.id,
+      action: 'itp_assigned',
+      entity_type: 'itp_assignment',
+      entity_id: data.id,
+      description: `Assigned ITP "${data.itp?.title}" to lot "${data.lot?.name}"`,
+      project_id: assignment.project_id,
+      organization_id: assignment.organization_id,
+      metadata: {
+        itp_title: data.itp?.title,
+        lot_name: data.lot?.name,
+        assigned_to_name: data.assigned_to_user?.name,
+        scheduled_date: assignment.scheduled_date,
+        priority: assignment.priority
+      }
+    })
+
+    if (activityResult.error) {
+      console.warn('⚠️ Failed to create activity log:', activityResult.error)
+    } else {
+      console.log('📝 Activity log created successfully')
+    }
+
+    console.log('🎉 Assignment completed successfully!')
     
     revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}/daily-report`)
     revalidatePath('/dashboard')
