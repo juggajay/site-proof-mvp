@@ -82,12 +82,17 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
 
       // Create project
       console.log('🏗️ Creating project...')
+      console.log('Project data to insert:', {
+        name: data.name,
+        location: data.location,
+        organization_id: profile.organization_id,
+      })
+      
       const { data: project, error: createError } = await supabase
         .from('projects')
         .insert([
           {
             name: data.name,
-            project_number: data.projectNumber,
             location: data.location,
             organization_id: profile.organization_id,
           }
