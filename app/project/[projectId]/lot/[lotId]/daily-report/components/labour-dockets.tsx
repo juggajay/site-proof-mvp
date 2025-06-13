@@ -49,7 +49,7 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
     company: '',
     trade: '',
     hours_worked: '',
-    hourly_rate: '',
+    hourly_rate: '0.00',
     notes: ''
   });
 
@@ -81,7 +81,7 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
       company: '',
       trade: '',
       hours_worked: '',
-      hourly_rate: '',
+      hourly_rate: '0.00',
       notes: ''
     });
     setEditingId(null);
@@ -100,7 +100,7 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
         company: formData.company || null,
         trade: formData.trade || null,
         hours_worked: parseFloat(formData.hours_worked),
-        hourly_rate: formData.hourly_rate && formData.hourly_rate !== '' ? parseFloat(formData.hourly_rate) : null,
+        hourly_rate: formData.hourly_rate && formData.hourly_rate !== '' ? parseFloat(formData.hourly_rate) : 0,
         notes: formData.notes || null
       };
 
