@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -27,8 +27,13 @@ interface CreateProjectModalProps {
 
 export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalProps) {
   const [isCreating, setIsCreating] = useState(false)
-  const supabase = createClientComponentClient()
   const router = useRouter()
+
+  // Create Supabase client with modern approach
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   const form = useForm<CreateProjectForm>({
     resolver: zodResolver(createProjectSchema),
