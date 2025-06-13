@@ -69,6 +69,14 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      // Debug: Log what we retrieved from database
+      console.log('Retrieved dockets from database:', data);
+      if (data && data.length > 0) {
+        console.log('First docket hourly_rate:', data[0].hourly_rate);
+        console.log('First docket data type check:', typeof data[0].hourly_rate);
+      }
+      
       setDockets(data || []);
     } catch (error) {
       console.error('Error loading labour dockets:', error);
@@ -94,6 +102,11 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
 
     setLoading(true);
     try {
+      // Debug: Log form data before processing
+      console.log('Form data before processing:', formData);
+      console.log('Hourly rate raw value:', formData.hourly_rate);
+      console.log('Hourly rate parsed:', formData.hourly_rate ? parseFloat(formData.hourly_rate) : null);
+      
       const docketData = {
         daily_report_id: dailyReportId,
         person_name: formData.person_name,
@@ -104,21 +117,34 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
         notes: formData.notes || null
       };
 
+      // Debug: Log the data being sent to database
+      console.log('Data being sent to database:', docketData);
+
       if (editingId) {
         // Update existing docket
-        const { error } = await supabase
+        const { data: updateResult, error } = await supabase
           .from('labour_dockets')
           .update(docketData)
-          .eq('id', editingId);
+          .eq('id', editingId)
+          .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
+        console.log('Update result:', updateResult);
       } else {
         // Insert new docket
-        const { error } = await supabase
+        const { data: insertResult, error } = await supabase
           .from('labour_dockets')
-          .insert([docketData]);
+          .insert([docketData])
+          .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+        console.log('Insert result:', insertResult);
       }
 
       await loadDockets();
