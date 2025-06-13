@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertTriangle, Clock, Camera, FileText } from 'lucide-react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { AssignITPButton } from '@/components/assign-itp-button';
 
 interface ITPItem {
   id: string;
@@ -184,9 +185,10 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             No Inspection & Test Plan has been assigned to this lot yet.
           </p>
-          <Button variant="outline">
-            Assign ITP to Lot
-          </Button>
+          <AssignITPButton
+            lotId={lotId}
+            lotName={`Lot ${lotId.slice(0, 8)}`}
+          />
         </CardContent>
       </Card>
     );
