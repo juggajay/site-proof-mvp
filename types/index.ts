@@ -42,6 +42,31 @@ export interface Lot {
   updated_at: string
 }
 
+export interface Project {
+  id: string
+  name: string
+  description: string | null
+  project_number: string
+  location: string
+  organization_id: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LotWithItp {
+  id: string
+  name: string
+  lot_number: string
+  description: string | null
+  location: string | null
+  priority: 'low' | 'medium' | 'high'
+  status: string
+  project_id: string
+  created_at: string
+  updated_at: string
+  itps: ITP[]
+}
+
 export interface ITP {
   id: string
   title: string
@@ -132,6 +157,8 @@ export interface FullLotData {
     id: string
     name: string
     description: string | null
+    project_number: string
+    location: string
     organization_id: string
     created_at: string
     updated_at: string
