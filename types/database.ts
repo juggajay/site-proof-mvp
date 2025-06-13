@@ -220,6 +220,45 @@ export interface Database {
           updated_at?: string
         }
       }
+      conformance_records: {
+        Row: {
+          id: string
+          lot_id: string
+          project_id: string
+          itp_id: string
+          item_id: string
+          status: 'pass' | 'fail' | 'na' | 'pending'
+          notes: string | null
+          checked_by: string
+          checked_at: string
+          photo_url: string | null
+          organization_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lot_id: string
+          project_id: string
+          itp_id: string
+          item_id: string
+          status: 'pass' | 'fail' | 'na' | 'pending'
+          notes?: string | null
+          checked_by: string
+          checked_at: string
+          photo_url?: string | null
+          organization_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?: 'pass' | 'fail' | 'na' | 'pending'
+          notes?: string | null
+          checked_at?: string
+          photo_url?: string | null
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -239,6 +278,7 @@ export type Lot = Database['public']['Tables']['lots']['Row']
 export type Organization = Database['public']['Tables']['organizations']['Row']
 export type Profile = Database['public']['Tables']['profiles']['Row']
 export type ComplianceCheckRow = Database['public']['Tables']['compliance_checks']['Row']
+export type ConformanceRecordRow = Database['public']['Tables']['conformance_records']['Row']
 export type ITP = Database['public']['Tables']['itps']['Row']
 export type ITPAssignment = Database['public']['Tables']['itp_assignments']['Row']
 
