@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -128,11 +128,7 @@ export default function EnvironmentalCompliance({ dailyReportId, projectId }: En
   const supabase = createClient();
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => {
-    loadTodaysRecord();
-  }, [dailyReportId]);
-
-  const loadTodaysRecord = async () => {
+  const loadTodaysRecord = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('environmental_records')
@@ -159,7 +155,11 @@ export default function EnvironmentalCompliance({ dailyReportId, projectId }: En
     } finally {
       setLoading(false);
     }
-  };
+  }, [dailyReportId, supabase, today]);
+
+  useEffect(() => {
+    loadTodaysRecord();
+  }, [loadTodaysRecord]);
 
   const initializeFromTemplate = () => {
     const templateItems: EnvironmentalItem[] = [];

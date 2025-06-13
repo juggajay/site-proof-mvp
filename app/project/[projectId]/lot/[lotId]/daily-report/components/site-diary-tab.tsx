@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
 import { createClient } from '../../../../../../../lib/supabase/client'
 
 interface SiteDiaryTabProps {
@@ -43,12 +44,7 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
     { value: 'fog', label: 'Fog', icon: '🌫️' }
   ]
 
-  // Load diary entries
-  useEffect(() => {
-    loadDiaryEntries()
-  }, [dailyReport?.id])
-
-  const loadDiaryEntries = async () => {
+  const loadDiaryEntries = useCallback(async () => {
     if (!dailyReport?.id) return
 
     try {
@@ -63,7 +59,12 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
     } catch (error) {
       console.error('Error loading diary entries:', error)
     }
-  }
+  }, [dailyReport?.id, supabase])
+
+  // Load diary entries
+  useEffect(() => {
+    loadDiaryEntries()
+  }, [loadDiaryEntries])
 
   // Save weather and activities
   const saveGeneralInfo = async () => {
@@ -369,9 +370,11 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
                 
                 {entry.photo_url && (
                   <div className="mb-3">
-                    <img 
-                      src={entry.photo_url} 
+                    <Image
+                      src={entry.photo_url}
                       alt="Site evidence"
+                      width={384}
+                      height={192}
                       className="w-full max-w-md h-48 object-cover rounded-lg border"
                     />
                   </div>

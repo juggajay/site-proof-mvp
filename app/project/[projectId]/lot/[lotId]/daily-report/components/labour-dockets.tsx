@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,12 +55,7 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
 
   const supabase = createClient();
 
-  // Load existing dockets
-  useEffect(() => {
-    loadDockets();
-  }, [dailyReportId]);
-
-  const loadDockets = async () => {
+  const loadDockets = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('labour_dockets')
@@ -73,7 +68,12 @@ export default function LabourDockets({ dailyReportId }: LabourDocketsProps) {
     } catch (error) {
       console.error('Error loading labour dockets:', error);
     }
-  };
+  }, [dailyReportId, supabase]);
+
+  // Load existing dockets
+  useEffect(() => {
+    loadDockets();
+  }, [loadDockets]);
 
   const resetForm = () => {
     setFormData({

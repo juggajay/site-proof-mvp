@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../../../../../lib/supabase/client'
 import { SiteDiaryTab } from './components/site-diary-tab'
 import LabourDockets from './components/labour-dockets'
@@ -55,7 +55,7 @@ function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
     }
   }
 
-  const loadTestData = async () => {
+  const loadTestData = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('labour_dockets')
@@ -76,7 +76,7 @@ function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
       console.error('Load error:', error)
       setMessage(`❌ Load error: ${(error as any)?.message}`)
     }
-  }
+  }, [dailyReport.id, supabase])
 
   const clearTestData = async () => {
     try {
@@ -100,7 +100,7 @@ function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
     if (dailyReport?.id) {
       loadTestData()
     }
-  }, [dailyReport?.id])
+  }, [dailyReport?.id, loadTestData])
 
   return (
     <div className="space-y-6">
@@ -247,12 +247,7 @@ function SimpleDocketsTab({ dailyReport, onUpdate }: { dailyReport: any, onUpdat
 
   const supabase = createClient()
 
-  // Load labour entries
-  useEffect(() => {
-    loadLabourEntries()
-  }, [dailyReport?.id])
-
-  const loadLabourEntries = async () => {
+  const loadLabourEntries = useCallback(async () => {
     if (!dailyReport?.id) return
     
     try {
@@ -271,7 +266,12 @@ function SimpleDocketsTab({ dailyReport, onUpdate }: { dailyReport: any, onUpdat
     } catch (error) {
       console.error('Error:', error)
     }
-  }
+  }, [dailyReport?.id, supabase])
+
+  // Load labour entries
+  useEffect(() => {
+    loadLabourEntries()
+  }, [loadLabourEntries])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -542,7 +542,7 @@ export default function DailyLotReport({ params }: { params: { projectId: string
 
   const supabase = createClient()
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       // Load lot data
@@ -583,11 +583,11 @@ export default function DailyLotReport({ params }: { params: { projectId: string
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.lotId, supabase])
 
   useEffect(() => {
     loadData()
-  }, [params.lotId])
+  }, [loadData])
 
   if (loading) {
     return <div className="p-8">Loading daily report...</div>
