@@ -15,11 +15,12 @@ import type {
   CreateLabourDocketForm,
   CreatePlantDocketForm,
   CreateMaterialDocketForm,
-  CreateComplianceCheckForm,
-  UpdateComplianceCheckForm,
   Database
 } from '../../types/database'
-import type { CreateComplianceCheckForm as ComplianceForm, UpdateComplianceCheckForm as UpdateComplianceForm } from '../../types/compliance'
+import type {
+  CreateComplianceCheckForm,
+  UpdateComplianceCheckForm
+} from '../../types/compliance'
 
 class DailyReportService {
   private supabase = createClient()
