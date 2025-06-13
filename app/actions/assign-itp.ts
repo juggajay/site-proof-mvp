@@ -8,13 +8,23 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
   const supabase = createClient()
   
   try {
-    // Simple insert without complex relationships for now
+    console.log('🚀 Starting assignment:', assignment)
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      throw new Error('User not authenticated')
+    }
+
+    console.log('👤 Current user:', user.id)
+
+    // Simple insert with proper UUIDs
     const { data, error } = await supabase
       .from('itp_assignments')
       .insert({
         itp_id: assignment.itp_id,
         assigned_to: assignment.assigned_to,
-        assigned_by: 'current-user',
+        assigned_by: user.id, // Use real user UUID
         lot_id: assignment.lot_id,
         project_id: assignment.project_id,
         scheduled_date: assignment.scheduled_date,
@@ -28,7 +38,7 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
       .single()
 
     if (error) {
-      console.error('Assignment error:', error)
+      console.error('❌ Assignment error:', error)
       throw new Error(`Failed to create assignment: ${error.message}`)
     }
 
@@ -39,7 +49,7 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
     return { success: true, assignment: data }
 
   } catch (error) {
-    console.error('❌ Assignment failed:', error)
+    console.error('💥 Assignment failed:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Assignment failed'
