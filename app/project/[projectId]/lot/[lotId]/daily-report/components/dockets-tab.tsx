@@ -60,15 +60,13 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
   const loadAllDockets = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [labourData, plantData, materialData] = await Promise.all([
-        supabase.from('labour_dockets').select('*').eq('daily_report_id', dailyReport.id),
-        supabase.from('plant_dockets').select('*').eq('daily_report_id', dailyReport.id),
-        supabase.from('material_dockets').select('*').eq('daily_report_id', dailyReport.id)
+      const [labourData] = await Promise.all([
+        supabase.from('labour_dockets').select('*').eq('daily_report_id', dailyReport.id)
       ])
 
       setLabourDockets(labourData.data || [])
-      setPlantDockets(plantData.data || [])
-      setMaterialDocket(materialData.data || [])
+      setPlantDockets([]) // Set empty array since table doesn't exist
+      setMaterialDocket([]) // Set empty array since table doesn't exist
     } catch (error) {
       console.error('Error loading dockets:', error)
     } finally {
@@ -99,12 +97,8 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
 
   const addPlantDocket = async (docket: PlantDocket) => {
     try {
-      const { error } = await supabase
-        .from('plant_dockets')
-        .insert([{ ...docket, daily_report_id: dailyReport.id }])
-
-      if (error) throw error
-      await loadAllDockets()
+      // Plant dockets table doesn't exist - show message
+      alert('Plant dockets feature not yet implemented')
     } catch (error) {
       console.error('Error adding plant docket:', error)
       alert('Failed to add plant record')
@@ -113,12 +107,8 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
 
   const addMaterialDocket = async (docket: MaterialDocket) => {
     try {
-      const { error } = await supabase
-        .from('material_dockets')
-        .insert([{ ...docket, daily_report_id: dailyReport.id }])
-
-      if (error) throw error
-      await loadAllDockets()
+      // Material dockets table doesn't exist - show message
+      alert('Material dockets feature not yet implemented')
     } catch (error) {
       console.error('Error adding material docket:', error)
       alert('Failed to add material record')
@@ -127,12 +117,13 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
 
   const deleteDocket = async (type: 'labour' | 'plant' | 'materials', id: string) => {
     try {
-      const table = type === 'labour' ? 'labour_dockets' : 
-                   type === 'plant' ? 'plant_dockets' : 'material_dockets'
-      
-      const { error } = await supabase.from(table).delete().eq('id', id)
-      if (error) throw error
-      await loadAllDockets()
+      if (type === 'labour') {
+        const { error } = await supabase.from('labour_dockets').delete().eq('id', id)
+        if (error) throw error
+        await loadAllDockets()
+      } else {
+        alert(`${type} dockets feature not yet implemented`)
+      }
     } catch (error) {
       console.error('Error deleting docket:', error)
       alert('Failed to delete record')
