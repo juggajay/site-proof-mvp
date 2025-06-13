@@ -49,8 +49,7 @@ export function LotInspectionClientPage({ lotData }: { lotData: FullLotData }) {
             <ChecklistItem
               key={item.id}
               item={item}
-              value={answers[item.id] || {}}
-              onChange={(data) => handleAnswerChange(item.id, data)}
+              onUpdate={(itemId, data) => handleAnswerChange(itemId, data)}
             />
           ))
         }
