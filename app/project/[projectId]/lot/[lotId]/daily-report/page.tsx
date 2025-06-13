@@ -51,7 +51,7 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
 
   useEffect(() => {
     loadData()
-  }, [params.lotId, params.projectId]) // Add dependencies for lot and project IDs
+  }, [params.lotId, params.projectId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {
@@ -80,9 +80,19 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
 
       setLot(lotData)
       
-      // Handle project data properly
+      // Handle project data with proper type checking
+      let projectData = null
+      
       if (lotData.project) {
-        setProject(lotData.project)
+        if (Array.isArray(lotData.project)) {
+          projectData = lotData.project[0] || null
+        } else {
+          projectData = lotData.project
+        }
+      }
+      
+      if (projectData) {
+        setProject(projectData)
       } else {
         throw new Error('Project information not found')
       }
