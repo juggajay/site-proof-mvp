@@ -32,19 +32,30 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
   })
 
   const onSubmit = (data: CreateProjectForm) => {
+    console.log('🎯 Form submitted with data:', data)
+    
     startTransition(async () => {
       const formData = new FormData()
       formData.append('name', data.name)
       formData.append('projectNumber', data.projectNumber)
       formData.append('location', data.location)
 
+      console.log('📤 Calling createProjectAction...')
+
       try {
-        await createProjectAction(formData)
+        const result = await createProjectAction(formData)
+        console.log('✅ Project creation successful:', result)
+        
         toast.success('Project created successfully!')
         form.reset()
         onOpenChange(false)
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'An unknown error occurred.')
+        console.error('❌ Project creation error in modal:', error)
+        
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.'
+        console.error('Error message:', errorMessage)
+        
+        toast.error(`Failed to create project: ${errorMessage}`)
       }
     })
   }

@@ -9,23 +9,77 @@ import { Lot, ConformanceRecord } from './types';
 const projectSchema = z.object({
     name: z.string().min(2), projectNumber: z.string().min(1), location: z.string().min(2),
 });
+
 export async function createProjectAction(formData: FormData) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Authentication required');
-    const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', user.id).single();
-    if (!profile?.organization_id) throw new Error('Profile/organization not found');
-    const validatedData = projectSchema.safeParse({
-        name: formData.get('name'), projectNumber: formData.get('projectNumber'), location: formData.get('location'),
-    });
-    if (!validatedData.success) throw new Error('Invalid form data');
-    const { error } = await supabase.from('projects').insert({
-        name: validatedData.data.name, project_number: validatedData.data.projectNumber,
-        location: validatedData.data.location, organization_id: profile.organization_id,
-    });
-    if (error) throw new Error(error.message);
-    revalidatePath('/dashboard');
-    return { success: true };
+    console.log('🚀 Starting project creation...');
+    
+    try {
+        const supabase = createClient();
+        
+        // Check authentication
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        console.log('👤 Auth check:', { user: !!user, error: authError });
+        
+        if (authError) throw new Error(`Authentication error: ${authError.message}`);
+        if (!user) throw new Error('Authentication required');
+        
+        // Get user profile
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('organization_id')
+            .eq('id', user.id)
+            .single();
+            
+        console.log('👤 Profile check:', { profile, error: profileError });
+        
+        if (profileError) throw new Error(`Profile error: ${profileError.message}`);
+        if (!profile?.organization_id) throw new Error('User profile or organization not found');
+        
+        // Validate form data
+        const validatedData = projectSchema.safeParse({
+            name: formData.get('name'),
+            projectNumber: formData.get('projectNumber'),
+            location: formData.get('location'),
+        });
+        
+        console.log('📝 Form validation:', { success: validatedData.success, data: validatedData.success ? validatedData.data : validatedData.error });
+        
+        if (!validatedData.success) {
+            throw new Error(`Invalid form data: ${validatedData.error.errors.map(e => e.message).join(', ')}`);
+        }
+        
+        // Prepare project data
+        const projectData = {
+            name: validatedData.data.name,
+            project_number: validatedData.data.projectNumber,
+            location: validatedData.data.location,
+            organization_id: profile.organization_id,
+        };
+        
+        console.log('📝 Creating project with data:', projectData);
+        
+        // Insert project
+        const { data: project, error: insertError } = await supabase
+            .from('projects')
+            .insert([projectData])
+            .select()
+            .single();
+            
+        console.log('✅ Project creation result:', { project, error: insertError });
+        
+        if (insertError) {
+            throw new Error(`Database error: ${insertError.message}`);
+        }
+        
+        revalidatePath('/dashboard');
+        console.log('🎉 Project created successfully:', project);
+        
+        return { success: true, project };
+        
+    } catch (error) {
+        console.error('❌ Project creation failed:', error);
+        throw error;
+    }
 }
 
 // --- Create Lot Action ---
