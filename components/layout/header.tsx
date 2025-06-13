@@ -1,16 +1,17 @@
 'use client'
 
 import { User } from '@supabase/supabase-js'
-import { Button } from '@/components/ui/button'
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu'
+import { Button } from '../ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '../ui/dropdown-menu'
 import { User as UserIcon, LogOut } from 'lucide-react'
+import { ThemeToggle } from '../theme-toggle'
 
 interface HeaderProps {
   user: User | null
@@ -19,8 +20,10 @@ interface HeaderProps {
 export function Header({ user }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background px-6">
-      <h1 className="text-xl font-semibold">Dashboard</h1>
-      <div className="relative">
+      <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
+        <div className="relative">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -51,6 +54,7 @@ export function Header({ user }: HeaderProps) {
             </form>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   )

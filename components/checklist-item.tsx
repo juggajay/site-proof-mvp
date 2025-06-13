@@ -79,7 +79,7 @@ export default function ChecklistItem({ item, onUpdate, disabled = false }: Chec
       (item.item_type === 'NUMERIC' && numericValue.trim())
 
     if (hasValue) {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800">Completed</Badge>
+      return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Completed</Badge>
     }
     return <Badge variant="outline">Pending</Badge>
   }
