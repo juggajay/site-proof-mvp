@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    appDir: true,
+    serverComponentsExternalPackages: ['@supabase/supabase-js']
+  },
   async headers() {
     return [
       {
@@ -14,17 +18,11 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: https: blob:",
               "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in",
-              "frame-src 'self'",
-              "object-src 'none'",
-              "base-uri 'self'",
             ].join('; ')
           }
         ]
       }
     ]
-  },
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
   }
 }
 

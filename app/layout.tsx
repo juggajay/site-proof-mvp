@@ -1,17 +1,14 @@
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { Toaster } from 'sonner'
-import { ThemeProvider } from '../components/theme-provider'
 
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
 })
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Civil Q - Site Proof MVP',
-  description: 'Quality assurance and project management for construction sites',
+  description: 'Professional QA conformance management system',
 }
 
 export default function RootLayout({
@@ -21,19 +18,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/favicon.ico" />
-      </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={true}
-          disableTransitionOnChange
-        >
+        <div id="root">
           {children}
-          <Toaster />
-        </ThemeProvider>
+        </div>
       </body>
     </html>
   )
