@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { CameraIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline'
+import Image from 'next/image'
 
 interface SiteDiaryTabProps {
   dailyReport: any
@@ -433,9 +434,11 @@ export function SiteDiaryTab({ dailyReport, onUpdate }: SiteDiaryTabProps) {
                 
                 {entry.photo_url && (
                   <div className="mb-3">
-                    <img 
-                      src={entry.photo_url} 
+                    <Image
+                      src={entry.photo_url}
                       alt="Site photo"
+                      width={400}
+                      height={192}
                       className="w-full max-w-md h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                     />
                   </div>

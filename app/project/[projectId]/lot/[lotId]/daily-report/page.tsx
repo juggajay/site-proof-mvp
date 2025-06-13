@@ -51,7 +51,7 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [params.lotId, params.projectId]) // Add dependencies for lot and project IDs
 
   const loadData = async () => {
     try {
@@ -65,7 +65,7 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
           id,
           lot_number,
           project_id,
-          projects (
+          project:projects (
             id,
             name
           )
@@ -79,7 +79,13 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
       }
 
       setLot(lotData)
-      setProject(lotData.projects as Project)
+      
+      // Handle project data properly
+      if (lotData.project) {
+        setProject(lotData.project)
+      } else {
+        throw new Error('Project information not found')
+      }
 
       // Load or create today's daily report
       await loadDailyReport()
