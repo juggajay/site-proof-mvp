@@ -51,6 +51,8 @@ export interface Database {
           id: string
           name: string
           description: string | null
+          project_number: string
+          location: string
           organization_id: string
           created_at: string
           updated_at: string
@@ -59,6 +61,8 @@ export interface Database {
           id?: string
           name: string
           description?: string | null
+          project_number: string
+          location: string
           organization_id: string
           created_at?: string
           updated_at?: string
@@ -66,6 +70,8 @@ export interface Database {
         Update: {
           name?: string
           description?: string | null
+          project_number?: string
+          location?: string
           updated_at?: string
         }
       }
@@ -73,6 +79,7 @@ export interface Database {
         Row: {
           id: string
           name: string
+          lot_number: string
           description: string | null
           location: string | null
           priority: 'low' | 'medium' | 'high'
@@ -83,6 +90,7 @@ export interface Database {
         Insert: {
           id?: string
           name: string
+          lot_number: string
           description?: string | null
           location?: string | null
           priority?: 'low' | 'medium' | 'high'
@@ -92,6 +100,7 @@ export interface Database {
         }
         Update: {
           name?: string
+          lot_number?: string
           description?: string | null
           location?: string | null
           priority?: 'low' | 'medium' | 'high'
@@ -232,6 +241,9 @@ export interface Database {
           checked_by: string
           checked_at: string
           photo_url: string | null
+          pass_fail_value: 'PASS' | 'FAIL' | 'N/A' | null
+          text_value: string | null
+          numeric_value: number | null
           organization_id: string
           created_at: string
           updated_at: string
@@ -247,6 +259,9 @@ export interface Database {
           checked_by: string
           checked_at: string
           photo_url?: string | null
+          pass_fail_value?: 'PASS' | 'FAIL' | 'N/A' | null
+          text_value?: string | null
+          numeric_value?: number | null
           organization_id: string
           created_at?: string
           updated_at?: string
@@ -256,6 +271,9 @@ export interface Database {
           notes?: string | null
           checked_at?: string
           photo_url?: string | null
+          pass_fail_value?: 'PASS' | 'FAIL' | 'N/A' | null
+          text_value?: string | null
+          numeric_value?: number | null
           updated_at?: string
         }
       }
@@ -282,6 +300,21 @@ export type ConformanceRecordRow = Database['public']['Tables']['conformance_rec
 export type ITP = Database['public']['Tables']['itps']['Row']
 export type ITPAssignment = Database['public']['Tables']['itp_assignments']['Row']
 
+export interface ItpItem {
+  id: string
+  itp_id: string
+  item_number: string
+  description: string
+  item_description: string
+  acceptance_criteria: string
+  test_method: string | null
+  frequency: string | null
+  responsibility: string | null
+  item_type: 'PASS_FAIL' | 'TEXT_INPUT' | 'NUMERIC'
+  order: number
+  conformance_records?: ConformanceRecordRow[]
+}
+
 // Extended types for application use
 export interface LotWithProject {
   id: string
@@ -292,6 +325,59 @@ export interface LotWithProject {
   created_at: string
   updated_at: string
   projects: Project
+}
+
+export interface LotWithItp {
+  id: string
+  name: string
+  lot_number: string
+  description: string | null
+  status: string
+  project_id: string
+  created_at: string
+  updated_at: string
+  itps: ITP[]
+}
+
+export interface FullLotData {
+  id: string
+  name: string
+  lot_number: string
+  description: string | null
+  location: string | null
+  priority: 'low' | 'medium' | 'high'
+  status: string
+  project_id: string
+  created_at: string
+  updated_at: string
+  projects: Project
+  itps: {
+    id: string
+    title: string
+    description: string | null
+    category: string
+    estimated_duration: string
+    complexity: 'simple' | 'moderate' | 'complex'
+    required_certifications: string[] | null
+    is_active: boolean
+    organization_id: string
+    created_at: string
+    updated_at: string
+    itp_items: Array<{
+      id: string
+      itp_id: string
+      item_number: string
+      description: string
+      item_description: string
+      acceptance_criteria: string
+      test_method: string | null
+      frequency: string | null
+      responsibility: string | null
+      item_type: 'PASS_FAIL' | 'TEXT_INPUT' | 'NUMERIC'
+      order: number
+      conformance_records?: ConformanceRecordRow[]
+    }>
+  }
 }
 
 export interface DailyLotReport {

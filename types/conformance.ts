@@ -9,6 +9,9 @@ export interface ConformanceRecord {
   checked_by: string
   checked_at: string
   photo_url: string | null
+  pass_fail_value: 'PASS' | 'FAIL' | 'N/A' | null
+  text_value: string | null
+  numeric_value: number | null
   organization_id: string
   created_at: string
   updated_at: string
@@ -39,6 +42,7 @@ export interface UpdateConformanceRecord {
 // Additional conformance-related types
 export interface ConformanceRecordWithAttachments extends ConformanceRecord {
   attachments?: string[]
+  comment?: string
 }
 
 export interface ConformanceStats {

@@ -14,7 +14,7 @@ const initializeAnswers = (lotData: FullLotData): Record<string, Partial<Conform
   const initial: Record<string, Partial<ConformanceRecord>> = {};
   lotData.itps.itp_items.forEach(item => {
     const record = item.conformance_records?.[0];
-    initial[item.id] = record || { itp_item_id: item.id, lot_id: lotData.id };
+    initial[item.id] = record || { item_id: item.id, lot_id: lotData.id };
   });
   return initial;
 };

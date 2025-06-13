@@ -10,7 +10,7 @@ import { Camera, MessageSquare } from 'lucide-react'
 import type { ItpItem, ConformanceRecordWithAttachments } from '../types'
 
 interface ChecklistItemProps {
-  item: ItpItem & { conformance_records: ConformanceRecordWithAttachments[] }
+  item: ItpItem & { conformance_records?: ConformanceRecordWithAttachments[] }
   onUpdate: (itemId: string, data: Partial<ConformanceRecordWithAttachments>) => void
   disabled?: boolean
 }

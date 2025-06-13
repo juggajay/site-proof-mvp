@@ -13,7 +13,7 @@ import { Label } from '../ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Textarea } from '../ui/textarea'
-import type { Itp } from '../../types'
+import type { ITP } from '../../types'
 
 const lotSchema = z.object({
   lotNumber: z.string().min(1, { message: 'Lot number is required.' }),
@@ -31,7 +31,7 @@ interface CreateLotModalProps {
 }
 
 export default function CreateLotModal({ open, onOpenChange, projectId }: CreateLotModalProps) {
-  const [itps, setItps] = useState<Itp[]>([])
+  const [itps, setItps] = useState<{id: string, title: string, description: string}[]>([])
   const [isPending, startTransition] = useTransition()
   const supabase = createClient()
 
