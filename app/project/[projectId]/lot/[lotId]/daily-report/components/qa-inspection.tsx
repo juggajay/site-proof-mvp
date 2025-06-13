@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertTriangle, Clock, Camera, FileText } from 'lucide-react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import AssignITPDialog from '@/components/assign-itp-dialog';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 interface ITPItem {
   id: string;
@@ -185,7 +186,9 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             No Inspection & Test Plan has been assigned to this lot yet.
           </p>
-          <AssignITPDialog />
+          <ErrorBoundary>
+            <AssignITPDialog />
+          </ErrorBoundary>
         </CardContent>
       </Card>
     );
