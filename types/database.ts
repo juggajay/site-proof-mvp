@@ -182,6 +182,44 @@ export interface Database {
           updated_at?: string
         }
       }
+      compliance_checks: {
+        Row: {
+          id: string
+          lot_id: string
+          project_id: string
+          check_type: string
+          status: 'compliant' | 'non_compliant' | 'pending'
+          notes: string | null
+          checked_by: string
+          checked_at: string
+          photo_url: string | null
+          organization_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lot_id: string
+          project_id: string
+          check_type: string
+          status: 'compliant' | 'non_compliant' | 'pending'
+          notes?: string | null
+          checked_by: string
+          checked_at: string
+          photo_url?: string | null
+          organization_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          check_type?: string
+          status?: 'compliant' | 'non_compliant' | 'pending'
+          notes?: string | null
+          checked_at?: string
+          photo_url?: string | null
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -200,6 +238,7 @@ export type Project = Database['public']['Tables']['projects']['Row']
 export type Lot = Database['public']['Tables']['lots']['Row']
 export type Organization = Database['public']['Tables']['organizations']['Row']
 export type Profile = Database['public']['Tables']['profiles']['Row']
+export type ComplianceCheckRow = Database['public']['Tables']['compliance_checks']['Row']
 export type ITP = Database['public']['Tables']['itps']['Row']
 export type ITPAssignment = Database['public']['Tables']['itp_assignments']['Row']
 
