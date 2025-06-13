@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { SiteDiaryTab } from './components/site-diary-tab'
 
 export default function DailyLotReport({ params }: { params: { projectId: string; lotId: string } }) {
   const [activeTab, setActiveTab] = useState<'diary' | 'dockets' | 'compliance'>('diary')
@@ -14,49 +15,50 @@ export default function DailyLotReport({ params }: { params: { projectId: string
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        // Load lot data
-        const { data: lotData } = await supabase
-          .from('lots')
-          .select('*, projects(id, name)')
-          .eq('id', params.lotId)
-          .single()
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      // Load lot data
+      const { data: lotData } = await supabase
+        .from('lots')
+        .select('*, projects(id, name)')
+        .eq('id', params.lotId)
+        .single()
 
-        setLot(lotData)
+      setLot(lotData)
 
-        // Load or create today's daily report
-        const today = new Date().toISOString().split('T')[0]
-        let { data: report } = await supabase
+      // Load or create today's daily report
+      const today = new Date().toISOString().split('T')[0]
+      let { data: report } = await supabase
+        .from('daily_lot_reports')
+        .select('*')
+        .eq('lot_id', params.lotId)
+        .eq('report_date', today)
+        .single()
+
+      if (!report) {
+        const { data: newReport } = await supabase
           .from('daily_lot_reports')
-          .select('*')
-          .eq('lot_id', params.lotId)
-          .eq('report_date', today)
+          .insert([{
+            lot_id: params.lotId,
+            report_date: today,
+            weather: 'sunny',
+            general_activities: ''
+          }])
+          .select()
           .single()
-
-        if (!report) {
-          const { data: newReport } = await supabase
-            .from('daily_lot_reports')
-            .insert([{
-              lot_id: params.lotId,
-              report_date: today,
-              weather: 'sunny',
-              general_activities: ''
-            }])
-            .select()
-            .single()
-          report = newReport
-        }
-
-        setDailyReport(report)
-      } catch (error) {
-        console.error('Error:', error)
-      } finally {
-        setLoading(false)
+        report = newReport
       }
-    }
 
+      setDailyReport(report)
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadData()
   }, [params.lotId])
 
@@ -105,13 +107,11 @@ export default function DailyLotReport({ params }: { params: { projectId: string
       {/* Tab Content */}
       <div className="container mx-auto px-4 py-6">
         {activeTab === 'diary' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Site Diary - Today's Activities</h2>
-            <p className="text-green-600 mb-4">🎉 Daily Report System is working!</p>
-            <p className="text-gray-600 dark:text-gray-400">
-              This is where the Site Diary tab will go - with weather selector, activities text, and the killer "Add Photo/Note" feature with automatic watermarking.
-            </p>
-          </div>
+          <SiteDiaryTab
+            lot={lot}
+            dailyReport={dailyReport}
+            onUpdate={loadData}
+          />
         )}
         
         {activeTab === 'dockets' && (
