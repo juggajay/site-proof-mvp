@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -42,11 +42,7 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
 
   const supabase = createClient();
 
-  useEffect(() => {
-    loadITPData();
-  }, [lotId]);
-
-  const loadITPData = async () => {
+  const loadITPData = useCallback(async () => {
     try {
       // Load ITP associated with this lot
       const { data: itpData, error: itpError } = await supabase
@@ -95,7 +91,11 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
     } finally {
       setLoading(false);
     }
-  };
+  }, [lotId, supabase]);
+
+  useEffect(() => {
+    loadITPData();
+  }, [loadITPData]);
 
   const updateItemStatus = async (itemId: string, status: string, notes?: string) => {
     setSaving(true);
