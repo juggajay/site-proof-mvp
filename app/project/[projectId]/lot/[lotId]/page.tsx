@@ -227,9 +227,9 @@ export default function LotPage({ params }: LotPageProps) {
               Next Steps
             </h3>
             <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-              <li>• Click "Start Inspection" to begin a new inspection</li>
-              <li>• Use "Edit Lot" to modify lot details</li>
-              <li>• View "History" to see past inspections</li>
+              <li>• Click 'Start Inspection' to begin a new inspection</li>
+              <li>• Use 'Edit Lot' to modify lot details</li>
+              <li>• View 'History' to see past inspections</li>
               <li>• All buttons now have loading states and navigation</li>
             </ul>
           </div>
