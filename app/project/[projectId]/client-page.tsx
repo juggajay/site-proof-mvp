@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import CreateLotModal from '@/components/modals/create-lot-modal'
+import { Button } from '../../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
+import { Badge } from '../../../components/ui/badge'
+import CreateLotModal from '../../../components/modals/create-lot-modal'
 import { Plus, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import type { Project, LotWithItp } from '@/types'
+import type { Project, LotWithItp } from '../../../types'
 
 interface ClientPageProps {
   project: Project

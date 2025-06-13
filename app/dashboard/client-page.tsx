@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PlusCircle, FolderKanban, HardHat } from 'lucide-react'
-import { Project } from '@/types'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CreateProjectModal } from '@/components/modals/create-project-modal'
+import { Project } from '../../types'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
+import { CreateProjectModal } from '../../components/modals/create-project-modal'
 
 interface DashboardClientPageProps {
   projects: Project[]
