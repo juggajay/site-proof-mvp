@@ -112,9 +112,9 @@ function Select({ value, onChange, children, placeholder, disabled }: {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
-      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
     >
-      <option value="">{placeholder}</option>
+      <option value="" className="text-gray-500">{placeholder}</option>
       {children}
     </select>
   );
@@ -135,7 +135,7 @@ function Input({ type = 'text', value, onChange, placeholder, disabled, classNam
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={`w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+      className={`w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 ${className}`}
     />
   );
 }
@@ -154,7 +154,7 @@ function Textarea({ value, onChange, placeholder, disabled, rows = 3 }: {
       placeholder={placeholder}
       disabled={disabled}
       rows={rows}
-      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+      className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-gray-900 placeholder-gray-500"
     />
   );
 }
