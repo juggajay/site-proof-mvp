@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { SiteDiaryTab } from './components/site-diary-tab'
 import LabourDockets from './components/labour-dockets'
+import QAInspection from './components/qa-inspection'
+import EnvironmentalCompliance from './components/environmental-compliance'
 
 // Minimal test component to verify dockets functionality
 function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
@@ -538,6 +540,7 @@ function SimpleDocketsTab({ dailyReport, onUpdate }: { dailyReport: any, onUpdat
 
 export default function DailyLotReport({ params }: { params: { projectId: string; lotId: string } }) {
   const [activeTab, setActiveTab] = useState<'diary' | 'dockets' | 'compliance'>('diary')
+  const [complianceTab, setComplianceTab] = useState<'qa' | 'environmental'>('qa')
   const [lot, setLot] = useState<any>(null)
   const [dailyReport, setDailyReport] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -651,11 +654,47 @@ export default function DailyLotReport({ params }: { params: { projectId: string
         )}
         
         {activeTab === 'compliance' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Compliance - QA & Environmental</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              This will show ITP checklists and environmental compliance checks.
-            </p>
+          <div className="space-y-6">
+            {/* Compliance Sub-tabs */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex space-x-8 px-6">
+                  {[
+                    { key: 'qa', label: '🔍 QA Inspection', desc: 'ITP Checklists' },
+                    { key: 'environmental', label: '🌱 Environmental', desc: 'Compliance Monitoring' }
+                  ].map(({ key, label, desc }) => (
+                    <button
+                      key={key}
+                      onClick={() => setComplianceTab(key as any)}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                        complianceTab === key
+                          ? 'border-green-500 text-green-600 dark:text-green-400'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                      }`}
+                    >
+                      <div>{label}</div>
+                      <div className="text-xs text-gray-400">{desc}</div>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+              
+              <div className="p-6">
+                {complianceTab === 'qa' && (
+                  <QAInspection
+                    dailyReportId={dailyReport?.id}
+                    lotId={params.lotId}
+                  />
+                )}
+                
+                {complianceTab === 'environmental' && (
+                  <EnvironmentalCompliance
+                    dailyReportId={dailyReport?.id}
+                    projectId={params.projectId}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
