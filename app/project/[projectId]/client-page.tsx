@@ -111,32 +111,34 @@ export default function ClientPage({ project, initialLots }: ClientPageProps) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {initialLots.map((lot) => (
-              <Card key={lot.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{lot.lot_number}</CardTitle>
-                    <Badge className={getStatusColor(lot.status)}>
-                      {formatStatus(lot.status)}
-                    </Badge>
-                  </div>
-                  <CardDescription>
-                    {lot.itps?.title || 'No ITP assigned'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {lot.description || 'No description provided'}
-                  </p>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-muted-foreground">
-                      Created {new Date(lot.created_at).toLocaleDateString()}
+              <Link href={`/project/${project.id}/lot/${lot.id}`} key={lot.id}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{lot.lot_number}</CardTitle>
+                      <Badge className={getStatusColor(lot.status)}>
+                        {formatStatus(lot.status)}
+                      </Badge>
+                    </div>
+                    <CardDescription>
+                      {lot.itps?.title || 'No ITP assigned'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {lot.description || 'No description provided'}
                     </p>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs text-muted-foreground">
+                        Created {new Date(lot.created_at).toLocaleDateString()}
+                      </p>
+                      <Button variant="outline" size="sm" onClick={(e) => e.preventDefault()}>
+                        View Inspection
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}

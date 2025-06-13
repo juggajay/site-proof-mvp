@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../../lib/supabase/server'
 import { notFound } from 'next/navigation'
 import ClientPage from './client-page'
-import type { Project, LotWithItp } from '@/types'
+import type { Project, LotWithItp } from '../../../types'
 
 interface ProjectPageProps {
   params: {
@@ -12,29 +12,23 @@ interface ProjectPageProps {
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const supabase = createClient()
 
-  // Get the current user
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    notFound()
-  }
-
-  // Get the project
+  // Fetch project details
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .select('*')
     .eq('id', params.projectId)
-    .single()
+    .single<Project>()
 
   if (projectError || !project) {
     notFound()
   }
 
-  // Get lots for this project with ITP information
+  // Fetch lots for this project with ITP information
   const { data: lots, error: lotsError } = await supabase
     .from('lots')
     .select(`
       *,
-      itps:itp_id (
+      itps (
         title
       )
     `)
@@ -45,10 +39,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     console.error('Error fetching lots:', lotsError)
   }
 
-  return (
-    <ClientPage 
-      project={project as Project} 
-      initialLots={(lots as LotWithItp[]) || []} 
-    />
-  )
+  const lotsWithItp: LotWithItp[] = lots?.map(lot => ({
+    ...lot,
+    itps: lot.itps ? { title: lot.itps.title } : null
+  })) || []
+
+  return <ClientPage project={project} initialLots={lotsWithItp} />
 }

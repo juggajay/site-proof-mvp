@@ -7,12 +7,12 @@ import { z } from 'zod'
 import { createClient } from '../../lib/supabase/client'
 import { createLotAction } from '../../actions'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { Textarea } from '../ui/textarea'
 import type { Itp } from '../../types'
 
 const lotSchema = z.object({
@@ -65,8 +65,6 @@ export default function CreateLotModal({ open, onOpenChange, projectId }: Create
             id: item.id,
             title: item.title,
             description: item.description,
-            created_at: '',
-            updated_at: ''
           })) || [])
         } catch (error) {
           console.error('Error fetching ITPs:', error)
