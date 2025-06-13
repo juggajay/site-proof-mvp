@@ -1,4 +1,5 @@
 import { createClient } from '../supabase/client'
+import { v4 as uuidv4 } from 'uuid'
 import type { ITP, TeamMember } from '../../types'
 
 export class ITPService {
@@ -37,7 +38,7 @@ export class ITPService {
   private getMockTeamMembers(): TeamMember[] {
     return [
       {
-        id: '1',
+        id: uuidv4(),
         name: 'John Rodriguez',
         email: 'john@company.com',
         role: 'Senior Inspector',
@@ -46,7 +47,7 @@ export class ITPService {
         organization_id: 'mock-org'
       },
       {
-        id: '2',
+        id: uuidv4(),
         name: 'Sarah Chen',
         email: 'sarah@company.com',
         role: 'Quality Engineer',

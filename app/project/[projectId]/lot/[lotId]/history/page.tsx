@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { v4 as uuidv4 } from 'uuid'
 
 interface HistoryPageProps {
   params: { 
@@ -19,14 +20,14 @@ export default function HistoryPage({ params }: HistoryPageProps) {
   // Mock history data
   const historyItems = [
     {
-      id: '1',
+      id: uuidv4(),
       action: 'Inspection Started',
       user: 'John Doe',
       timestamp: '2024-01-15 10:30:00',
       status: 'completed'
     },
     {
-      id: '2',
+      id: uuidv4(),
       action: 'Lot Created',
       user: 'Jane Smith',
       timestamp: '2024-01-14 14:20:00',
