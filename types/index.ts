@@ -2,6 +2,7 @@
 export * from './database'
 export * from './compliance'
 export * from './conformance'
+export * from './auth'
 
 // Re-export commonly used types for convenience
 export type {
@@ -42,3 +43,13 @@ export type {
   ConformanceRecordWithAttachments,
   ConformanceStats
 } from './conformance'
+
+export type {
+  AuthUser,
+  AuthSession,
+  AuthContextType,
+  LoginCredentials,
+  SignupCredentials,
+  AuthError,
+  AuthResponse
+} from './auth'
