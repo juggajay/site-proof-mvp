@@ -1,11 +1,12 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { createProjectAction } from '../../actions'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
@@ -25,39 +26,93 @@ interface CreateProjectModalProps {
 }
 
 export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalProps) {
-  const [isPending, startTransition] = useTransition()
+  const [isCreating, setIsCreating] = useState(false)
+  const supabase = createClientComponentClient()
+  const router = useRouter()
 
   const form = useForm<CreateProjectForm>({
     resolver: zodResolver(createProjectSchema),
   })
 
-  const onSubmit = (data: CreateProjectForm) => {
+  const onSubmit = async (data: CreateProjectForm) => {
     console.log('🎯 Form submitted with data:', data)
-    
-    startTransition(async () => {
-      const formData = new FormData()
-      formData.append('name', data.name)
-      formData.append('projectNumber', data.projectNumber)
-      formData.append('location', data.location)
+    setIsCreating(true)
 
-      console.log('📤 Calling createProjectAction...')
-
-      try {
-        const result = await createProjectAction(formData)
-        console.log('✅ Project creation successful:', result)
-        
-        toast.success('Project created successfully!')
-        form.reset()
-        onOpenChange(false)
-      } catch (error) {
-        console.error('❌ Project creation error in modal:', error)
-        
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.'
-        console.error('Error message:', errorMessage)
-        
-        toast.error(`Failed to create project: ${errorMessage}`)
+    try {
+      // Check authentication
+      console.log('🔐 Checking authentication...')
+      const { data: { session }, error: authError } = await supabase.auth.getSession()
+      
+      if (authError) {
+        console.error('❌ Auth error:', authError)
+        throw new Error('Authentication failed')
       }
-    })
+      
+      if (!session) {
+        console.error('❌ No session found')
+        throw new Error('Please sign in to create a project')
+      }
+
+      console.log('✅ User authenticated:', session.user.id)
+
+      // Get user profile
+      console.log('👤 Getting user profile...')
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (profileError) {
+        console.error('❌ Profile error:', profileError)
+        throw new Error('User profile not found. Please contact support.')
+      }
+      
+      if (!profile?.organization_id) {
+        console.error('❌ No organization_id found in profile:', profile)
+        throw new Error('User not assigned to an organization')
+      }
+
+      console.log('✅ Profile found with organization_id:', profile.organization_id)
+
+      // Create project
+      console.log('🏗️ Creating project...')
+      const { data: project, error: createError } = await supabase
+        .from('projects')
+        .insert([
+          {
+            name: data.name,
+            project_number: data.projectNumber,
+            location: data.location,
+            organization_id: profile.organization_id,
+          }
+        ])
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('❌ Create error:', createError)
+        throw new Error(`Failed to create project: ${createError.message}`)
+      }
+
+      console.log('✅ Project created successfully:', project)
+      
+      // Success
+      toast.success('Project created successfully!')
+      form.reset()
+      onOpenChange(false)
+      
+      // Navigate to new project or refresh
+      router.push(`/project/${project.id}`)
+      router.refresh()
+
+    } catch (error) {
+      console.error('❌ Create project error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create project'
+      toast.error(errorMessage)
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   return (
@@ -72,22 +127,34 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="name">Project Name</Label>
-            <Input id="name" {...form.register('name')} disabled={isPending} />
+            <Input id="name" {...form.register('name')} disabled={isCreating} />
             {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="projectNumber">Project Number</Label>
-            <Input id="projectNumber" {...form.register('projectNumber')} disabled={isPending} />
+            <Input id="projectNumber" {...form.register('projectNumber')} disabled={isCreating} />
             {form.formState.errors.projectNumber && <p className="text-sm text-destructive">{form.formState.errors.projectNumber.message}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
-            <Input id="location" {...form.register('location')} disabled={isPending} />
+            <Input id="location" {...form.register('location')} disabled={isCreating} />
             {form.formState.errors.location && <p className="text-sm text-destructive">{form.formState.errors.location.message}</p>}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>Cancel</Button>
-            <Button type="submit" disabled={isPending}>{isPending ? 'Creating...' : 'Create Project'}</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isCreating}>Cancel</Button>
+            <Button type="submit" disabled={isCreating}>
+              {isCreating ? (
+                <>
+                  <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                'Create Project'
+              )}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
