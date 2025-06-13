@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from './lib/supabase/server';
 import { z } from 'zod';
-import { Lot } from './types';
+import { Lot, ConformanceRecord } from './types';
 
 // --- Create Project Action ---
 const projectSchema = z.object({
@@ -49,4 +49,44 @@ export async function createLotAction(formData: FormData) {
     if (error) throw new Error(error.message);
     revalidatePath(`/project/${validatedData.data.projectId}`);
     return { success: true, newLot: lotData };
+}
+
+// --- Save Inspection Answers Action ---
+export async function saveInspectionAnswersAction(answers: Partial<ConformanceRecord>[]) {
+    const supabase = createClient();
+    
+    // Authentication check
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        throw new Error('Authentication required');
+    }
+
+    try {
+        // Prepare data for upsert with completed_by field
+        const answersWithUser = answers.map(answer => ({
+            ...answer,
+            completed_by: user.id,
+            updated_at: new Date().toISOString()
+        }));
+
+        // Perform upsert operation on conformance_records table
+        const { error } = await supabase
+            .from('conformance_records')
+            .upsert(answersWithUser, {
+                onConflict: 'lot_id,itp_item_id'
+            });
+
+        if (error) {
+            throw new Error(`Failed to save inspection answers: ${error.message}`);
+        }
+
+        // Revalidate the lot page to ensure fresh data
+        if (answers.length > 0 && answers[0].lot_id) {
+            revalidatePath(`/project/*/lot/${answers[0].lot_id}`);
+        }
+
+        return { success: true };
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Failed to save inspection answers');
+    }
 }

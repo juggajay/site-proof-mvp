@@ -1,13 +1,14 @@
 // app/project/[projectId]/lot/[lotId]/client-page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { FullLotData, ConformanceRecord } from '../../../../../types';
 import { Button } from '../../../../../components/ui/button';
 import ChecklistItem from '../../../../../components/checklist-item';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
+import { saveInspectionAnswersAction } from '../../../../../actions';
 
 const initializeAnswers = (lotData: FullLotData): Record<string, Partial<ConformanceRecord>> => {
   const initial: Record<string, Partial<ConformanceRecord>> = {};
@@ -20,15 +21,21 @@ const initializeAnswers = (lotData: FullLotData): Record<string, Partial<Conform
 
 export function LotInspectionClientPage({ lotData }: { lotData: FullLotData }) {
   const [answers, setAnswers] = useState(() => initializeAnswers(lotData));
+  const [isPending, startTransition] = useTransition();
 
   const handleAnswerChange = (itemId: string, data: Partial<ConformanceRecord>) => {
     setAnswers(prev => ({ ...prev, [itemId]: { ...prev[itemId], ...data } }));
   };
 
-  const handleSave = () => {
-    // We will implement this server action next
-    console.log("Saving answers:", answers);
-    toast.success("Progress Saved! (Feature in development)");
+  const handleSave = async () => {
+    startTransition(async () => {
+      try {
+        await saveInspectionAnswersAction(Object.values(answers));
+        toast.success("Progress saved successfully!");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to save progress");
+      }
+    });
   };
 
   return (
@@ -56,7 +63,9 @@ export function LotInspectionClientPage({ lotData }: { lotData: FullLotData }) {
       </div>
 
       <div className="mt-8 flex justify-end">
-        <Button onClick={handleSave}>Save Progress</Button>
+        <Button onClick={handleSave} disabled={isPending}>
+          {isPending ? "Saving..." : "Save Progress"}
+        </Button>
       </div>
     </div>
   );
