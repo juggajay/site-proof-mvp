@@ -96,13 +96,16 @@ export function AssignITPButton({ lot, availableITPs, teamMembers, onAssign }: A
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
+      <DialogContent
+        className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto"
+        aria-describedby="assign-itp-description"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
             Assign Inspection & Test Plan
           </DialogTitle>
-          <DialogDescription id="dialog-description">
+          <DialogDescription id="assign-itp-description">
             Assign an ITP to <span className="font-medium">{lot.name}</span> and schedule the inspection.
           </DialogDescription>
         </DialogHeader>
