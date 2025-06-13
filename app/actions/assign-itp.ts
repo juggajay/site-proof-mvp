@@ -1,113 +1,48 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { createClient } from '../../lib/supabase/server'
-import type { CreateITPAssignment, Database } from '../../types'
+import { revalidatePath } from 'next/cache'
+import type { CreateITPAssignment } from '../../types'
 
 export async function assignITPToLot(assignment: CreateITPAssignment) {
-  console.log('🚀 Assignment received:', assignment)
-  
   const supabase = createClient()
   
   try {
-    // Simulate processing delay for better UX feedback
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      console.warn('⚠️ User not authenticated, using mock assignment')
-      
-      // Return mock assignment for demonstration
-      const mockAssignment = {
-        id: 'mock-assignment-id',
-        ...assignment,
-        assigned_by: 'current-user-id',
-        status: 'assigned' as const,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        completion_notes: null,
-        actual_completion_date: null
-      }
-      
-      console.log('✅ Mock assignment successful!')
-      revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}/daily-report`)
-      
-      return { success: true, assignment: mockAssignment }
-    }
-
-    // FIX: Use proper Database Insert type
-    const assignmentData: Database['public']['Tables']['itp_assignments']['Insert'] = {
-      lot_id: assignment.lot_id,
-      project_id: assignment.project_id,
-      itp_id: assignment.itp_id,
-      assigned_to: assignment.assigned_to,
-      assigned_by: user.id,
-      scheduled_date: assignment.scheduled_date,
-      estimated_completion_date: assignment.estimated_completion_date || null,
-      priority: assignment.priority,
-      status: 'assigned',
-      notes: assignment.notes || null,
-      completion_notes: null,
-      actual_completion_date: null,
-      organization_id: assignment.organization_id
-    }
-
-    console.log('💾 Saving assignment to database:', assignmentData)
-
+    // Simple insert without complex relationships for now
     const { data, error } = await supabase
       .from('itp_assignments')
-      .insert(assignmentData)
-      .select(`
-        *,
-        itp:itps(title, description),
-        assigned_to_user:profiles!assigned_to(name, email),
-        lot:lots(name)
-      `)
+      .insert({
+        itp_id: assignment.itp_id,
+        assigned_to: assignment.assigned_to,
+        assigned_by: 'current-user',
+        lot_id: assignment.lot_id,
+        project_id: assignment.project_id,
+        scheduled_date: assignment.scheduled_date,
+        estimated_completion_date: assignment.estimated_completion_date,
+        priority: assignment.priority,
+        notes: assignment.notes,
+        organization_id: assignment.organization_id,
+        status: 'assigned'
+      })
+      .select()
       .single()
 
     if (error) {
-      console.error('❌ Database error:', error)
+      console.error('Assignment error:', error)
       throw new Error(`Failed to create assignment: ${error.message}`)
     }
 
-    console.log('✅ Assignment saved to database!', data)
+    console.log('✅ Assignment successful:', data)
 
-    // Create activity log for audit trail
-    const activityResult = await supabase.from('activity_logs').insert({
-      user_id: user.id,
-      action: 'itp_assigned',
-      entity_type: 'itp_assignment',
-      entity_id: data.id,
-      description: `Assigned ITP "${data.itp?.title}" to lot "${data.lot?.name}"`,
-      project_id: assignment.project_id,
-      organization_id: assignment.organization_id,
-      metadata: {
-        itp_title: data.itp?.title,
-        lot_name: data.lot?.name,
-        assigned_to_name: data.assigned_to_user?.name,
-        scheduled_date: assignment.scheduled_date,
-        priority: assignment.priority
-      }
-    })
-
-    if (activityResult.error) {
-      console.warn('⚠️ Failed to create activity log:', activityResult.error)
-    } else {
-      console.log('📝 Activity log created successfully')
-    }
-
-    console.log('🎉 Assignment completed successfully!')
-    
     revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}/daily-report`)
-    revalidatePath('/dashboard')
-
+    
     return { success: true, assignment: data }
 
   } catch (error) {
-    console.error('💥 Assignment failed:', error)
+    console.error('❌ Assignment failed:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Assignment failed'
     }
   }
 }
