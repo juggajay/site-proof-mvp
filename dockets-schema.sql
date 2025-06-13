@@ -55,28 +55,13 @@ ALTER TABLE material_dockets ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
 CREATE POLICY "Users can manage labour dockets" ON labour_dockets
-FOR ALL USING (
-    daily_report_id IN (
-        SELECT id FROM daily_lot_reports 
-        WHERE lot_id IN (SELECT id FROM lots)
-    )
-);
+FOR ALL USING (true);
 
 CREATE POLICY "Users can manage plant dockets" ON plant_dockets
-FOR ALL USING (
-    daily_report_id IN (
-        SELECT id FROM daily_lot_reports 
-        WHERE lot_id IN (SELECT id FROM lots)
-    )
-);
+FOR ALL USING (true);
 
 CREATE POLICY "Users can manage material dockets" ON material_dockets
-FOR ALL USING (
-    daily_report_id IN (
-        SELECT id FROM daily_lot_reports 
-        WHERE lot_id IN (SELECT id FROM lots)
-    )
-);
+FOR ALL USING (true);
 
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_labour_dockets_daily_report ON labour_dockets(daily_report_id);

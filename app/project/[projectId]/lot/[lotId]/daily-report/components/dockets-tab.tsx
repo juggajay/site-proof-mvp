@@ -358,8 +358,12 @@ function LabourSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.25"
-                value={formData.hours_worked}
-                onChange={(e) => setFormData({...formData, hours_worked: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.hours_worked || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  hours_worked: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
                 required
               />
@@ -369,8 +373,12 @@ function LabourSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.01"
-                value={formData.hourly_rate}
-                onChange={(e) => setFormData({...formData, hourly_rate: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.hourly_rate || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  hourly_rate: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
               />
             </div>
@@ -545,8 +553,12 @@ function PlantSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.25"
-                value={formData.hours_worked}
-                onChange={(e) => setFormData({...formData, hours_worked: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.hours_worked || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  hours_worked: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
                 required
               />
@@ -556,8 +568,12 @@ function PlantSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.01"
-                value={formData.hourly_rate}
-                onChange={(e) => setFormData({...formData, hourly_rate: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.hourly_rate || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  hourly_rate: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
               />
             </div>
@@ -566,8 +582,12 @@ function PlantSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.1"
-                value={formData.fuel_consumption}
-                onChange={(e) => setFormData({...formData, fuel_consumption: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.fuel_consumption || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  fuel_consumption: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
               />
             </div>
@@ -745,8 +765,12 @@ function MaterialsSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.01"
-                value={formData.quantity}
-                onChange={(e) => setFormData({...formData, quantity: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.quantity || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  quantity: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
                 required
               />
@@ -770,8 +794,12 @@ function MaterialsSection({ dockets, onAdd, onDelete, isLoading }: {
               <input
                 type="number"
                 step="0.01"
-                value={formData.unit_rate}
-                onChange={(e) => setFormData({...formData, unit_rate: parseFloat(e.target.value)})}
+                min="0"
+                value={formData.unit_rate || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  unit_rate: e.target.value ? parseFloat(e.target.value) : 0
+                })}
                 className="w-full px-3 py-2 border rounded-md dark:bg-gray-600 dark:border-gray-500"
               />
             </div>
