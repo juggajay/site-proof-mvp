@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { SiteDiaryTab } from './components/site-diary-tab'
+import { DocketsTab } from './components/dockets-tab'
 
 export default function DailyLotReport({ params }: { params: { projectId: string; lotId: string } }) {
   const [activeTab, setActiveTab] = useState<'diary' | 'dockets' | 'compliance'>('diary')
@@ -115,12 +116,11 @@ export default function DailyLotReport({ params }: { params: { projectId: string
         )}
         
         {activeTab === 'dockets' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Dockets - Commercial Data</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              This will capture Labour, Plant/Equipment, and Materials data for payment claims.
-            </p>
-          </div>
+          <DocketsTab
+            lot={lot}
+            dailyReport={dailyReport}
+            onUpdate={loadData}
+          />
         )}
         
         {activeTab === 'compliance' && (
