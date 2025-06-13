@@ -15,7 +15,6 @@ export class ITPService {
         estimated_duration: '2 days',
         complexity: 'moderate',
         required_certifications: ['Concrete Testing'],
-        is_active: true,
         organization_id: 'mock-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -28,7 +27,6 @@ export class ITPService {
         estimated_duration: '1 day',
         complexity: 'simple',
         required_certifications: ['Asphalt Testing'],
-        is_active: true,
         organization_id: 'mock-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -65,7 +63,6 @@ export class ITPService {
         .from('itps')
         .select('*')
         .eq('organization_id', organizationId)
-        .eq('is_active', true)
         .order('title')
 
       if (error) {

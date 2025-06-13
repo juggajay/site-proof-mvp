@@ -75,7 +75,6 @@ export interface ITP {
   estimated_duration: string
   complexity: 'simple' | 'moderate' | 'complex'
   required_certifications: string[] | null
-  is_active: boolean
   organization_id: string
   created_at: string
   updated_at: string
