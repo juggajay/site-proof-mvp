@@ -15,8 +15,11 @@ import type {
   CreateLabourDocketForm,
   CreatePlantDocketForm,
   CreateMaterialDocketForm,
-  CreateComplianceCheckForm
+  CreateComplianceCheckForm,
+  UpdateComplianceCheckForm,
+  Database
 } from '../../types/database'
+import type { CreateComplianceCheckForm as ComplianceForm, UpdateComplianceCheckForm as UpdateComplianceForm } from '../../types/compliance'
 
 class DailyReportService {
   private supabase = createClient()
@@ -444,47 +447,72 @@ class DailyReportService {
   /**
    * Create compliance check
    */
-  async createComplianceCheck(
-    dailyReportId: string,
-    checkData: CreateComplianceCheckForm
-  ): Promise<ComplianceCheck> {
-    console.log('✅ Creating compliance check for report:', dailyReportId)
-    
-    // Get current user
-    const { data: { session } } = await this.supabase.auth.getSession()
-    if (!session) {
-      throw new Error('User not authenticated')
-    }
+  async createComplianceCheck(checkData: CreateComplianceCheckForm): Promise<ComplianceCheck> {
+    let photoUrl: string | null = null
 
-    let photoUrl: string | undefined
-
-    // Upload photo if provided
+    // Upload photo if provided - now properly typed
     if (checkData.photo) {
       photoUrl = await this.uploadPhoto(checkData.photo, 'compliance-photos')
     }
 
+    // Prepare data for database insertion
+    const insertData: Database['public']['Tables']['compliance_checks']['Insert'] = {
+      lot_id: checkData.lot_id,
+      project_id: checkData.project_id,
+      check_type: checkData.check_type,
+      status: checkData.status,
+      notes: checkData.notes || null,
+      checked_by: checkData.checked_by,
+      checked_at: checkData.checked_at,
+      photo_url: photoUrl,
+      organization_id: checkData.organization_id
+    }
+
     const { data, error } = await this.supabase
-      .from('daily_compliance_checks')
-      .insert([{
-        daily_report_id: dailyReportId,
-        check_type: checkData.check_type,
-        item_name: checkData.item_name,
-        status: checkData.status,
-        comments: checkData.comments,
-        photo_url: photoUrl,
-        checked_by: session.user.id
-      }])
+      .from('compliance_checks')
+      .insert(insertData)
       .select()
       .single()
 
     if (error) {
-      console.error('❌ Error creating compliance check:', error)
       throw new Error(`Failed to create compliance check: ${error.message}`)
     }
 
-    console.log('✅ Compliance check created successfully:', data.id)
-    return data as ComplianceCheck
+    return data
   }
+
+  async updateComplianceCheck(
+    id: string,
+    updateData: UpdateComplianceCheckForm
+  ): Promise<ComplianceCheck> {
+    let photoUrl: string | undefined
+
+    // Upload new photo if provided
+    if (updateData.photo) {
+      photoUrl = await this.uploadPhoto(updateData.photo, 'compliance-photos')
+    }
+
+    const updatePayload: Database['public']['Tables']['compliance_checks']['Update'] = {
+      status: updateData.status,
+      notes: updateData.notes,
+      photo_url: photoUrl || updateData.photo_url,
+      updated_at: new Date().toISOString()
+    }
+
+    const { data, error } = await this.supabase
+      .from('compliance_checks')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to update compliance check: ${error.message}`)
+    }
+
+    return data
+  }
+
 
   /**
    * Parse GPS coordinates from PostGIS POINT format
