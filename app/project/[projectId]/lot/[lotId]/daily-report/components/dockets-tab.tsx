@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '../../../../../../../lib/supabase/client'
 
 interface DocketsTabProps {
@@ -57,13 +57,7 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
   const supabase = createClient()
 
   // Load all dockets on mount
-  useEffect(() => {
-    if (dailyReport?.id) {
-      loadAllDockets()
-    }
-  }, [dailyReport?.id])
-
-  const loadAllDockets = async () => {
+  const loadAllDockets = useCallback(async () => {
     setIsLoading(true)
     try {
       const [labourData, plantData, materialData] = await Promise.all([
@@ -80,7 +74,13 @@ export function DocketsTab({ lot, dailyReport, onUpdate }: DocketsTabProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [dailyReport?.id, supabase])
+
+  useEffect(() => {
+    if (dailyReport?.id) {
+      loadAllDockets()
+    }
+  }, [dailyReport?.id, loadAllDockets])
 
   // Labour docket functions
   const addLabourDocket = async (docket: LabourDocket) => {
