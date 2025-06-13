@@ -15,7 +15,6 @@ export class ITPService {
         estimated_duration: '2 days',
         complexity: 'moderate',
         required_certifications: ['Concrete Testing', 'Highway Construction'],
-        is_active: true,
         organization_id: '00000000-0000-0000-0000-000000000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -28,7 +27,6 @@ export class ITPService {
         estimated_duration: '1 day',
         complexity: 'simple',
         required_certifications: ['Asphalt Testing'],
-        is_active: true,
         organization_id: '00000000-0000-0000-0000-000000000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
