@@ -16,7 +16,7 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
-    <div className="container mx-auto">
+    <div className="bg-background text-foreground p-4 sm:p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Projects</h1>
         <Button onClick={() => setIsModalOpen(true)}>
@@ -26,7 +26,7 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
       </div>
 
       {projects.length === 0 ? (
-        <div className="text-center py-16 border-2 border-dashed rounded-lg bg-card">
+        <div className="text-center py-16 border-2 border-dashed rounded-lg bg-background">
           <HardHat className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-2 text-xl font-semibold">No Projects Found</h3>
           <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first project.</p>
@@ -35,7 +35,7 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <Link href={`/project/${project.id}`} key={project.id} passHref>
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-card text-card-foreground">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between text-lg">
                     <span>{project.name}</span>
