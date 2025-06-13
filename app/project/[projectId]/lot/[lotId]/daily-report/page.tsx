@@ -1,177 +1,139 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
-import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import { SiteDiaryTab } from './components/site-diary-tab'
 
-interface DailyLotReportProps {
-  params: { 
-    projectId: string
-    lotId: string 
-  }
-}
-
-interface DailyReport {
-  id: string
-  lot_id: string
-  report_date: string
-  weather: string
-  general_activities: string
-  created_at: string
-  updated_at: string
-}
-
-interface Lot {
-  id: string
-  lot_number: string
-  project_id: string
-}
-
-interface Project {
-  id: string
-  name: string
-}
-
-export default function DailyLotReportPage({ params }: DailyLotReportProps) {
-  const [activeTab, setActiveTab] = useState<'diary' | 'dockets' | 'compliance'>('diary')
-  const [reportDate] = useState(new Date().toISOString().split('T')[0]) // Today
-  const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
-  const [lot, setLot] = useState<Lot | null>(null)
-  const [project, setProject] = useState<Project | null>(null)
+export default function TestDailyReport({ params }: { params: { projectId: string; lotId: string } }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  const router = useRouter()
+  const [data, setData] = useState<any>(null)
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 
   useEffect(() => {
-    loadData()
-  }, [params.lotId, params.projectId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Load lot and project data
-      const { data: lotData, error: lotError } = await supabase
-        .from('lots')
-        .select(`
-          id,
-          lot_number,
-          project_id,
-          project:projects (
-            id,
-            name
-          )
-        `)
-        .eq('id', params.lotId)
-        .single()
-
-      if (lotError) {
-        console.error('Error loading lot:', lotError)
-        throw new Error('Failed to load lot information')
-      }
-
-      setLot(lotData)
-      
-      // Handle project data with proper type checking
-      let projectData = null
-      
-      if (lotData.project) {
-        if (Array.isArray(lotData.project)) {
-          projectData = lotData.project[0] || null
-        } else {
-          projectData = lotData.project
+    async function test() {
+      try {
+        console.log('🔍 Testing database connection...')
+        console.log('📍 Lot ID:', params.lotId)
+        console.log('📍 Project ID:', params.projectId)
+        
+        // Test 1: Check authentication
+        console.log('🔐 Testing authentication...')
+        const { data: { session }, error: authError } = await supabase.auth.getSession()
+        console.log('Auth test result:', { 
+          hasSession: !!session, 
+          userId: session?.user?.id,
+          error: authError 
+        })
+        
+        if (authError) {
+          throw new Error(`Authentication error: ${authError.message}`)
         }
-      }
-      
-      if (projectData) {
-        setProject(projectData)
-      } else {
-        throw new Error('Project information not found')
-      }
-
-      // Load or create today's daily report
-      await loadDailyReport()
-
-    } catch (error) {
-      console.error('Error loading data:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadDailyReport = async () => {
-    try {
-      console.log('🔍 Loading daily report for lot:', params.lotId, 'date:', reportDate)
-
-      // Try to get existing report
-      let { data: report, error } = await supabase
-        .from('daily_lot_reports')
-        .select('*')
-        .eq('lot_id', params.lotId)
-        .eq('report_date', reportDate)
-        .single()
-
-      if (error && error.code === 'PGRST116') {
-        // Report doesn't exist, create it
-        console.log('📝 Creating new daily report...')
-        const { data: newReport, error: createError } = await supabase
+        
+        if (!session) {
+          throw new Error('No active session - user not logged in')
+        }
+        
+        // Test 2: Check if lots table works
+        console.log('📦 Testing lots table access...')
+        const { data: lotData, error: lotError } = await supabase
+          .from('lots')
+          .select('*')
+          .eq('id', params.lotId)
+          .single()
+        
+        console.log('Lot test result:', { 
+          data: lotData, 
+          error: lotError,
+          errorCode: lotError?.code,
+          errorMessage: lotError?.message
+        })
+        
+        if (lotError) {
+          throw new Error(`Lots table error: ${lotError.message} (Code: ${lotError.code})`)
+        }
+        
+        // Test 3: Check if daily_lot_reports table exists and is accessible
+        console.log('📊 Testing daily_lot_reports table access...')
+        const { data: reportData, error: reportError } = await supabase
+          .from('daily_lot_reports')
+          .select('*')
+          .eq('lot_id', params.lotId)
+          .limit(1)
+        
+        console.log('Report test result:', { 
+          data: reportData, 
+          error: reportError,
+          errorCode: reportError?.code,
+          errorMessage: reportError?.message
+        })
+        
+        if (reportError) {
+          // Check if it's a "table doesn't exist" error
+          if (reportError.code === '42P01') {
+            throw new Error('daily_lot_reports table does not exist - schema not deployed')
+          }
+          throw new Error(`Daily reports table error: ${reportError.message} (Code: ${reportError.code})`)
+        }
+        
+        // Test 4: Try to create a test report
+        console.log('✏️ Testing report creation...')
+        const testDate = new Date().toISOString().split('T')[0]
+        const { data: createData, error: createError } = await supabase
           .from('daily_lot_reports')
           .insert([{
             lot_id: params.lotId,
-            report_date: reportDate,
+            report_date: testDate,
             weather: 'sunny',
-            general_activities: ''
+            general_activities: 'Test report creation'
           }])
           .select()
           .single()
-
+        
+        console.log('Create test result:', { 
+          data: createData, 
+          error: createError,
+          errorCode: createError?.code,
+          errorMessage: createError?.message
+        })
+        
         if (createError) {
-          console.error('Error creating daily report:', createError)
-          throw createError
+          throw new Error(`Report creation error: ${createError.message} (Code: ${createError.code})`)
         }
         
-        report = newReport
-        console.log('✅ Daily report created:', report.id)
-      } else if (error) {
-        console.error('Error loading daily report:', error)
-        throw error
-      } else {
-        console.log('✅ Daily report loaded:', report.id)
+        setData({ 
+          lot: lotData, 
+          reports: reportData,
+          newReport: createData,
+          session: session
+        })
+        
+        console.log('✅ All tests passed successfully!')
+        
+      } catch (err) {
+        console.error('❌ Test error:', err)
+        console.error('Error type:', typeof err)
+        console.error('Error message:', err instanceof Error ? err.message : 'Unknown error')
+        console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace')
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
       }
-
-      setDailyReport(report)
-    } catch (error) {
-      console.error('Error with daily report:', error)
-      throw error
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-AU', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+    
+    test()
+  }, [params.lotId, params.projectId])
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 text-lg">Loading daily report...</p>
-          <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Setting up today's workspace</p>
+          <p className="text-gray-600 dark:text-gray-400 text-lg">Testing database connection...</p>
+          <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Running diagnostics</p>
         </div>
       </div>
     )
@@ -180,21 +142,33 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Unable to Load Report
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+        <div className="text-center max-w-2xl mx-auto p-8">
+          <div className="text-red-500 text-6xl mb-4">🔧</div>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Diagnostic Test Failed</h1>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <p className="text-red-800 dark:text-red-200 font-mono text-sm">{error}</p>
+          </div>
+          
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Debugging Steps:</h3>
+            <ol className="text-left text-yellow-700 dark:text-yellow-300 text-sm space-y-1">
+              <li>1. Open browser DevTools (F12) → Console tab</li>
+              <li>2. Look for detailed error messages above</li>
+              <li>3. Check if daily_lot_reports table exists in Supabase</li>
+              <li>4. Verify RLS policies are correctly configured</li>
+              <li>5. Confirm user authentication is working</li>
+            </ol>
+          </div>
+          
           <div className="space-y-3">
             <button
-              onClick={loadData}
+              onClick={() => window.location.reload()}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Try Again
+              Run Test Again
             </button>
             <button
-              onClick={() => router.back()}
+              onClick={() => window.history.back()}
               className="w-full px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500"
             >
               Go Back
@@ -206,154 +180,77 @@ export default function DailyLotReportPage({ params }: DailyLotReportProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push(`/project/${params.projectId}`)}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <ArrowLeftIcon className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Daily Lot Report
-                </h1>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span>{project?.name}</span>
-                  <span>•</span>
-                  <span>Lot {lot?.lot_number}</span>
-                  <span>•</span>
-                  <span>{formatDate(reportDate)}</span>
-                </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="text-green-500 text-6xl mb-4">✅</div>
+          <h1 className="text-3xl font-bold text-green-600 mb-2">Database Connection Test Successful!</h1>
+          <p className="text-gray-600 dark:text-gray-400">All systems are working correctly</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Test Results */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Test Results</h2>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-500">✅</span>
+                <span className="text-gray-700 dark:text-gray-300">Authentication working</span>
               </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  Report #{dailyReport?.id.slice(-8).toUpperCase()}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Last updated: {dailyReport ? new Date(dailyReport.updated_at).toLocaleTimeString() : 'Never'}
-                </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-green-500">✅</span>
+                <span className="text-gray-700 dark:text-gray-300">Lots table accessible</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-green-500">✅</span>
+                <span className="text-gray-700 dark:text-gray-300">Daily reports table accessible</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-green-500">✅</span>
+                <span className="text-gray-700 dark:text-gray-300">Report creation working</span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4">
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('diary')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'diary'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <span>📝</span>
-                <span>Site Diary</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('dockets')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'dockets'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <span>💰</span>
-                <span>Dockets</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('compliance')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'compliance'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <span>✅</span>
-                <span>Compliance</span>
-              </div>
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="container mx-auto px-4 py-6">
-        {activeTab === 'diary' && (
-          <SiteDiaryTab
-            dailyReport={dailyReport}
-            onUpdate={loadDailyReport}
-          />
-        )}
-        
-        {activeTab === 'dockets' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-                Dockets - Coming Soon
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                The Dockets tab will allow you to track:
-              </p>
-              <ul className="mt-4 space-y-2 text-gray-600 dark:text-gray-400">
-                <li>• Labour hours and costs</li>
-                <li>• Plant and equipment usage</li>
-                <li>• Material deliveries and quantities</li>
-                <li>• Automatic cost calculations</li>
-                <li>• Digital docket capture</li>
-              </ul>
+          {/* Data Summary */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Data Summary</h2>
+            <div className="space-y-2 text-sm">
+              <div><strong>Project ID:</strong> {params.projectId}</div>
+              <div><strong>Lot ID:</strong> {params.lotId}</div>
+              <div><strong>Lot Number:</strong> {data?.lot?.lot_number}</div>
+              <div><strong>User ID:</strong> {data?.session?.user?.id}</div>
+              <div><strong>New Report ID:</strong> {data?.newReport?.id}</div>
             </div>
           </div>
-        )}
-        
-        {activeTab === 'compliance' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-                Compliance - Coming Soon
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                The Compliance tab will provide:
-              </p>
-              <ul className="mt-4 space-y-2 text-gray-600 dark:text-gray-400">
-                <li>• ITP (Inspection and Test Plan) checks</li>
-                <li>• Environmental compliance monitoring</li>
-                <li>• Safety checklist verification</li>
-                <li>• Photo evidence for all checks</li>
-                <li>• Digital signatures and timestamps</li>
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Debug Info (remove in production) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 bg-black text-white p-3 rounded-lg text-xs max-w-sm">
-          <div className="font-bold mb-2">Debug Info:</div>
-          <div>Project ID: {params.projectId}</div>
-          <div>Lot ID: {params.lotId}</div>
-          <div>Report ID: {dailyReport?.id}</div>
-          <div>Date: {reportDate}</div>
-          <div>Active Tab: {activeTab}</div>
         </div>
-      )}
+
+        {/* Raw Data */}
+        <div className="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Raw Data (Check Console for Details)</h2>
+          <pre className="bg-gray-100 dark:bg-gray-700 p-4 rounded text-xs overflow-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </div>
+
+        {/* Next Steps */}
+        <div className="mt-8 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4 text-green-800 dark:text-green-200">✅ Ready for Full Implementation</h2>
+          <p className="text-green-700 dark:text-green-300 mb-4">
+            All database connections are working correctly. The daily report system can now be fully implemented.
+          </p>
+          <button
+            onClick={() => {
+              // This would restore the full daily report page
+              console.log('Ready to restore full daily report functionality')
+              alert('Database test successful! Ready to implement full daily report system.')
+            }}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Implement Full Daily Report System
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
