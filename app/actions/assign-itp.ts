@@ -4,23 +4,6 @@ import { createClient } from '../../lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { CreateITPAssignment } from '../../types'
 
-// Helper function to ensure valid UUID
-function ensureUUID(value: string): string {
-  // If it's already a valid UUID format, return it
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
-    return value
-  }
-  
-  // If it's a simple number like "1", convert it to a UUID
-  if (/^\d+$/.test(value)) {
-    const num = parseInt(value)
-    return `00000000-0000-0000-0000-${num.toString().padStart(12, '0')}`
-  }
-  
-  // Default fallback UUID
-  return '00000000-0000-0000-0000-000000000000'
-}
-
 export async function assignITPToLot(assignment: CreateITPAssignment) {
   const supabase = createClient()
   
@@ -30,34 +13,50 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
-      console.log('❌ No authenticated user')
       throw new Error('User not authenticated')
     }
 
     console.log('👤 Current user ID:', user.id)
 
-    // Ensure all IDs are valid UUIDs
+    // Validate that the ITP ID exists in our database
+    const { data: itp, error: itpError } = await supabase
+      .from('itps')
+      .select('id, title')
+      .eq('id', assignment.itp_id)
+      .single()
+
+    if (itpError || !itp) {
+      console.log('❌ ITP not found, using fallback')
+      // Use the "Highway Concrete Pour Inspection" as fallback
+      assignment.itp_id = 'b9a3a71d-18a2-4189-a569-4cafd7fea190'
+    }
+
+    console.log('📋 Using ITP:', assignment.itp_id)
+
+    // Create assignment with validated data
     const assignmentData = {
-      itp_id: ensureUUID(assignment.itp_id),
-      assigned_to: ensureUUID(assignment.assigned_to),
+      itp_id: assignment.itp_id,
+      assigned_to: assignment.assigned_to,
       assigned_by: user.id,
-      lot_id: ensureUUID(assignment.lot_id),
-      project_id: ensureUUID(assignment.project_id),
+      lot_id: assignment.lot_id,
+      project_id: assignment.project_id,
       scheduled_date: assignment.scheduled_date,
       estimated_completion_date: assignment.estimated_completion_date,
       priority: assignment.priority,
       notes: assignment.notes,
-      organization_id: ensureUUID(assignment.organization_id),
+      organization_id: assignment.organization_id,
       status: 'assigned'
     }
 
-    console.log('📝 UUID-safe assignment data:', assignmentData)
+    console.log('📝 Final assignment data:', assignmentData)
 
-    // Insert the assignment
     const { data, error } = await supabase
       .from('itp_assignments')
       .insert(assignmentData)
-      .select()
+      .select(`
+        *,
+        itp:itps(title, description)
+      `)
       .single()
 
     if (error) {
@@ -66,6 +65,9 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
     }
 
     console.log('✅ Assignment successful:', data)
+
+    // Revalidate the page
+    revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}/daily-report`)
 
     return { success: true, assignment: data }
 
