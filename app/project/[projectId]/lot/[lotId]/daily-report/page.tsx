@@ -4,7 +4,233 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { SiteDiaryTab } from './components/site-diary-tab'
 
-// Add this before your main DailyLotReport component
+// Minimal test component to verify dockets functionality
+function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
+  const [testData, setTestData] = useState<any[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const testInsert = async () => {
+    setIsSubmitting(true)
+    setMessage('Testing...')
+    
+    try {
+      const testRecord = {
+        daily_report_id: dailyReport.id,
+        person_name: 'Test Person',
+        company: 'Test Company',
+        trade: 'General Labourer',
+        hours_worked: 8,
+        hourly_rate: 50,
+        notes: 'Test entry from ' + new Date().toLocaleTimeString()
+      }
+
+      console.log('Inserting test record:', testRecord)
+
+      const { data, error } = await supabase
+        .from('labour_dockets')
+        .insert([testRecord])
+        .select()
+
+      console.log('Insert result:', { data, error })
+
+      if (error) {
+        throw error
+      }
+
+      setMessage(`✅ Success! Added: ${data[0].person_name}`)
+      loadTestData()
+
+    } catch (error) {
+      console.error('Error:', error)
+      setMessage(`❌ Error: ${(error as any)?.message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const loadTestData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('labour_dockets')
+        .select('*')
+        .eq('daily_report_id', dailyReport.id)
+        .order('created_at', { ascending: false })
+
+      console.log('Load result:', { data, error })
+
+      if (error) {
+        throw error
+      }
+
+      setTestData(data || [])
+      setMessage(`📊 Loaded ${data?.length || 0} records`)
+
+    } catch (error) {
+      console.error('Load error:', error)
+      setMessage(`❌ Load error: ${(error as any)?.message}`)
+    }
+  }
+
+  const clearTestData = async () => {
+    try {
+      const { error } = await supabase
+        .from('labour_dockets')
+        .delete()
+        .eq('daily_report_id', dailyReport.id)
+
+      if (error) throw error
+
+      setTestData([])
+      setMessage('🗑️ Cleared all test data')
+
+    } catch (error) {
+      console.error('Clear error:', error)
+      setMessage(`❌ Clear error: ${(error as any)?.message}`)
+    }
+  }
+
+  useEffect(() => {
+    if (dailyReport?.id) {
+      loadTestData()
+    }
+  }, [dailyReport?.id])
+
+  return (
+    <div className="space-y-6">
+      {/* Test Header */}
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
+          🧪 Dockets Test Mode
+        </h2>
+        <p className="text-yellow-800 dark:text-yellow-200 mb-4">
+          Testing labour dockets functionality. Check console for detailed logs.
+        </p>
+        <div className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+          Daily Report ID: <code className="bg-yellow-100 dark:bg-yellow-800 px-2 py-1 rounded">{dailyReport?.id}</code>
+        </div>
+        {message && (
+          <div className="bg-white dark:bg-gray-800 border rounded p-3 mb-4">
+            <p className="text-sm">{message}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Test Controls */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">Test Controls</h3>
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={testInsert}
+            disabled={isSubmitting}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Testing...
+              </>
+            ) : (
+              '🧪 Test Insert'
+            )}
+          </button>
+          
+          <button
+            onClick={loadTestData}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            📊 Load Data
+          </button>
+          
+          <button
+            onClick={clearTestData}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+          >
+            🗑️ Clear All
+          </button>
+        </div>
+      </div>
+
+      {/* Test Results */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold mb-4">
+          Test Results ({testData.length} records)
+        </h3>
+        
+        {testData.length > 0 ? (
+          <div className="space-y-3">
+            {testData.map((record, index) => (
+              <div key={record.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white">
+                      {record.person_name}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {record.company} • {record.trade} • {record.hours_worked}h @ ${record.hourly_rate}/h
+                    </p>
+                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                      Total: ${(record.hours_worked * record.hourly_rate).toFixed(2)}
+                    </p>
+                    {record.notes && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Notes: {record.notes}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">
+                      ID: {record.id} | Created: {new Date(record.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm">
+                    #{index + 1}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <p className="mb-2">No test records found</p>
+            <p className="text-sm">Click "Test Insert" to add a test labour record</p>
+          </div>
+        )}
+      </div>
+
+      {/* Summary */}
+      {testData.length > 0 && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+            📈 Test Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-green-600 dark:text-green-400 font-medium">Total Records:</span>
+              <span className="ml-2">{testData.length}</span>
+            </div>
+            <div>
+              <span className="text-green-600 dark:text-green-400 font-medium">Total Hours:</span>
+              <span className="ml-2">{testData.reduce((sum, r) => sum + r.hours_worked, 0)}</span>
+            </div>
+            <div>
+              <span className="text-green-600 dark:text-green-400 font-medium">Total Cost:</span>
+              <span className="ml-2">${testData.reduce((sum, r) => sum + (r.hours_worked * r.hourly_rate), 0).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Previous SimpleDocketsTab component (keeping for reference)
 function SimpleDocketsTab({ dailyReport, onUpdate }: { dailyReport: any, onUpdate: () => void }) {
   const [labourEntries, setLabourEntries] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -420,10 +646,7 @@ export default function DailyLotReport({ params }: { params: { projectId: string
         )}
         
         {activeTab === 'dockets' && (
-          <SimpleDocketsTab
-            dailyReport={dailyReport}
-            onUpdate={loadData}
-          />
+          <MinimalDocketsTest dailyReport={dailyReport} />
         )}
         
         {activeTab === 'compliance' && (
