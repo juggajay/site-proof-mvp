@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertTriangle, Clock, Camera, FileText } from 'lucide-react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import AssignITPDialog from '@/components/assign-itp-dialog';
+import { AssignITPButton } from '@/components/assign-itp-button-simple';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 interface ITPItem {
@@ -187,7 +187,10 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
             No Inspection & Test Plan has been assigned to this lot yet.
           </p>
           <ErrorBoundary>
-            <AssignITPDialog />
+            <AssignITPButton
+              lotId={lotId}
+              lotName="Daily Lot Report - 33"
+            />
           </ErrorBoundary>
         </CardContent>
       </Card>
