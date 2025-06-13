@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { SiteDiaryTab } from './components/site-diary-tab'
+import LabourDockets from './components/labour-dockets'
 
 // Minimal test component to verify dockets functionality
 function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
@@ -646,7 +647,7 @@ export default function DailyLotReport({ params }: { params: { projectId: string
         )}
         
         {activeTab === 'dockets' && (
-          <MinimalDocketsTest dailyReport={dailyReport} />
+          <LabourDockets dailyReportId={dailyReport?.id} />
         )}
         
         {activeTab === 'compliance' && (
