@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '../../lib/supabase/server'
 import { DashboardClientPage } from './client-page'
-import { Project } from '@/types'
+import { Project } from '../../types'
 
 export default async function DashboardPage() {
   const supabase = createClient()

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HardHat, Home, FolderKanban, FileCheck2, Settings } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '../../lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
