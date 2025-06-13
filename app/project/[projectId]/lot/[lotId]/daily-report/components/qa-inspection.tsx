@@ -83,21 +83,29 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
 
   const handleAssignment = async (assignmentData: CreateITPAssignment) => {
     try {
-      console.log('📝 Submitting assignment:', assignmentData)
+      console.log('📝 Form data being submitted:', assignmentData)
       
-      const result = await assignITPToLot(assignmentData)
+      // Add default UUIDs if missing
+      const completeAssignment = {
+        ...assignmentData,
+        lot_id: lot?.id || '550e8400-e29b-41d4-a716-446655440002',
+        project_id: lot?.project_id || '550e8400-e29b-41d4-a716-446655440001',
+        organization_id: '550e8400-e29b-41d4-a716-446655440000'
+      }
+      
+      console.log('📤 Complete assignment data:', completeAssignment)
+      
+      const result = await assignITPToLot(completeAssignment)
       
       if (!result.success) {
         throw new Error(result.error)
       }
       
       console.log('🎉 Assignment completed successfully!')
-      
-      // Refresh data after successful assignment
       await loadData()
     } catch (error) {
       console.error('💥 Assignment failed:', error)
-      throw error // Re-throw to be handled by the button component
+      throw error
     }
   }
 
