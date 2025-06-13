@@ -82,21 +82,23 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
   }, [dailyReportId, lotId, loadData])
 
   const handleAssignment = async (assignmentData: CreateITPAssignment) => {
-    const result = await assignITPToLot(assignmentData)
-    
-    if (!result.success) {
-      throw new Error(result.error)
+    try {
+      console.log('📝 Submitting assignment:', assignmentData)
+      
+      const result = await assignITPToLot(assignmentData)
+      
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+      
+      console.log('🎉 Assignment completed successfully!')
+      
+      // Refresh data after successful assignment
+      await loadData()
+    } catch (error) {
+      console.error('💥 Assignment failed:', error)
+      throw error // Re-throw to be handled by the button component
     }
-
-    // Reload assignment data
-    const { data: newAssignment } = await supabase
-      .from('itp_assignments')
-      .select('*')
-      .eq('lot_id', lotId)
-      .eq('status', 'assigned')
-      .single()
-
-    setCurrentAssignment(newAssignment)
   }
 
   if (isLoading) {
