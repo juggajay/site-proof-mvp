@@ -8,26 +8,28 @@ export class ITPService {
   private getMockITPs(): ITP[] {
     return [
       {
-        id: '1',
+        id: 'b9a3a71d-18a2-4189-a569-4cafd7fea190', // Real ID from your database
         title: 'Highway Concrete Pour Inspection',
         description: 'Quality inspection for concrete pouring activities',
         category: 'Structural',
         estimated_duration: '2 days',
         complexity: 'moderate',
-        required_certifications: ['Concrete Testing'],
-        organization_id: 'mock-org',
+        required_certifications: ['Concrete Testing', 'Highway Construction'],
+        is_active: true,
+        organization_id: '00000000-0000-0000-0000-000000000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       },
       {
-        id: '2',
+        id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27', // Real ID from your database
         title: 'Asphalt Layer Quality Check',
         description: 'Inspection of asphalt layer thickness and compaction',
         category: 'Roadwork',
         estimated_duration: '1 day',
         complexity: 'simple',
         required_certifications: ['Asphalt Testing'],
-        organization_id: 'mock-org',
+        is_active: true,
+        organization_id: '00000000-0000-0000-0000-000000000000',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
