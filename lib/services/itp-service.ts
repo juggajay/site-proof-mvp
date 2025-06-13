@@ -1,0 +1,136 @@
+import { createClient } from '../supabase/client'
+import type { ITP, TeamMember } from '../../types'
+
+export class ITPService {
+  private supabase = createClient()
+
+  // Mock data methods
+  private getMockITPs(): ITP[] {
+    return [
+      {
+        id: '1',
+        title: 'Highway Concrete Pour Inspection',
+        description: 'Quality inspection for concrete pouring activities',
+        category: 'Structural',
+        estimated_duration: '2 days',
+        complexity: 'moderate',
+        required_certifications: ['Concrete Testing'],
+        is_active: true,
+        organization_id: 'mock-org',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        title: 'Asphalt Layer Quality Check',
+        description: 'Inspection of asphalt layer thickness and compaction',
+        category: 'Roadwork',
+        estimated_duration: '1 day',
+        complexity: 'simple',
+        required_certifications: ['Asphalt Testing'],
+        is_active: true,
+        organization_id: 'mock-org',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ]
+  }
+
+  private getMockTeamMembers(): TeamMember[] {
+    return [
+      {
+        id: '1',
+        name: 'John Rodriguez',
+        email: 'john@company.com',
+        role: 'Senior Inspector',
+        certifications: ['Concrete Testing', 'Highway Construction'],
+        current_workload: 65,
+        organization_id: 'mock-org'
+      },
+      {
+        id: '2',
+        name: 'Sarah Chen',
+        email: 'sarah@company.com',
+        role: 'Quality Engineer',
+        certifications: ['Asphalt Testing', 'Quality Control'],
+        current_workload: 40,
+        organization_id: 'mock-org'
+      }
+    ]
+  }
+
+  async getAvailableITPs(organizationId: string): Promise<ITP[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('itps')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .order('title')
+
+      if (error) {
+        console.warn('Using mock ITPs:', error.message)
+        return this.getMockITPs()
+      }
+
+      return data && data.length > 0 ? data : this.getMockITPs()
+    } catch (error) {
+      console.warn('Failed to fetch ITPs, using mock data:', error)
+      return this.getMockITPs()
+    }
+  }
+
+  async getTeamMembers(organizationId: string): Promise<TeamMember[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select(`
+          id,
+          name,
+          email,
+          role
+        `)
+        .eq('organization_id', organizationId)
+        .order('name')
+
+      if (error || !data || data.length === 0) {
+        console.warn('Using mock team members')
+        return this.getMockTeamMembers()
+      }
+
+      // Enhance real data with mock certifications/workload
+      return data.map(profile => ({
+        ...profile,
+        certifications: ['Asphalt Testing', 'Materials Testing'],
+        current_workload: Math.floor(Math.random() * 80) + 20,
+        organization_id: organizationId
+      }))
+    } catch (error) {
+      console.warn('Failed to fetch team members, using mock data')
+      return this.getMockTeamMembers()
+    }
+  }
+
+  async getCurrentAssignment(lotId: string) {
+    try {
+      const { data, error } = await this.supabase
+        .from('itp_assignments')
+        .select('*')
+        .eq('lot_id', lotId)
+        .eq('status', 'assigned')
+        .single()
+
+      if (error) {
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.warn('Failed to fetch current assignment:', error)
+      return null
+    }
+  }
+}
+
+// Export singleton instance
+export const itpService = new ITPService()
