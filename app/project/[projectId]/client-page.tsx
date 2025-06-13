@@ -33,7 +33,7 @@ export function ProjectClientPage({ project, lots }: { project: Project; lots: L
         <CardContent>
           <div className="space-y-4">
             {lots.map((lot) => (
-              <Link href={`/project/${project.id}/lot/${lot.id}`} key={lot.id} className="block">
+              <Link href={`/project/${project.id}/lot/${lot.id}/daily-report`} key={lot.id} className="block">
                 <div className="border rounded-lg p-4 flex items-center justify-between hover:bg-muted/50">
                   <div className="flex items-center gap-4">
                     <FileText className="h-5 w-5 text-muted-foreground" />
