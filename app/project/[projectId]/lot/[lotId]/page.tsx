@@ -91,7 +91,7 @@ export default function LotPage({ params }: LotPageProps) {
       setIsLoading(true)
       const supabase = createClient()
 
-      // Load lot data with ITP information
+      // Load lot data with ITP information via JOIN
       const { data: lotData, error: lotError } = await supabase
         .from('lots')
         .select(`
@@ -103,7 +103,20 @@ export default function LotPage({ params }: LotPageProps) {
           project_id,
           itp_id,
           created_at,
-          updated_at
+          updated_at,
+          itps:itp_id (
+            id,
+            title,
+            description,
+            category,
+            complexity,
+            estimated_duration,
+            required_certifications,
+            organization_id,
+            created_at,
+            updated_at,
+            itp_items(*)
+          )
         `)
         .eq('id', params.lotId)
         .single()
@@ -114,10 +127,34 @@ export default function LotPage({ params }: LotPageProps) {
         return
       }
 
-      console.log('🔍 Lot data loaded:', lotData)
-      console.log('📋 Has ITP ID:', !!lotData.itp_id, 'ITP ID:', lotData.itp_id)
+      console.log('=== LOT DATA DEBUG ===')
+      console.log('Full lot data:', lotData)
+      console.log('Lot ID:', lotData.id)
+      console.log('Has itp_id:', !!lotData.itp_id)
+      console.log('ITP data from JOIN:', lotData.itps)
       
       setLot(lotData)
+      
+      // Set ITP data from the JOIN if available
+      if (lotData.itps && Array.isArray(lotData.itps) && lotData.itps.length > 0) {
+        const itpData = lotData.itps[0] as ITP // Take the first (and should be only) ITP
+        console.log('✅ ITP data loaded from JOIN:', itpData)
+        setItp(itpData)
+        if ((itpData as any).itp_items && Array.isArray((itpData as any).itp_items)) {
+          setItpItems((itpData as any).itp_items)
+        }
+      } else if (lotData.itps && !Array.isArray(lotData.itps)) {
+        // Handle case where it's a single object (not array)
+        console.log('✅ ITP data loaded from JOIN (single object):', lotData.itps)
+        setItp(lotData.itps as ITP)
+        if ((lotData.itps as any).itp_items) {
+          setItpItems((lotData.itps as any).itp_items)
+        }
+      } else {
+        console.log('📭 No ITP data in JOIN result')
+        setItp(null)
+        setItpItems([])
+      }
 
       // Check for existing ITP assignments - get ALL active assignments
       const { data: assignmentData, error: assignmentError } = await supabase
@@ -150,10 +187,14 @@ export default function LotPage({ params }: LotPageProps) {
         console.log('✅ Assignments found:', assignmentData.length, assignmentData)
         // Use the most recent assignment for now (first in the ordered array)
         const mostRecentAssignment = assignmentData[0]
+        console.log('📋 Using most recent assignment:', mostRecentAssignment)
+        console.log('📋 Assignment ITP ID:', mostRecentAssignment.itp_id)
         setAssignment(mostRecentAssignment)
-        await loadItpData(mostRecentAssignment.itp_id)
+        // No need to load ITP data separately - we got it from the JOIN above
       } else {
         console.log('📭 No assignment found for lot:', params.lotId)
+        console.log('📭 Assignment data:', assignmentData)
+        setAssignment(null)
       }
 
     } catch (error) {
@@ -164,65 +205,6 @@ export default function LotPage({ params }: LotPageProps) {
     }
   }
 
-  const loadItpData = async (itpId: string) => {
-    try {
-      const supabase = createClient()
-
-      // Load ITP details
-      const { data: itpData, error: itpError } = await supabase
-        .from('itps')
-        .select(`
-          id,
-          title,
-          description,
-          category,
-          estimated_duration,
-          complexity,
-          required_certifications,
-          organization_id,
-          created_at,
-          updated_at
-        `)
-        .eq('id', itpId)
-        .single()
-
-      if (itpError) {
-        console.error('Error loading ITP:', itpError)
-        return
-      }
-
-      setItp(itpData)
-
-      // Load ITP items (checklist items)
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('itp_items')
-        .select(`
-          id,
-          itp_id,
-          item_number,
-          description,
-          inspection_type,
-          acceptance_criteria,
-          reference_standard,
-          required_documentation,
-          hold_point,
-          witness_point,
-          created_at,
-          updated_at
-        `)
-        .eq('itp_id', itpId)
-        .order('item_number')
-
-      if (itemsError) {
-        console.error('Error loading ITP items:', itemsError)
-      } else {
-        setItpItems(itemsData || [])
-      }
-
-    } catch (error) {
-      console.error('Error loading ITP data:', error)
-    }
-  }
 
   const handleAssignmentComplete = async () => {
     console.log('🔄 Assignment success callback triggered - forcing immediate refresh');
@@ -334,14 +316,21 @@ export default function LotPage({ params }: LotPageProps) {
 
         {/* ITP Assignment Status */}
         {(() => {
-          console.log('🎯 Conditional rendering check:', {
-            assignment: assignment?.id,
-            itp: itp?.id,
-            hasAssignment: !!assignment,
-            hasItp: !!itp,
-            assignmentStatus: assignment?.status
-          });
-          return !assignment;
+          const hasAssignment = !!assignment;
+          const hasItp = !!itp;
+          const hasItpData = hasAssignment && hasItp;
+          
+          console.log('=== CONDITIONAL RENDERING DEBUG ===');
+          console.log('Assignment object:', assignment);
+          console.log('ITP object:', itp);
+          console.log('Has assignment:', hasAssignment);
+          console.log('Has ITP data:', hasItp);
+          console.log('Has complete ITP data:', hasItpData);
+          console.log('Assignment status:', assignment?.status);
+          console.log('ITP title:', itp?.title);
+          console.log('Rendering decision - show ITP:', hasItpData);
+          
+          return !hasItpData;
         })() ? (
           <Card>
             <CardHeader>
