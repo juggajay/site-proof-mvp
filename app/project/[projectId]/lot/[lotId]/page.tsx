@@ -119,7 +119,7 @@ export default function LotPage({ params }: LotPageProps) {
       
       setLot(lotData)
 
-      // Check for existing ITP assignment - get the most recent one
+      // Check for existing ITP assignments - get ALL active assignments
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('itp_assignments')
         .select(`
@@ -141,17 +141,17 @@ export default function LotPage({ params }: LotPageProps) {
         .eq('lot_id', params.lotId)
         .eq('status', 'assigned')
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
 
       console.log('🔍 Assignment query result:', { assignmentData, assignmentError })
       
       if (assignmentError) {
         console.warn('❌ Error loading assignment:', assignmentError)
-      } else if (assignmentData) {
-        console.log('✅ Assignment found:', assignmentData)
-        setAssignment(assignmentData)
-        await loadItpData(assignmentData.itp_id)
+      } else if (assignmentData && assignmentData.length > 0) {
+        console.log('✅ Assignments found:', assignmentData.length, assignmentData)
+        // Use the most recent assignment for now (first in the ordered array)
+        const mostRecentAssignment = assignmentData[0]
+        setAssignment(mostRecentAssignment)
+        await loadItpData(mostRecentAssignment.itp_id)
       } else {
         console.log('📭 No assignment found for lot:', params.lotId)
       }
