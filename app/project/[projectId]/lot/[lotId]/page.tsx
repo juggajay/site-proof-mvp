@@ -207,25 +207,22 @@ export default function LotPage({ params }: LotPageProps) {
 
 
   const handleAssignmentComplete = async () => {
-    console.log('🔄 Assignment success callback triggered - forcing immediate refresh');
+    console.log('🔄 Assignment success callback triggered - refreshing data only');
     
     // Close modal first
     setIsAssignModalOpen(false);
     
     try {
-      // Try to refresh data first
-      console.log('🔄 Attempting to refresh data before page reload...');
+      // Refresh data without changing tabs or navigation
+      console.log('🔄 Refreshing lot data to show new assignment...');
       await loadLotData();
-      console.log('🔄 Data refresh completed, checking if assignment is now visible...');
+      console.log('🔄 Data refresh completed - assignment should now be visible');
     } catch (error) {
       console.error('❌ Data refresh failed:', error);
+      // Only reload as last resort, and use window.location.reload() to stay on same page
+      console.log('🔄 Falling back to page reload...');
+      window.location.reload();
     }
-    
-    // Force page reload as backup
-    console.log('🔄 Forcing page reload to ensure new assignment is visible...');
-    setTimeout(() => {
-      window.location.href = window.location.href;
-    }, 1000);
   }
 
   const handleBackToProject = () => {
