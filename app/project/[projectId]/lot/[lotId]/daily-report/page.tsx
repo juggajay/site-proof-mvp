@@ -6,7 +6,6 @@ import { SiteDiaryTab } from './components/site-diary-tab'
 import LabourDockets from './components/labour-dockets'
 import QAInspection from './components/qa-inspection'
 import EnvironmentalCompliance from './components/environmental-compliance'
-import { ITPageErrorSuppressor } from '@/components/itp-error-boundary'
 
 // Minimal test component to verify dockets functionality
 function MinimalDocketsTest({ dailyReport }: { dailyReport: any }) {
@@ -570,7 +569,7 @@ export default function DailyLotReport({ params }: { params: { projectId: string
             lot_id: params.lotId,
             report_date: today,
             weather: 'sunny',
-            general_activities: ''
+            general_comments: ''
           }])
           .select()
           .single()
@@ -633,7 +632,6 @@ export default function DailyLotReport({ params }: { params: { projectId: string
 
       {/* Tab Content */}
       <div className="container mx-auto px-4 py-6">
-        <ITPageErrorSuppressor />
         {activeTab === 'diary' && (
           <SiteDiaryTab
             lot={lot}

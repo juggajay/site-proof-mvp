@@ -4,9 +4,10 @@ import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import Image from 'next/image'
 import { createClient } from '../../../../../../../lib/supabase/client'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../../components/ui/select'
-import { Cloud } from 'lucide-react'
+import { Cloud, Calendar, ChevronLeft, ChevronRight, History, Zap, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { saveSiteDiaryAction } from '../../../../../../../actions'
+import { SmartEventModal } from '../../../../../../../components/modals/smart-event-modal'
 
 interface SiteDiaryTabProps {
   lot: any
@@ -31,6 +32,11 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
   const [isCapturing, setIsCapturing] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [historicalData, setHistoricalData] = useState<any>(null)
+  const [showHistory, setShowHistory] = useState(false)
+  const [availableDates, setAvailableDates] = useState<string[]>([])
+  const [showSmartEventModal, setShowSmartEventModal] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const supabase = createClient()
@@ -65,10 +71,74 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
     }
   }, [dailyReport?.id, supabase])
 
+  // Load available dates with diary entries
+  const loadAvailableDates = useCallback(async () => {
+    if (!lot?.id) return
+
+    try {
+      const { data, error } = await supabase
+        .from('daily_lot_reports')
+        .select('report_date')
+        .eq('lot_id', lot.id)
+        .order('report_date', { ascending: false })
+
+      if (error) throw error
+      
+      const dates = data?.map(item => item.report_date) || []
+      setAvailableDates(dates)
+    } catch (error) {
+      console.error('Error loading available dates:', error)
+    }
+  }, [lot?.id, supabase])
+
+  // Load historical data for selected date
+  const loadHistoricalData = useCallback(async (date: string) => {
+    if (!lot?.id) return
+
+    try {
+      const { data, error } = await supabase
+        .from('daily_lot_reports')
+        .select('*')
+        .eq('lot_id', lot.id)
+        .eq('report_date', date)
+        .single()
+
+      if (error && error.code !== 'PGRST116') throw error
+      
+      setHistoricalData(data || null)
+      
+      // Update form fields when viewing historical data
+      if (data) {
+        setWeather(data.weather || 'sunny')
+        setActivities(data.general_comments || '')
+      } else {
+        // Reset to today's data if no historical data found
+        setWeather(dailyReport?.weather || 'sunny')
+        setActivities(dailyReport?.general_comments || '')
+      }
+    } catch (error) {
+      console.error('Error loading historical data:', error)
+      toast.error('Failed to load historical data')
+    }
+  }, [lot?.id, supabase, dailyReport])
+
   // Load diary entries
   useEffect(() => {
     loadDiaryEntries()
-  }, [loadDiaryEntries])
+    loadAvailableDates()
+  }, [loadDiaryEntries, loadAvailableDates])
+
+  // Load historical data when date changes
+  useEffect(() => {
+    if (selectedDate !== new Date().toISOString().split('T')[0]) {
+      loadHistoricalData(selectedDate)
+    } else {
+      // Reset to today's data
+      setHistoricalData(null)
+      setWeather(dailyReport?.weather || 'sunny')
+      setActivities(dailyReport?.general_comments || '')
+    }
+  }, [selectedDate, loadHistoricalData, dailyReport])
 
   // Save weather and activities using server action
   const handleSave = () => {
@@ -259,11 +329,95 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
 
   return (
     <div className="space-y-6">
-      {/* Today's Overview */}
+      {/* Date Selection and History Toggle */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Site Diary
+            </h2>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                showHistory
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <History className="h-4 w-4" />
+              {showHistory ? 'Hide History' : 'View History'}
+            </button>
+          </div>
+          
+          {showHistory && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Date:
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          )}
+        </div>
+
+        {showHistory && availableDates.length > 0 && (
+          <div className="border-t pt-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Available diary entries: {availableDates.length} days
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {availableDates.slice(0, 10).map((date) => (
+                <button
+                  key={date}
+                  onClick={() => setSelectedDate(date)}
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                    selectedDate === date
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {new Date(date).toLocaleDateString()}
+                </button>
+              ))}
+              {availableDates.length > 10 && (
+                <span className="px-3 py-1 text-sm text-gray-500 dark:text-gray-400">
+                  +{availableDates.length - 10} more...
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Site Diary Entry Form */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-          Today's Overview
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {selectedDate === new Date().toISOString().split('T')[0]
+              ? "Today's Overview"
+              : `Site Diary - ${new Date(selectedDate).toLocaleDateString()}`}
+          </h3>
+          
+          {historicalData && selectedDate !== new Date().toISOString().split('T')[0] && (
+            <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+              <History className="h-4 w-4" />
+              Viewing historical data
+            </div>
+          )}
+          
+          {!historicalData && selectedDate !== new Date().toISOString().split('T')[0] && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <Calendar className="h-4 w-4" />
+              No data for this date
+            </div>
+          )}
+        </div>
         
         {/* Weather Selector */}
         <div className="mb-6">
@@ -298,23 +452,34 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isPending}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-        >
-          {isPending ? (
-            <>
-              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={handleSave}
+            disabled={isPending || selectedDate !== new Date().toISOString().split('T')[0]}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isPending ? (
+              <>
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              'Save Diary'
+            )}
+          </button>
+          
+          {selectedDate !== new Date().toISOString().split('T')[0] && (
+            <div className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              Saving...
-            </>
-          ) : (
-            'Save Diary'
+              Historical data is read-only
+            </div>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Events & Evidence */}
@@ -325,36 +490,18 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
           </h3>
           <div className="flex gap-3">
             <button
+              onClick={() => setShowSmartEventModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg"
+            >
+              <Zap className="w-4 h-4" />
+              Smart Event
+            </button>
+            <button
               onClick={addManualEntry}
               className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Note
-            </button>
-            <button
-              onClick={handleAddPhotoNote}
-              disabled={isCapturing}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isCapturing ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  Add Photo/Note
-                </>
-              )}
+              <Plus className="w-4 h-4" />
+              Quick Note
             </button>
           </div>
         </div>
@@ -368,16 +515,14 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
           className="hidden"
         />
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div>
-              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Automatic Evidence Capture</h4>
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">Smart Evidence Engine</h4>
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                Photos are automatically watermarked with project details, timestamp, GPS coordinates, and weather conditions. 
-                This creates undeniable evidence for dispute resolution and variation claims.
+                Intelligent event categorization (DELAY, INSTRUCTION, SAFETY, QUALITY) with automatic evidence linking.
+                Creates undeniable narrative chains for dispute resolution with GPS, timestamps, and weather data.
               </p>
             </div>
           </div>
@@ -429,6 +574,14 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
           )}
         </div>
       </div>
+
+      {/* Smart Event Modal */}
+      <SmartEventModal
+        open={showSmartEventModal}
+        onOpenChange={setShowSmartEventModal}
+        lotData={lot}
+        onEventSaved={loadDiaryEntries}
+      />
     </div>
   )
 }
