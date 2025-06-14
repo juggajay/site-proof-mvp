@@ -256,38 +256,40 @@ export default function ComplianceTab({ lotData }: ComplianceTabProps) {
       {/* Save Progress Section */}
       <div className="mt-8 space-y-4">
         {/* Save Progress Button */}
-        <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg border">
-          <div className="flex items-center space-x-3">
-            <div>
-              <p className="text-sm font-medium text-neutral-900">Manual Save Progress</p>
-              <p className="text-xs text-neutral-600">
-                Save all current inspection answers at once
-              </p>
+        <div className="site-proof-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div>
+                <p className="site-proof-label">Manual Save Progress</p>
+                <p className="text-xs text-site-proof-placeholder font-primary">
+                  Save all current inspection answers at once
+                </p>
+              </div>
             </div>
+            <button
+              onClick={handleManualSave}
+              disabled={isManualSaving || isSaving}
+              className={`site-proof-btn-primary ${(isManualSaving || isSaving) ? 'site-proof-btn-primary:disabled' : ''}`}
+            >
+              {isManualSaving ? (
+                <>
+                  <Save className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Progress
+                </>
+              )}
+            </button>
           </div>
-          <Button
-            onClick={handleManualSave}
-            disabled={isManualSaving || isSaving}
-            className="px-6"
-          >
-            {isManualSaving ? (
-              <>
-                <Save className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Progress
-              </>
-            )}
-          </Button>
         </div>
 
         {/* Auto-save notice */}
-        <div className="p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <CheckCircle className="h-4 w-4 inline mr-1" />
+        <div className="site-proof-card" style={{ backgroundColor: 'var(--site-proof-off-white)', borderColor: 'var(--site-proof-clarity-blue)' }}>
+          <p className="text-sm text-site-proof-charcoal font-primary">
+            <CheckCircle className="h-4 w-4 inline mr-1 text-site-proof-clarity-blue" />
             Your progress is automatically saved as you work. Use "Save Progress" for manual backup.
           </p>
         </div>
