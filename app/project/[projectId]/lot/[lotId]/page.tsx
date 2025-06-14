@@ -206,23 +206,13 @@ export default function LotPage({ params }: LotPageProps) {
   }
 
 
-  const handleAssignmentComplete = async () => {
-    console.log('🔄 Assignment success callback triggered - refreshing data only');
-    
-    // Close modal first
-    setIsAssignModalOpen(false);
-    
-    try {
-      // Refresh data without changing tabs or navigation
-      console.log('🔄 Refreshing lot data to show new assignment...');
-      await loadLotData();
-      console.log('🔄 Data refresh completed - assignment should now be visible');
-    } catch (error) {
-      console.error('❌ Data refresh failed:', error);
-      // Only reload as last resort, and use window.location.reload() to stay on same page
-      console.log('🔄 Falling back to page reload...');
-      window.location.reload();
+  const handleModalClose = (open: boolean) => {
+    if (!open) {
+      // When the modal closes after successful assignment, refresh the page data
+      console.log('🔄 Modal closed - triggering router refresh to update data');
+      router.refresh();
     }
+    setIsAssignModalOpen(open);
   }
 
   const handleBackToProject = () => {
@@ -469,9 +459,8 @@ export default function LotPage({ params }: LotPageProps) {
         {/* Assign ITP Modal */}
         <AssignItpModal
           open={isAssignModalOpen}
-          onOpenChange={setIsAssignModalOpen}
+          onOpenChange={handleModalClose}
           lot={lot as any}
-          onSuccess={handleAssignmentComplete}
         />
       </div>
     </div>
