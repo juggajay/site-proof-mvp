@@ -432,7 +432,10 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
             <SelectContent>
               {weatherOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.icon} {option.label}
+                  <div className="flex items-center gap-2">
+                    <span>{option.icon}</span>
+                    <span>{option.label}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
