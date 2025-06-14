@@ -91,7 +91,7 @@ export default function LotPage({ params }: LotPageProps) {
       setIsLoading(true)
       const supabase = createClient()
 
-      // Load lot data
+      // Load lot data with ITP information
       const { data: lotData, error: lotError } = await supabase
         .from('lots')
         .select(`
@@ -101,6 +101,7 @@ export default function LotPage({ params }: LotPageProps) {
           location,
           priority,
           project_id,
+          itp_id,
           created_at,
           updated_at
         `)
@@ -113,6 +114,9 @@ export default function LotPage({ params }: LotPageProps) {
         return
       }
 
+      console.log('🔍 Lot data loaded:', lotData)
+      console.log('📋 Has ITP ID:', !!lotData.itp_id, 'ITP ID:', lotData.itp_id)
+      
       setLot(lotData)
 
       // Check for existing ITP assignment
@@ -138,11 +142,16 @@ export default function LotPage({ params }: LotPageProps) {
         .eq('status', 'assigned')
         .maybeSingle()
 
+      console.log('🔍 Assignment query result:', { assignmentData, assignmentError })
+      
       if (assignmentError) {
-        console.warn('Error loading assignment:', assignmentError)
+        console.warn('❌ Error loading assignment:', assignmentError)
       } else if (assignmentData) {
+        console.log('✅ Assignment found:', assignmentData)
         setAssignment(assignmentData)
         await loadItpData(assignmentData.itp_id)
+      } else {
+        console.log('📭 No assignment found for lot:', params.lotId)
       }
 
     } catch (error) {
@@ -312,7 +321,16 @@ export default function LotPage({ params }: LotPageProps) {
         </Card>
 
         {/* ITP Assignment Status */}
-        {!assignment ? (
+        {(() => {
+          console.log('🎯 Conditional rendering check:', {
+            assignment: assignment?.id,
+            itp: itp?.id,
+            hasAssignment: !!assignment,
+            hasItp: !!itp,
+            assignmentStatus: assignment?.status
+          });
+          return !assignment;
+        })() ? (
           <Card>
             <CardHeader>
               <CardTitle>Inspection & Test Plan</CardTitle>
@@ -337,7 +355,7 @@ export default function LotPage({ params }: LotPageProps) {
                     <CardDescription>{itp?.description}</CardDescription>
                   </div>
                   <Badge variant="outline">
-                    {assignment.status}
+                    {assignment?.status || 'assigned'}
                   </Badge>
                 </div>
               </CardHeader>
