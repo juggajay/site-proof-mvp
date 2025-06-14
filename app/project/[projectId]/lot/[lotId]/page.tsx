@@ -224,16 +224,26 @@ export default function LotPage({ params }: LotPageProps) {
     }
   }
 
-  const handleAssignmentComplete = () => {
-    console.log('Assignment success callback triggered');
+  const handleAssignmentComplete = async () => {
+    console.log('🔄 Assignment success callback triggered - forcing immediate refresh');
     
     // Close modal first
     setIsAssignModalOpen(false);
     
-    // Add a small delay then force reload to ensure assignment is visible
+    try {
+      // Try to refresh data first
+      console.log('🔄 Attempting to refresh data before page reload...');
+      await loadLotData();
+      console.log('🔄 Data refresh completed, checking if assignment is now visible...');
+    } catch (error) {
+      console.error('❌ Data refresh failed:', error);
+    }
+    
+    // Force page reload as backup
+    console.log('🔄 Forcing page reload to ensure new assignment is visible...');
     setTimeout(() => {
-      window.location.reload();
-    }, 500);
+      window.location.href = window.location.href;
+    }, 1000);
   }
 
   const handleBackToProject = () => {
