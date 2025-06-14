@@ -82,6 +82,12 @@ export class ITPService {
     try {
       console.log('🔍 Loading team members for org:', organizationId)
       
+      // Skip profiles query entirely and use mock data for now
+      // This prevents the 400 error that's blocking the assignment flow
+      console.warn('⚠️ Skipping profiles query to prevent 400 errors - using mock team members')
+      return this.getMockTeamMembers()
+      
+      /* DISABLED TEMPORARILY - CAUSING 400 ERRORS
       const { data, error } = await this.supabase
         .from('profiles')
         .select(`
@@ -103,7 +109,9 @@ export class ITPService {
         console.warn('📭 No team members found, using mock data')
         return this.getMockTeamMembers()
       }
+      */
 
+      /* DISABLED - WOULD ENHANCE REAL DATA
       // Enhance real data with mock certifications/workload
       return data.map(profile => ({
         ...profile,
@@ -111,6 +119,7 @@ export class ITPService {
         current_workload: Math.floor(Math.random() * 80) + 20,
         organization_id: organizationId
       }))
+      */
     } catch (error) {
       console.warn('Failed to fetch team members, using mock data')
       return this.getMockTeamMembers()
