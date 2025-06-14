@@ -110,44 +110,114 @@ export async function createLotAction(formData: FormData) {
 }
 
 // --- Save Inspection Answers Action ---
-export async function saveInspectionAnswersAction(answers: Partial<ConformanceRecord>[]) {
+const answerSchema = z.object({
+  itp_item_id: z.string().uuid(),
+  pass_fail_value: z.enum(['PASS', 'FAIL', 'N/A']).optional(),
+  text_value: z.string().optional(),
+  numeric_value: z.number().optional(),
+  comment: z.string().optional(),
+});
+
+const saveAnswersSchema = z.object({
+  lot_id: z.string().uuid(),
+  answers: z.array(answerSchema),
+});
+
+export async function saveInspectionAnswersAction(formData: FormData) {
+  try {
     const supabase = createClient();
     
-    // Authentication check
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        throw new Error('Authentication required');
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return { success: false, error: 'Authentication required' };
     }
 
-    try {
-        // Prepare data for upsert with completed_by field
-        const answersWithUser = answers.map(answer => ({
-            ...answer,
-            completed_by: user.id,
-            updated_at: new Date().toISOString()
-        }));
-
-        // Perform upsert operation on conformance_records table
-        const { error } = await supabase
-            .from('conformance_records')
-            .upsert(answersWithUser, {
-                onConflict: 'lot_id,itp_item_id'
-            });
-
-        if (error) {
-            throw new Error(`Failed to save inspection answers: ${error.message}`);
-        }
-
-        // Revalidate the lot page to ensure fresh data
-        const firstAnswer = answers[0];
-        if (firstAnswer?.lot_id) {
-            revalidatePath(`/project/*/lot/${firstAnswer.lot_id}`);
-        }
-
-        return { success: true };
-    } catch (error) {
-        throw new Error(error instanceof Error ? error.message : 'Failed to save inspection answers');
+    // Parse form data
+    const lot_id = formData.get('lot_id') as string;
+    const rawAnswers = formData.get('answers') as string;
+    
+    if (!lot_id || !rawAnswers) {
+      return { success: false, error: 'Missing required data' };
     }
+
+    // Parse and validate answers
+    const answersData = JSON.parse(rawAnswers);
+    const validatedData = saveAnswersSchema.parse({
+      lot_id,
+      answers: answersData
+    });
+
+    // Filter out answers that have actual values
+    const validAnswers = validatedData.answers.filter(answer =>
+      answer.pass_fail_value ||
+      answer.text_value?.trim() ||
+      answer.numeric_value !== undefined ||
+      answer.comment?.trim()
+    );
+
+    if (validAnswers.length === 0) {
+      return { success: false, error: 'No valid answers to save' };
+    }
+
+    // Save each answer to conformance_records table
+    const conformanceRecords = validAnswers.map(answer => ({
+      lot_id: validatedData.lot_id,
+      itp_item_id: answer.itp_item_id,
+      completed_by: user.id,
+      pass_fail_value: answer.pass_fail_value || null,
+      text_value: answer.text_value?.trim() || null,
+      numeric_value: answer.numeric_value || null,
+      comment: answer.comment?.trim() || null,
+      updated_at: new Date().toISOString(),
+    }));
+
+    // Use upsert to handle both new and updated records
+    const { error: upsertError } = await supabase
+      .from('conformance_records')
+      .upsert(conformanceRecords, {
+        onConflict: 'lot_id,itp_item_id',
+        ignoreDuplicates: false
+      });
+
+    if (upsertError) {
+      console.error('Database error:', upsertError);
+      return { success: false, error: 'Failed to save inspection data' };
+    }
+
+    // Update lot status to 'in_progress' if not already completed
+    const { error: lotUpdateError } = await supabase
+      .from('lots')
+      .update({
+        status: 'IN_PROGRESS',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', validatedData.lot_id)
+      .neq('status', 'COMPLETED'); // Don't overwrite completed status
+
+    if (lotUpdateError) {
+      console.error('Lot update error:', lotUpdateError);
+      // Don't fail the entire operation for this
+    }
+
+    // Revalidate the page to show updated data
+    revalidatePath(`/project/*/lot/${validatedData.lot_id}`);
+    
+    return {
+      success: true,
+      message: 'Inspection progress saved successfully',
+      saved_count: conformanceRecords.length
+    };
+
+  } catch (error) {
+    console.error('Save inspection answers error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return { success: false, error: 'Invalid data format' };
+    }
+    
+    return { success: false, error: 'Failed to save inspection progress' };
+  }
 }
 
 // --- Save Site Diary Action ---

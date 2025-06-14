@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
@@ -8,6 +8,7 @@ import ChecklistItem from '../checklist-item'
 import { Save, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '../../lib/supabase/client'
+import { saveInspectionAnswersAction } from '../../actions'
 import type { FullLotData, ConformanceRecordWithAttachments } from '../../types'
 
 interface ComplianceTabProps {
@@ -16,12 +17,21 @@ interface ComplianceTabProps {
 
 export default function ComplianceTab({ lotData }: ComplianceTabProps) {
   const [isSaving, setIsSaving] = useState(false)
+  const [isManualSaving, setIsManualSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [currentAnswers, setCurrentAnswers] = useState<Map<string, any>>(new Map())
   const supabase = createClient()
 
   const handleItemUpdate = useCallback(async (itemId: string, data: Partial<ConformanceRecordWithAttachments>) => {
     try {
       setIsSaving(true)
+      
+      // Update current answers state for manual save
+      setCurrentAnswers(prev => {
+        const newAnswers = new Map(prev)
+        newAnswers.set(itemId, data)
+        return newAnswers
+      })
       
       // Check if a conformance record already exists for this item
       const existingRecord = lotData.itps.itp_items
@@ -61,6 +71,58 @@ export default function ComplianceTab({ lotData }: ComplianceTabProps) {
       setIsSaving(false)
     }
   }, [lotData.id, lotData.itps.itp_items, supabase])
+
+  const handleManualSave = async () => {
+    try {
+      setIsManualSaving(true)
+      
+      // Collect all current form data from the checklist items
+      const answers = lotData.itps.itp_items.map(item => {
+        const existingRecord = item.conformance_records?.[0]
+        const currentAnswer = currentAnswers.get(item.id)
+        
+        return {
+          itp_item_id: item.id,
+          pass_fail_value: currentAnswer?.pass_fail_value || existingRecord?.pass_fail_value || undefined,
+          text_value: currentAnswer?.text_value || existingRecord?.text_value || undefined,
+          numeric_value: currentAnswer?.numeric_value || existingRecord?.numeric_value || undefined,
+          comment: currentAnswer?.notes || existingRecord?.notes || undefined,
+        }
+      }).filter(answer =>
+        answer.pass_fail_value ||
+        answer.text_value?.trim() ||
+        answer.numeric_value !== undefined ||
+        answer.comment?.trim()
+      )
+
+      if (answers.length === 0) {
+        toast.error('No inspection data to save')
+        return
+      }
+
+      // Create FormData for server action
+      const formData = new FormData()
+      formData.append('lot_id', lotData.id)
+      formData.append('answers', JSON.stringify(answers))
+
+      // Call server action
+      const result = await saveInspectionAnswersAction(formData)
+
+      if (result.success) {
+        toast.success(result.message || 'Progress saved successfully', {
+          description: `Saved ${result.saved_count} inspection items`
+        })
+        setLastSaved(new Date())
+      } else {
+        toast.error(result.error || 'Failed to save progress')
+      }
+    } catch (error) {
+      console.error('Manual save error:', error)
+      toast.error('Failed to save inspection progress')
+    } finally {
+      setIsManualSaving(false)
+    }
+  }
 
   const getCompletionStats = () => {
     const totalItems = lotData.itps.itp_items.length
@@ -191,12 +253,44 @@ export default function ComplianceTab({ lotData }: ComplianceTabProps) {
         )}
       </div>
 
-      {/* Auto-save notice */}
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <CheckCircle className="h-4 w-4 inline mr-1" />
-          Your progress is automatically saved as you work. No need to manually save.
-        </p>
+      {/* Save Progress Section */}
+      <div className="mt-8 space-y-4">
+        {/* Save Progress Button */}
+        <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg border">
+          <div className="flex items-center space-x-3">
+            <div>
+              <p className="text-sm font-medium text-neutral-900">Manual Save Progress</p>
+              <p className="text-xs text-neutral-600">
+                Save all current inspection answers at once
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={handleManualSave}
+            disabled={isManualSaving || isSaving}
+            className="px-6"
+          >
+            {isManualSaving ? (
+              <>
+                <Save className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Progress
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Auto-save notice */}
+        <div className="p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <CheckCircle className="h-4 w-4 inline mr-1" />
+            Your progress is automatically saved as you work. Use "Save Progress" for manual backup.
+          </p>
+        </div>
       </div>
     </div>
   )

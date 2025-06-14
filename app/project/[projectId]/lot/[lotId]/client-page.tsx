@@ -30,8 +30,28 @@ export function LotInspectionClientPage({ lotData }: { lotData: FullLotData }) {
   const handleSave = async () => {
     startTransition(async () => {
       try {
-        await saveInspectionAnswersAction(Object.values(answers));
-        toast.success("Progress saved successfully!");
+        // Convert answers to the format expected by server action
+        const answersArray = Object.entries(answers).map(([itp_item_id, answer]) => ({
+          itp_item_id,
+          pass_fail_value: answer.pass_fail_value || undefined,
+          text_value: answer.text_value || undefined,
+          numeric_value: answer.numeric_value || undefined,
+          comment: answer.notes || undefined,
+        }));
+
+        // Create FormData for server action
+        const formData = new FormData();
+        formData.append('lot_id', lotData.id);
+        formData.append('answers', JSON.stringify(answersArray));
+
+        // Call server action
+        const result = await saveInspectionAnswersAction(formData);
+
+        if (result.success) {
+          toast.success(result.message || "Progress saved successfully!");
+        } else {
+          toast.error(result.error || "Failed to save progress");
+        }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to save progress");
       }
