@@ -72,26 +72,49 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
 
   // Save weather and activities using server action
   const handleSave = () => {
+    console.log('=== SAVE BUTTON CLICKED ===')
+    console.log('Weather:', weather)
+    console.log('Activities (general comments):', activities)
+    
     if (!activities.trim()) {
+      console.log('No comments - showing error')
       toast.error('Please add some general comments')
       return
     }
+
     if (!weather) {
+      console.log('No weather - showing error')
       toast.error('Please select weather conditions')
       return
     }
 
+    console.log('Starting save process...')
+    
     startTransition(async () => {
       try {
+        console.log('Creating FormData...')
         const formData = new FormData()
         formData.append('lotId', lot.id)
+        formData.append('reportDate', new Date().toISOString().split('T')[0]) // Add missing reportDate
         formData.append('generalComments', activities)
         formData.append('weather', weather)
-
+        
+        console.log('FormData contents:')
+        console.log('- lotId:', lot.id)
+        console.log('- reportDate:', new Date().toISOString().split('T')[0])
+        console.log('- generalComments:', activities)
+        console.log('- weather:', weather)
+        
+        console.log('Calling saveSiteDiaryAction...')
         const result = await saveSiteDiaryAction(formData)
+        console.log('Save result:', result)
         toast.success(result.message)
         onUpdate()
       } catch (error) {
+        console.error('=== SAVE ERROR ===')
+        console.error('Error type:', typeof error)
+        console.error('Error message:', error instanceof Error ? error.message : String(error))
+        console.error('Full error:', error)
         toast.error(error instanceof Error ? error.message : 'Failed to save')
       }
     })
