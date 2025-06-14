@@ -198,6 +198,37 @@ export function ComprehensiveSiteDiary({
     overtime_hours: 0
   })
 
+  const [equipmentForm, setEquipmentForm] = useState<EquipmentEntryForm>({
+    equipment_type: '',
+    operator: '',
+    hours_used: 8,
+    fuel_usage: 0,
+    maintenance_issues: '',
+    downtime_hours: 0,
+    downtime_reason: ''
+  })
+
+  const [deliveryForm, setDeliveryForm] = useState<DeliveryEntryForm>({
+    supplier: '',
+    material_type: '',
+    quantity: 0,
+    unit: 'tonnes',
+    delivery_time: '',
+    quality_issues: '',
+    received_by: '',
+    delivery_docket: ''
+  })
+
+  const [eventForm, setEventForm] = useState<EventEntryForm>({
+    category: 'OTHER',
+    title: '',
+    description: '',
+    impact_level: 'LOW',
+    event_time: '',
+    responsible_party: '',
+    follow_up_required: false
+  })
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load site diary data
@@ -273,6 +304,85 @@ export function ComprehensiveSiteDiary({
     } catch (error) {
       console.error('Error adding manpower entry:', error)
       toast.error('Failed to add manpower entry')
+    }
+  }
+
+  // Add equipment entry
+  const addEquipmentEntry = async () => {
+    if (!siteDiary?.diary_entry || !equipmentForm.equipment_type || !equipmentForm.operator) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    try {
+      await siteDiaryService.addEquipmentEntry(siteDiary.diary_entry.id, equipmentForm)
+      setEquipmentForm({
+        equipment_type: '',
+        operator: '',
+        hours_used: 8,
+        fuel_usage: 0,
+        maintenance_issues: '',
+        downtime_hours: 0,
+        downtime_reason: ''
+      })
+      await loadSiteDiary()
+      toast.success('Equipment entry added')
+    } catch (error) {
+      console.error('Error adding equipment entry:', error)
+      toast.error('Failed to add equipment entry')
+    }
+  }
+
+  // Add delivery entry
+  const addDeliveryEntry = async () => {
+    if (!siteDiary?.diary_entry || !deliveryForm.supplier || !deliveryForm.material_type || deliveryForm.quantity <= 0) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    try {
+      await siteDiaryService.addDeliveryEntry(siteDiary.diary_entry.id, deliveryForm)
+      setDeliveryForm({
+        supplier: '',
+        material_type: '',
+        quantity: 0,
+        unit: 'tonnes',
+        delivery_time: '',
+        quality_issues: '',
+        received_by: '',
+        delivery_docket: ''
+      })
+      await loadSiteDiary()
+      toast.success('Delivery entry added')
+    } catch (error) {
+      console.error('Error adding delivery entry:', error)
+      toast.error('Failed to add delivery entry')
+    }
+  }
+
+  // Add event entry
+  const addEventEntry = async () => {
+    if (!siteDiary?.diary_entry || !eventForm.title || !eventForm.description) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    try {
+      await siteDiaryService.addEventEntry(siteDiary.diary_entry.id, eventForm)
+      setEventForm({
+        category: 'OTHER',
+        title: '',
+        description: '',
+        impact_level: 'LOW',
+        event_time: '',
+        responsible_party: '',
+        follow_up_required: false
+      })
+      await loadSiteDiary()
+      toast.success('Event entry added')
+    } catch (error) {
+      console.error('Error adding event entry:', error)
+      toast.error('Failed to add event entry')
     }
   }
 
@@ -368,6 +478,21 @@ export function ComprehensiveSiteDiary({
               {section.id === 'manpower' && siteDiary && (
                 <Badge className="ml-2 bg-white/20 text-white border-0">
                   {siteDiary.manpower_entries.length}
+                </Badge>
+              )}
+              {section.id === 'equipment' && siteDiary && (
+                <Badge className="ml-2 bg-white/20 text-white border-0">
+                  {siteDiary.equipment_entries.length}
+                </Badge>
+              )}
+              {section.id === 'deliveries' && siteDiary && (
+                <Badge className="ml-2 bg-white/20 text-white border-0">
+                  {siteDiary.delivery_entries.length}
+                </Badge>
+              )}
+              {section.id === 'events' && siteDiary && (
+                <Badge className="ml-2 bg-white/20 text-white border-0">
+                  {siteDiary.event_entries.length}
                 </Badge>
               )}
             </Button>
@@ -572,45 +697,549 @@ export function ComprehensiveSiteDiary({
 
       {/* Placeholder sections for other tabs */}
       {activeSection === 'equipment' && (
-        <Card className="border-slate-200">
-          <CardHeader className="bg-gradient-to-r from-[#1B4F72] to-[#2E86AB] text-white">
-            <CardTitle className="flex items-center gap-2 font-heading">
-              <Truck className="h-5 w-5" />
-              Equipment Tracking
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <p className="text-center text-slate-500 py-8 font-primary">Equipment tracking coming soon...</p>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {/* Add Equipment Form */}
+          <Card className="border-slate-200">
+            <CardHeader className="bg-gradient-to-r from-[#1B4F72] to-[#2E86AB] text-white">
+              <CardTitle className="flex items-center gap-2 font-heading">
+                <Truck className="h-5 w-5" />
+                Add Equipment Entry
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="font-primary">Equipment Type *</Label>
+                  <Select value={equipmentForm.equipment_type} onValueChange={(value) => setEquipmentForm({...equipmentForm, equipment_type: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select equipment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COMMON_EQUIPMENT.map((equipment) => (
+                        <SelectItem key={equipment} value={equipment}>{equipment}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Operator Name *</Label>
+                  <div className="flex">
+                    <Input
+                      value={equipmentForm.operator || ''}
+                      onChange={(e) => setEquipmentForm({...equipmentForm, operator: e.target.value})}
+                      placeholder="Operator name"
+                    />
+                    <VoiceInput
+                      value={equipmentForm.operator || ''}
+                      onChange={(value) => setEquipmentForm({...equipmentForm, operator: value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Hours Used *</Label>
+                  <Input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    value={equipmentForm.hours_used}
+                    onChange={(e) => setEquipmentForm({...equipmentForm, hours_used: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-primary">Fuel Usage (Litres)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={equipmentForm.fuel_usage || 0}
+                    onChange={(e) => setEquipmentForm({...equipmentForm, fuel_usage: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+
+                <div>
+                  <Label className="font-primary">Downtime Hours</Label>
+                  <Input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    value={equipmentForm.downtime_hours || 0}
+                    onChange={(e) => setEquipmentForm({...equipmentForm, downtime_hours: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+              </div>
+
+              {(equipmentForm.downtime_hours || 0) > 0 && (
+                <div>
+                  <Label className="font-primary">Downtime Reason</Label>
+                  <div className="flex">
+                    <Textarea
+                      value={equipmentForm.downtime_reason || ''}
+                      onChange={(e) => setEquipmentForm({...equipmentForm, downtime_reason: e.target.value})}
+                      placeholder="Describe the reason for downtime..."
+                      className="min-h-[80px]"
+                    />
+                    <VoiceInput
+                      value={equipmentForm.downtime_reason || ''}
+                      onChange={(value) => setEquipmentForm({...equipmentForm, downtime_reason: value})}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <Label className="font-primary">Maintenance Notes</Label>
+                <div className="flex">
+                  <Textarea
+                    value={equipmentForm.maintenance_issues || ''}
+                    onChange={(e) => setEquipmentForm({...equipmentForm, maintenance_issues: e.target.value})}
+                    placeholder="Any maintenance performed or required..."
+                    className="min-h-[80px]"
+                  />
+                  <VoiceInput
+                    value={equipmentForm.maintenance_issues || ''}
+                    onChange={(value) => setEquipmentForm({...equipmentForm, maintenance_issues: value})}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={addEquipmentEntry} className="site-proof-btn-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Equipment Entry
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Equipment Entries List */}
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="font-heading">Today's Equipment ({siteDiary?.equipment_entries.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {siteDiary?.equipment_entries.length ? (
+                <div className="space-y-3">
+                  {siteDiary.equipment_entries.map((entry) => (
+                    <div key={entry.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-slate-900 font-heading">{entry.equipment_type}</h4>
+                          <p className="text-sm text-slate-600 font-primary">
+                            Operator: {entry.operator} • {entry.hours_used}h used
+                            {(entry.fuel_usage || 0) > 0 && ` • ${entry.fuel_usage}L fuel`}
+                          </p>
+                          {entry.downtime_hours > 0 && (
+                            <p className="text-sm text-amber-600 font-primary">
+                              Downtime: {entry.downtime_hours}h - {entry.downtime_reason}
+                            </p>
+                          )}
+                          {entry.maintenance_issues && (
+                            <p className="text-sm text-slate-500 mt-1 font-primary">{entry.maintenance_issues}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {entry.downtime_hours > 0 && (
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-300">Downtime</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-8 font-primary">No equipment entries for today</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {activeSection === 'deliveries' && (
-        <Card className="border-slate-200">
-          <CardHeader className="bg-gradient-to-r from-[#F1C40F] to-[#F39C12]">
-            <CardTitle className="flex items-center gap-2 text-slate-900 font-heading">
-              <Package className="h-5 w-5" />
-              Delivery Tracking
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <p className="text-center text-slate-500 py-8 font-primary">Delivery tracking coming soon...</p>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {/* Add Delivery Form */}
+          <Card className="border-slate-200">
+            <CardHeader className="bg-gradient-to-r from-[#F1C40F] to-[#F39C12]">
+              <CardTitle className="flex items-center gap-2 text-slate-900 font-heading">
+                <Package className="h-5 w-5" />
+                Add Delivery Entry
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="font-primary">Supplier *</Label>
+                  <div className="flex">
+                    <Input
+                      value={deliveryForm.supplier}
+                      onChange={(e) => setDeliveryForm({...deliveryForm, supplier: e.target.value})}
+                      placeholder="Supplier name"
+                    />
+                    <VoiceInput
+                      value={deliveryForm.supplier}
+                      onChange={(value) => setDeliveryForm({...deliveryForm, supplier: value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Material Type *</Label>
+                  <div className="flex">
+                    <Input
+                      value={deliveryForm.material_type}
+                      onChange={(e) => setDeliveryForm({...deliveryForm, material_type: e.target.value})}
+                      placeholder="e.g., Concrete, Steel, Timber"
+                    />
+                    <VoiceInput
+                      value={deliveryForm.material_type}
+                      onChange={(value) => setDeliveryForm({...deliveryForm, material_type: value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Delivery Time</Label>
+                  <Input
+                    type="time"
+                    value={deliveryForm.delivery_time}
+                    onChange={(e) => setDeliveryForm({...deliveryForm, delivery_time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="font-primary">Quantity *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={deliveryForm.quantity}
+                    onChange={(e) => setDeliveryForm({...deliveryForm, quantity: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+
+                <div>
+                  <Label className="font-primary">Unit</Label>
+                  <Select value={deliveryForm.unit} onValueChange={(value) => setDeliveryForm({...deliveryForm, unit: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tonnes">Tonnes</SelectItem>
+                      <SelectItem value="m3">Cubic Metres</SelectItem>
+                      <SelectItem value="m2">Square Metres</SelectItem>
+                      <SelectItem value="m">Linear Metres</SelectItem>
+                      <SelectItem value="units">Units</SelectItem>
+                      <SelectItem value="pallets">Pallets</SelectItem>
+                      <SelectItem value="loads">Loads</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Received By *</Label>
+                  <div className="flex">
+                    <Input
+                      value={deliveryForm.received_by}
+                      onChange={(e) => setDeliveryForm({...deliveryForm, received_by: e.target.value})}
+                      placeholder="Person who received"
+                    />
+                    <VoiceInput
+                      value={deliveryForm.received_by}
+                      onChange={(value) => setDeliveryForm({...deliveryForm, received_by: value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-primary">Delivery Docket Number</Label>
+                  <Input
+                    value={deliveryForm.delivery_docket || ''}
+                    onChange={(e) => setDeliveryForm({...deliveryForm, delivery_docket: e.target.value})}
+                    placeholder="Docket/reference number"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="quality-issues"
+                    checked={!!deliveryForm.quality_issues}
+                    onChange={(e) => setDeliveryForm({...deliveryForm, quality_issues: e.target.checked ? 'Quality issues noted' : ''})}
+                    className="rounded border-slate-300"
+                  />
+                  <Label htmlFor="quality-issues" className="font-primary">
+                    Quality issues identified
+                  </Label>
+                </div>
+              </div>
+
+              {deliveryForm.quality_issues && (
+                <div>
+                  <Label className="font-primary">Quality Issues Description</Label>
+                  <div className="flex">
+                    <Textarea
+                      value={deliveryForm.quality_issues}
+                      onChange={(e) => setDeliveryForm({...deliveryForm, quality_issues: e.target.value})}
+                      placeholder="Describe any quality issues or concerns..."
+                      className="min-h-[80px]"
+                    />
+                    <VoiceInput
+                      value={deliveryForm.quality_issues}
+                      onChange={(value) => setDeliveryForm({...deliveryForm, quality_issues: value})}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={addDeliveryEntry} className="site-proof-btn-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Delivery Entry
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Entries List */}
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="font-heading">Today's Deliveries ({siteDiary?.delivery_entries.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {siteDiary?.delivery_entries.length ? (
+                <div className="space-y-3">
+                  {siteDiary.delivery_entries.map((entry) => (
+                    <div key={entry.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-semibold text-slate-900 font-heading">{entry.material_type}</h4>
+                          <p className="text-sm text-slate-600 font-primary">
+                            Supplier: {entry.supplier} • {entry.quantity} {entry.unit}
+                            {entry.delivery_time && ` • ${entry.delivery_time}`}
+                          </p>
+                          <p className="text-sm text-slate-600 font-primary">
+                            Received by: {entry.received_by}
+                          </p>
+                          {entry.delivery_docket && (
+                            <p className="text-sm text-slate-500 font-primary">Docket: {entry.delivery_docket}</p>
+                          )}
+                          {entry.quality_issues && (
+                            <p className="text-sm text-red-600 mt-1 font-primary">{entry.quality_issues}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {entry.quality_issues && (
+                            <Badge className="bg-red-100 text-red-800 border-red-300">Quality Issues</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-8 font-primary">No deliveries recorded for today</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {activeSection === 'events' && (
-        <Card className="border-slate-200">
-          <CardHeader className="bg-gradient-to-r from-[#1B4F72] to-[#2E86AB] text-white">
-            <CardTitle className="flex items-center gap-2 font-heading">
-              <AlertTriangle className="h-5 w-5" />
-              Event Logging
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <p className="text-center text-slate-500 py-8 font-primary">Event logging coming soon...</p>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {/* Add Event Form */}
+          <Card className="border-slate-200">
+            <CardHeader className="bg-gradient-to-r from-[#1B4F72] to-[#2E86AB] text-white">
+              <CardTitle className="flex items-center gap-2 font-heading">
+                <AlertTriangle className="h-5 w-5" />
+                Add Event Entry
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="font-primary">Event Category *</Label>
+                  <Select value={eventForm.category} onValueChange={(value) => setEventForm({...eventForm, category: value as any})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EVENT_CATEGORIES.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Impact Level *</Label>
+                  <Select value={eventForm.impact_level} onValueChange={(value) => setEventForm({...eventForm, impact_level: value as any})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select impact" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {IMPACT_LEVELS.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level.charAt(0) + level.slice(1).toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Event Time</Label>
+                  <Input
+                    type="time"
+                    value={eventForm.event_time}
+                    onChange={(e) => setEventForm({...eventForm, event_time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-primary">Event Title *</Label>
+                  <div className="flex">
+                    <Input
+                      value={eventForm.title}
+                      onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+                      placeholder="Brief title of the event"
+                    />
+                    <VoiceInput
+                      value={eventForm.title}
+                      onChange={(value) => setEventForm({...eventForm, title: value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="font-primary">Responsible Party</Label>
+                  <div className="flex">
+                    <Input
+                      value={eventForm.responsible_party || ''}
+                      onChange={(e) => setEventForm({...eventForm, responsible_party: e.target.value})}
+                      placeholder="Person/company responsible"
+                    />
+                    <VoiceInput
+                      value={eventForm.responsible_party || ''}
+                      onChange={(value) => setEventForm({...eventForm, responsible_party: value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="font-primary">Event Description *</Label>
+                <div className="flex">
+                  <Textarea
+                    value={eventForm.description}
+                    onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+                    placeholder="Detailed description of what happened..."
+                    className="min-h-[100px]"
+                  />
+                  <VoiceInput
+                    value={eventForm.description}
+                    onChange={(value) => setEventForm({...eventForm, description: value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="follow-up-required"
+                  checked={eventForm.follow_up_required || false}
+                  onChange={(e) => setEventForm({...eventForm, follow_up_required: e.target.checked})}
+                  className="rounded border-slate-300"
+                />
+                <Label htmlFor="follow-up-required" className="font-primary">
+                  Follow-up action required
+                </Label>
+              </div>
+
+              {eventForm.follow_up_required && (
+                <div>
+                  <Label className="font-primary">Follow-up Date</Label>
+                  <Input
+                    type="date"
+                    value={eventForm.follow_up_date || ''}
+                    onChange={(e) => setEventForm({...eventForm, follow_up_date: e.target.value})}
+                  />
+                </div>
+              )}
+
+              <Button onClick={addEventEntry} className="site-proof-btn-primary">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Event Entry
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Event Entries List */}
+          <Card className="border-slate-200">
+            <CardHeader>
+              <CardTitle className="font-heading">Today's Events ({siteDiary?.event_entries.length || 0})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {siteDiary?.event_entries.length ? (
+                <div className="space-y-3">
+                  {siteDiary.event_entries.map((entry) => (
+                    <div key={entry.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold text-slate-900 font-heading">{entry.title}</h4>
+                            <Badge className={`text-xs ${
+                              entry.impact_level === 'CRITICAL' ? 'bg-red-100 text-red-800 border-red-300' :
+                              entry.impact_level === 'HIGH' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                              entry.impact_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                              'bg-green-100 text-green-800 border-green-300'
+                            }`}>
+                              {entry.impact_level}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-slate-600 font-primary">
+                            Category: {entry.category.replace('_', ' ')}
+                            {entry.event_time && ` • ${entry.event_time}`}
+                          </p>
+                          <p className="text-sm text-slate-700 mt-1 font-primary">{entry.description}</p>
+                          {entry.responsible_party && (
+                            <p className="text-sm text-slate-600 font-primary">Responsible: {entry.responsible_party}</p>
+                          )}
+                          {entry.follow_up_required && (
+                            <p className="text-sm text-blue-600 mt-1 font-primary">
+                              Follow-up required{entry.follow_up_date && ` by ${new Date(entry.follow_up_date).toLocaleDateString()}`}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge className={`${
+                            entry.category === 'SAFETY' ? 'bg-red-100 text-red-800 border-red-300' :
+                            entry.category === 'DELAY' ? 'bg-orange-100 text-orange-800 border-orange-300' :
+                            entry.category === 'QUALITY_ISSUE' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                            'bg-blue-100 text-blue-800 border-blue-300'
+                          }`}>
+                            {entry.category.replace('_', ' ')}
+                          </Badge>
+                          {entry.follow_up_required && (
+                            <Badge className="bg-purple-100 text-purple-800 border-purple-300">Follow-up</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-slate-500 py-8 font-primary">No events recorded for today</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )
