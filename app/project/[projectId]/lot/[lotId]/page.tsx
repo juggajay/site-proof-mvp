@@ -184,9 +184,13 @@ export default function LotPage({ params }: LotPageProps) {
         console.log('✅ Assignments found:', assignmentData.length, assignmentData)
         // Use the most recent assignment for now (first in the ordered array)
         const mostRecentAssignment = assignmentData[0]
-        console.log('📋 Using most recent assignment:', mostRecentAssignment)
-        console.log('📋 Assignment ITP ID:', mostRecentAssignment.itp_id)
-        setAssignment(mostRecentAssignment)
+        if (mostRecentAssignment) {
+          console.log('📋 Using most recent assignment:', mostRecentAssignment)
+          console.log('📋 Assignment ITP ID:', mostRecentAssignment.itp_id)
+          setAssignment(mostRecentAssignment)
+        } else {
+          setAssignment(null)
+        }
         // No need to load ITP data separately - we got it from the JOIN above
       } else {
         console.log('📭 No assignment found for lot:', params.lotId)

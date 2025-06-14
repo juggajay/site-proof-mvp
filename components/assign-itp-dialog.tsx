@@ -221,10 +221,10 @@ export default function AssignITPDialog() {
     if (!scheduledDate || !selectedITPDetails) return '';
     
     const scheduled = new Date(scheduledDate);
-    const durationDays = parseInt(selectedITPDetails.estimatedDuration.split(' ')[0]) || 1;
+    const durationDays = parseInt(selectedITPDetails.estimatedDuration?.split(' ')[0] || '1') || 1;
     const completion = new Date(scheduled.getTime() + (durationDays * 24 * 60 * 60 * 1000));
     
-    return completion.toISOString().split('T')[0];
+    return completion.toISOString().split('T')[0]!;
   };
 
   const getCompatibilityScore = (member: any, itp: any) => {

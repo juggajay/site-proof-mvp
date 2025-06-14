@@ -37,7 +37,7 @@ export default function SiteDiaryTab({ lotData }: SiteDiaryTabProps) {
       try {
         const formData = new FormData();
         formData.append('lotId', lotData.id);
-        formData.append('reportDate', today);
+        formData.append('reportDate', today || '');
         formData.append('generalComments', generalComments);
         formData.append('weather', weather);
 

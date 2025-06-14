@@ -58,6 +58,7 @@ function getCookie(name: string): string | undefined {
   if (parts.length === 2) {
     return parts.pop()?.split(';').shift()
   }
+  return undefined
 }
 
 function setCookie(name: string, value: string, options: any = {}) {

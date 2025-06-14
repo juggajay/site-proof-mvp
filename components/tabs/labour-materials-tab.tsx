@@ -449,7 +449,7 @@ export default function LabourMaterialsTab({ lotData }: LabourMaterialsTabProps)
                   </div>
                 </div>
                 <CardDescription>
-                  {new Date(docket.date).toLocaleDateString()} • {docket.description}
+                  {new Date(docket.date || '').toLocaleDateString()} • {docket.description}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -506,7 +506,7 @@ export default function LabourMaterialsTab({ lotData }: LabourMaterialsTabProps)
                   </div>
                 </div>
                 <CardDescription>
-                  {new Date(docket.date).toLocaleDateString()} • {docket.description}
+                  {new Date(docket.date || '').toLocaleDateString()} • {docket.description}
                 </CardDescription>
               </CardHeader>
               <CardContent>

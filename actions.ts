@@ -139,8 +139,9 @@ export async function saveInspectionAnswersAction(answers: Partial<ConformanceRe
         }
 
         // Revalidate the lot page to ensure fresh data
-        if (answers.length > 0 && answers[0].lot_id) {
-            revalidatePath(`/project/*/lot/${answers[0].lot_id}`);
+        const firstAnswer = answers[0];
+        if (firstAnswer?.lot_id) {
+            revalidatePath(`/project/*/lot/${firstAnswer.lot_id}`);
         }
 
         return { success: true };

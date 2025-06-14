@@ -483,7 +483,9 @@ class DailyReportService {
     const match = gpsString.match(/POINT\(([^)]+)\)/)
     if (!match) return null
     
-    const [longitude, latitude] = match[1].split(' ').map(Number)
+    const coords = match[1]?.split(' ').map(Number) || [0, 0]
+    const longitude = coords[0] || 0
+    const latitude = coords[1] || 0
     return { latitude, longitude }
   }
 

@@ -37,12 +37,12 @@ export function AssignITPButton({ lot, availableITPs, teamMembers, onAssign }: A
     
     // Add validation for estimated_duration format
     const durationMatch = selectedITPDetails.estimated_duration.match(/(\d+)/)
-    const durationDays = durationMatch ? parseInt(durationMatch[1]) : 1
+    const durationDays = durationMatch?.[1] ? parseInt(durationMatch[1]) : 1
     
     const scheduled = new Date(scheduledDate)
     const completion = new Date(scheduled.getTime() + (durationDays * 24 * 60 * 60 * 1000))
     
-    return completion.toISOString().split('T')[0]
+    return completion.toISOString().split('T')[0]!
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

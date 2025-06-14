@@ -61,8 +61,11 @@ export function AssignItpModal({ open, onOpenChange, lot }: AssignItpModalProps)
         loadITPs();
     }, [open]);
 
-    const onSubmit = (data: AssignItpForm) => {
-        if (!lot) return toast.error("No lot selected.");
+    const onSubmit = (data: AssignItpForm): void => {
+        if (!lot) {
+            toast.error("No lot selected.");
+            return;
+        }
 
         startTransition(async () => {
             const formData = new FormData();
