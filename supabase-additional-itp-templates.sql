@@ -16,7 +16,7 @@ BEGIN
     VALUES ('Conduit & Pit Installation', 'QA checklist for installing electrical/comms conduits and pits.')
     RETURNING id INTO conduit_itp_id;
 
-    INSERT INTO public.itp_items (itp_id, description, item_type, "order") VALUES
+    INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
         (conduit_itp_id, 'Trench depth and width conform to drawings?', 'PASS_FAIL', 1),
         (conduit_itp_id, 'Bedding sand placed and compacted?', 'PASS_FAIL', 2),
         (conduit_itp_id, 'Conduit type and size as per specification?', 'TEXT_INPUT', 3),
@@ -30,7 +30,7 @@ BEGIN
     VALUES ('Subgrade Preparation', 'Checklist for the preparation and approval of the subgrade layer before paving.')
     RETURNING id INTO subgrade_itp_id;
 
-    INSERT INTO public.itp_items (itp_id, description, item_type, "order") VALUES
+    INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
         (subgrade_itp_id, 'Area cleared of all vegetation and topsoil?', 'PASS_FAIL', 1),
         (subgrade_itp_id, 'Proof roll completed and soft spots identified?', 'PASS_FAIL', 2),
         (subgrade_itp_id, 'Subgrade trimmed to design level (+/- tolerance)?', 'PASS_FAIL', 3),
@@ -43,7 +43,7 @@ BEGIN
     VALUES ('Pavement Layer - Unbound Granular', 'Inspection for placement of unbound granular pavement materials like DGB20 or DGS40.')
     RETURNING id INTO pavement_itp_id;
 
-    INSERT INTO public.itp_items (itp_id, description, item_type, "order") VALUES
+    INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
         (pavement_itp_id, 'Material delivery dockets checked (source, type)?', 'PASS_FAIL', 1),
         (pavement_itp_id, 'Underlying surface approved and prepared?', 'PASS_FAIL', 2),
         (pavement_itp_id, 'Material placed in uniform layers (no segregation)?', 'PASS_FAIL', 3),
@@ -56,7 +56,7 @@ BEGIN
     VALUES ('Proof Rolling Inspection', 'Checklist for conducting a proof roll to detect unstable areas in the subgrade.')
     RETURNING id INTO proof_roll_itp_id;
 
-    INSERT INTO public.itp_items (itp_id, description, item_type, "order") VALUES
+    INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
         (proof_roll_itp_id, 'Area to be rolled is defined and surveyed?', 'PASS_FAIL', 1),
         (proof_roll_itp_id, 'Roller weight and type as per specification?', 'TEXT_INPUT', 2),
         (proof_roll_itp_id, 'Number of roller passes completed?', 'NUMERIC', 3),
@@ -69,7 +69,7 @@ BEGIN
     VALUES ('Topsoiling & Seeding', 'Checklist for landscape finishing works, topsoil placement, and seeding.')
     RETURNING id INTO topsoil_itp_id;
 
-    INSERT INTO public.itp_items (itp_id, description, item_type, "order") VALUES
+    INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
         (topsoil_itp_id, 'Finished earthwork levels conform to design?', 'PASS_FAIL', 1),
         (topsoil_itp_id, 'Topsoil source and quality approved?', 'PASS_FAIL', 2),
         (topsoil_itp_id, 'Topsoil spread to correct thickness (mm)?', 'NUMERIC', 3),
