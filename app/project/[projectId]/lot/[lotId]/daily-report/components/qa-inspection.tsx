@@ -132,7 +132,59 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
   }
 
   if (currentAssignment) {
-    return <div className="text-center py-12">Current assignment display...</div>
+    return (
+      <div className="space-y-6">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <FileText className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-green-800">Active ITP Assignment</h3>
+              <p className="text-green-600">Status: {currentAssignment.status}</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-medium text-gray-700">ITP ID:</span>
+              <span className="ml-2 text-gray-600">{currentAssignment.itp_id}</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Assigned To:</span>
+              <span className="ml-2 text-gray-600">{currentAssignment.assigned_to}</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Priority:</span>
+              <span className="ml-2 text-gray-600">{currentAssignment.priority}</span>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700">Scheduled:</span>
+              <span className="ml-2 text-gray-600">
+                {currentAssignment.scheduled_date ? new Date(currentAssignment.scheduled_date).toLocaleDateString() : 'Not scheduled'}
+              </span>
+            </div>
+          </div>
+          
+          {currentAssignment.notes && (
+            <div className="mt-4 pt-4 border-t border-green-200">
+              <span className="font-medium text-gray-700">Notes:</span>
+              <p className="mt-1 text-gray-600">{currentAssignment.notes}</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="text-center py-6 border-t">
+          <h4 className="text-lg font-medium mb-4">Assign Additional ITP</h4>
+          <AssignITPButton
+            lot={lot}
+            availableITPs={availableITPs}
+            teamMembers={teamMembers}
+            onAssign={handleAssignment}
+          />
+        </div>
+      </div>
+    )
   }
 
   return (
