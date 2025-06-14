@@ -158,34 +158,62 @@ const saveSiteDiarySchema = z.object({
 });
 
 export async function saveSiteDiaryAction(formData: FormData) {
+  console.log('=== SAVE DIARY DEBUG START ===');
+  console.log('FormData received:', Object.fromEntries(formData));
+  
   try {
     // Get current user
     const supabase = createClient();
+    console.log('Getting user authentication...');
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
+      console.error('Authentication failed:', authError);
       throw new Error('Authentication required');
     }
+    console.log('User authenticated:', user.id);
 
     // Validate form data
-    const validatedData = saveSiteDiarySchema.parse({
+    console.log('Validating form data...');
+    const rawData = {
       lotId: formData.get('lotId'),
       reportDate: formData.get('reportDate'),
       generalComments: formData.get('generalComments'),
       weather: formData.get('weather'),
-    });
+    };
+    console.log('Raw form data:', rawData);
+    
+    const validatedData = saveSiteDiarySchema.parse(rawData);
+    console.log('Validated data:', validatedData);
+
+    // Check if daily_lot_reports table exists and structure
+    console.log('Testing database connection...');
+    const { data: testQuery, error: testError } = await supabase
+      .from('daily_lot_reports')
+      .select('*')
+      .limit(1);
+    
+    if (testError) {
+      console.error('Database table test failed:', testError);
+      throw new Error(`Database table error: ${testError.message}`);
+    }
+    console.log('Database table accessible, sample data:', testQuery);
 
     // Upsert daily report (create or update)
+    console.log('Attempting to upsert daily report...');
+    const upsertData = {
+      lot_id: validatedData.lotId,
+      report_date: validatedData.reportDate,
+      general_activities: validatedData.generalComments,
+      weather_condition: validatedData.weather,
+      updated_at: new Date().toISOString(),
+    };
+    console.log('Upsert data:', upsertData);
+    
     const { data: dailyReport, error } = await supabase
-      .from('daily_reports')
+      .from('daily_lot_reports')
       .upsert(
-        {
-          lot_id: validatedData.lotId,
-          report_date: validatedData.reportDate,
-          general_comments: validatedData.generalComments,
-          weather: validatedData.weather,
-          updated_at: new Date().toISOString(),
-        },
+        upsertData,
         {
           onConflict: 'lot_id,report_date',
           ignoreDuplicates: false,
@@ -195,20 +223,29 @@ export async function saveSiteDiaryAction(formData: FormData) {
       .single();
 
     if (error) {
+      console.error('Database upsert error:', error);
       throw new Error(`Database error: ${error.message}`);
     }
+    console.log('Upsert successful, daily report:', dailyReport);
 
     // Revalidate the page to show updated data
+    console.log('Revalidating path...');
     revalidatePath(`/project/*/lot/${validatedData.lotId}`);
     
-    return {
+    const result = {
       success: true,
       dailyReportId: dailyReport.id,
       message: 'Site diary saved successfully'
     };
+    console.log('=== SAVE DIARY SUCCESS ===', result);
+    return result;
 
   } catch (error) {
-    console.error('Save site diary error:', error);
+    console.error('=== SAVE DIARY ERROR ===');
+    console.error('Error type:', typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Full error:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     throw new Error(error instanceof Error ? error.message : 'Failed to save site diary');
   }
 }
