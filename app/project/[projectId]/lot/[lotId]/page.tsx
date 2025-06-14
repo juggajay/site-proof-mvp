@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '../../../../../lib/supabase/client'
 import { AssignItpModal } from '../../../../../components/modals/assign-itp-modal'
@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../../../../components/ui/badge'
 import { Loader2, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { LotInspectionClientPage } from './lot-inspection-client-page'
+import LotInspectionClientPage from './lot-inspection-client-page'
 // Local interfaces that match our database schema
 interface Lot {
   id: string
@@ -83,11 +83,7 @@ export default function LotPage({ params }: LotPageProps) {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    loadLotData()
-  }, [params.lotId])
-
-  const loadLotData = async () => {
+  const loadLotData = useCallback(async () => {
     try {
       setIsLoading(true)
       const supabase = createClient()
@@ -204,8 +200,11 @@ export default function LotPage({ params }: LotPageProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [params.lotId])
 
+  useEffect(() => {
+    loadLotData()
+  }, [loadLotData])
 
   const handleModalClose = (open: boolean) => {
     if (!open) {
