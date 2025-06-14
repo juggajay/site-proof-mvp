@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site-Proof - Quality Assurance Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --charcoal: #2C3E50;
+            --clarity-blue: #3498DB;
+            --white: #F4F6F7;
+            --light-grey: #AAB7B8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--charcoal);
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.02) 50%, transparent 70%),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 98px,
+                    rgba(255,255,255,0.03) 100px
+                );
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 3.5rem;
+            line-height: 1.1;
+            color: var(--white);
+            margin-bottom: 24px;
+        }
+
+        .hero-text p {
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 1.25rem;
+            line-height: 1.6;
+            color: var(--light-grey);
+            margin-bottom: 40px;
+        }
+
+        .demo-button {
+            background: var(--clarity-blue);
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .demo-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+        }
+
+        .hero-image {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tablet-mockup {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,0.3),
+                0 0 0 1px rgba(255,255,255,0.1);
+            position: relative;
+        }
+
+        .tablet-screen {
+            width: 100%;
+            height: 350px;
+            background: var(--white);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .app-header {
+            height: 60px;
+            background: var(--charcoal);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .app-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .app-card {
+            background: var(--clarity-blue);
+            border-radius: 8px;
+            padding: 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .app-card:nth-child(2) {
+            background: var(--charcoal);
+        }
+
+        .app-card:nth-child(3) {
+            background: #e67e22;
+        }
+
+        .app-card:nth-child(4) {
+            background: var(--light-grey);
+            color: var(--charcoal);
+        }
+
+        .features {
+            background: var(--white);
+            padding: 100px 0;
+        }
+
+        .features h2 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 2.5rem;
+            text-align: center;
+            color: var(--charcoal);
+            margin-bottom: 80px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 60px;
+        }
+
+        .feature {
+            text-align: center;
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--clarity-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .feature h3 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: var(--charcoal);
+            margin-bottom: 16px;
+        }
+
+        .feature p {
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--charcoal);
+        }
+
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                text-align: center;
+            }
+
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Stop Managing Defects. Start Proving Quality.</h1>
+                    <p>The specialist QA platform for Australian construction teams who refuse to compromise on quality. Certainty, built-in.</p>
+                    <a href="#" class="demo-button">Request a Demo</a>
+                </div>
+                <div class="hero-image">
+                    <div class="tablet-mockup">
+                        <div class="tablet-screen">
+                            <div class="app-header">Site-Proof QA</div>
+                            <div class="app-content">
+                                <div class="app-card">Total Projects<br>24</div>
+                                <div class="app-card">Active<br>8</div>
+                                <div class="app-card">Completed<br>16</div>
+                                <div class="app-card">Pending<br>3</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>Why Specialist QA Matters</h2>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Laser Focus</h3>
+                    <p>We do one thing: provide undeniable proof. Our entire platform is engineered for QA, not diluted by project management features.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✋</div>
+                    <h3>Superior UX</h3>
+                    <p>A streamlined interface designed for rapid adoption on site. Less clicks, less confusion, more certainty.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🇦🇺</div>
+                    <h3>Local Expertise</h3>
+                    <p>Built for Australian standards, by a team on the ground. We understand your challenges because they're our challenges too.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>
