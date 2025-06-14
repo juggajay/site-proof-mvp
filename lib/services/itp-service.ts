@@ -80,6 +80,8 @@ export class ITPService {
 
   async getTeamMembers(organizationId: string): Promise<TeamMember[]> {
     try {
+      console.log('🔍 Loading team members for org:', organizationId)
+      
       const { data, error } = await this.supabase
         .from('profiles')
         .select(`
@@ -91,8 +93,14 @@ export class ITPService {
         .eq('organization_id', organizationId)
         .order('name')
 
-      if (error || !data || data.length === 0) {
-        console.warn('Using mock team members')
+      if (error) {
+        console.warn('❌ Profiles query error:', error)
+        console.warn('Using mock team members due to profiles error')
+        return this.getMockTeamMembers()
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('📭 No team members found, using mock data')
         return this.getMockTeamMembers()
       }
 

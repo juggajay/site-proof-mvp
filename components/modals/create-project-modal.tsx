@@ -58,7 +58,7 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
       console.log('✅ User authenticated:', session.user.id)
 
       // Get user profile
-      console.log('👤 Getting user profile...')
+      console.log('👤 Getting user profile for:', session.user.id)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('organization_id')
@@ -66,7 +66,12 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
         .single()
       
       if (profileError) {
-        console.error('❌ Profile error:', profileError)
+        console.error('❌ Profile query failed:', profileError)
+        console.error('❌ Profile error details:', {
+          message: profileError.message,
+          code: profileError.code,
+          details: profileError.details
+        })
         throw new Error('User profile not found. Please contact support.')
       }
       

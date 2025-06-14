@@ -13,6 +13,7 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
+      console.error('❌ User authentication failed:', userError)
       throw new Error('User not authenticated')
     }
 

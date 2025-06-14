@@ -24,6 +24,7 @@ export async function createProjectAction(formData: FormData) {
         if (!user) throw new Error('Authentication required');
         
         // Get user profile
+        console.log('🔍 Loading user profile for:', user.id);
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('organization_id')
@@ -32,7 +33,10 @@ export async function createProjectAction(formData: FormData) {
             
         console.log('👤 Profile check:', { profile, error: profileError });
         
-        if (profileError) throw new Error(`Profile error: ${profileError.message}`);
+        if (profileError) {
+            console.error('❌ Profile query failed:', profileError);
+            throw new Error(`Profile error: ${profileError.message}`);
+        }
         if (!profile?.organization_id) throw new Error('User profile or organization not found');
         
         // Validate form data
