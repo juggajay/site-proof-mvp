@@ -72,21 +72,38 @@ export function AssignItpModal({ open, onOpenChange, lot, onSuccess }: AssignItp
             formData.append('itpId', data.itpId);
 
             try {
+                // Calculate estimated completion date (7 days from now)
+                const estimatedCompletion = new Date();
+                estimatedCompletion.setDate(estimatedCompletion.getDate() + 7);
+                
                 const assignmentData = {
                     lot_id: lot.id,
                     project_id: lot.project_id,
                     itp_id: data.itpId,
-                    assigned_to: 'current-user', // This should be the current user ID
+                    assigned_to: 'system-user', // Will be set to actual user ID in server action
                     scheduled_date: new Date().toISOString(),
+                    estimated_completion_date: estimatedCompletion.toISOString(),
                     priority: 'medium' as const,
-                    organization_id: 'default-org-id' // This should be the current organization ID
+                    organization_id: '00000000-0000-0000-0000-000000000000', // Default org ID
+                    notes: `ITP assigned to lot ${lot.lot_number}`
                 };
-                await assignITPToLot(assignmentData);
+                
+                console.log('🚀 Submitting assignment:', assignmentData);
+                
+                const result = await assignITPToLot(assignmentData);
+                
+                console.log('📋 Server action result:', result);
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Assignment failed');
+                }
+                
                 toast.success(`ITP assigned to lot ${lot.lot_number} successfully!`);
                 form.reset();
                 onOpenChange(false);
                 onSuccess?.();
             } catch (error) {
+                console.error('❌ Assignment error:', error);
                 toast.error(error instanceof Error ? error.message : 'Failed to assign ITP.');
             }
         });
