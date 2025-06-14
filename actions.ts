@@ -204,8 +204,8 @@ export async function saveSiteDiaryAction(formData: FormData) {
     const upsertData = {
       lot_id: validatedData.lotId,
       report_date: validatedData.reportDate,
-      general_activities: validatedData.generalComments,
-      weather_condition: validatedData.weather,
+      general_comments: validatedData.generalComments,
+      weather: validatedData.weather,
       updated_at: new Date().toISOString(),
     };
     console.log('Upsert data:', upsertData);
