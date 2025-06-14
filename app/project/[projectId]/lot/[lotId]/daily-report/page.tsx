@@ -593,19 +593,19 @@ export default function DailyLotReport({ params }: { params: { projectId: string
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div className="bg-gradient-to-r from-white to-slate-50 border-b border-slate-200 p-6 shadow-sm">
+        <h1 className="text-2xl font-heading font-bold text-slate-900">
           Daily Lot Report - {lot?.lot_number || 'Lot #' + lot?.id?.slice(0, 8)}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-slate-600 font-primary">
           {new Date().toLocaleDateString()} • {lot?.projects?.name || 'Project'}
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white border-b border-slate-200 shadow-sm">
         <div className="container mx-auto px-4">
           <nav className="flex space-x-8">
             {[
@@ -616,14 +616,14 @@ export default function DailyLotReport({ params }: { params: { projectId: string
               <button
                 key={key}
                 onClick={() => setActiveTab(key as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === key
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                    ? 'border-[#1B4F72] text-[#1B4F72]'
+                    : 'border-transparent text-slate-500 hover:text-[#1B4F72]'
                 }`}
               >
-                <div>{label}</div>
-                <div className="text-xs text-gray-400">{desc}</div>
+                <div className="font-primary">{label}</div>
+                <div className="text-xs text-slate-400 font-primary">{desc}</div>
               </button>
             ))}
           </nav>
@@ -647,8 +647,8 @@ export default function DailyLotReport({ params }: { params: { projectId: string
         {activeTab === 'compliance' && (
           <div className="space-y-6">
             {/* Compliance Sub-tabs */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="border-b border-gray-200 dark:border-gray-700">
+            <div className="bg-white rounded-lg shadow-lg border border-slate-200">
+              <div className="border-b border-slate-200">
                 <nav className="flex space-x-8 px-6">
                   {[
                     { key: 'qa', label: '🔍 QA Inspection', desc: 'ITP Checklists' },
@@ -657,14 +657,14 @@ export default function DailyLotReport({ params }: { params: { projectId: string
                     <button
                       key={key}
                       onClick={() => setComplianceTab(key as any)}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                         complianceTab === key
-                          ? 'border-green-500 text-green-600 dark:text-green-400'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                          ? 'border-[#F1C40F] text-[#1B4F72]'
+                          : 'border-transparent text-slate-500 hover:text-[#1B4F72]'
                       }`}
                     >
-                      <div>{label}</div>
-                      <div className="text-xs text-gray-400">{desc}</div>
+                      <div className="font-primary">{label}</div>
+                      <div className="text-xs text-slate-400 font-primary">{desc}</div>
                     </button>
                   ))}
                 </nav>

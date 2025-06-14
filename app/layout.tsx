@@ -11,8 +11,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Site Proof MVP',
-  description: 'Civil works QA conformance management system',
+  title: 'Site-Proof | Construction QA Software',
+  description: 'Professional construction quality assurance software for Australian building standards and regulations',
 }
 
 export default function RootLayout({
