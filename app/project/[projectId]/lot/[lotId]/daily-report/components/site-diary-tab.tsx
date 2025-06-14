@@ -244,8 +244,8 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
         
         {/* Weather Selector */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            <CloudIcon className="inline h-4 w-4 mr-2" />
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <Cloud className="h-4 w-4" />
             Weather Conditions
           </label>
           <Select value={weather} onValueChange={setWeather}>
