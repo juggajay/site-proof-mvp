@@ -37,17 +37,17 @@ export default function LandingPage() {
               </Link>
             </nav>
             <div className="flex items-center space-x-4">
-              <Link 
-                href="/auth/login" 
+              <Link
+                href="/auth/login"
                 className="text-slate-600 hover:text-blue-800 font-medium"
               >
                 Sign In
               </Link>
-              <Link 
-                href="/auth/signup" 
+              <Link
+                href="/auth/signup"
                 className="site-proof-btn-primary"
               >
-                Start Free Trial
+                Sign Up
               </Link>
             </div>
           </div>
@@ -69,15 +69,15 @@ export default function LandingPage() {
                 Ensure compliance, reduce defects, and deliver projects on time and within budget.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Link 
-                  href="/auth/signup" 
+                <Link
+                  href="/auth/signup"
                   className="site-proof-btn-primary text-lg px-8 py-4"
                 >
-                  Start 14-Day Free Trial
+                  Get Started Today
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-                <Link 
-                  href="#demo" 
+                <Link
+                  href="#demo"
                   className="site-proof-btn-tertiary text-lg px-8 py-4"
                 >
                   Watch Demo
@@ -86,7 +86,7 @@ export default function LandingPage() {
               <div className="mt-8 flex items-center space-x-6 text-sm text-slate-500">
                 <div className="flex items-center">
                   <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  No credit card required
+                  Professional QA software
                 </div>
                 <div className="flex items-center">
                   <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
@@ -137,62 +137,62 @@ export default function LandingPage() {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                <Clipboard className="h-6 w-6 text-blue-800" />
+            <div className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-12 h-12 bg-yellow-400 rounded-lg flex items-center justify-center mb-6">
+                <Clipboard className="h-6 w-6 text-blue-900" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Digital Inspections</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-semibold text-white mb-4">Digital Inspections</h3>
+              <p className="text-blue-100">
                 Conduct thorough quality inspections with customizable checklists, photo documentation, and real-time reporting.
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
-                <Shield className="h-6 w-6 text-yellow-600" />
+            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-12 h-12 bg-blue-800 rounded-lg flex items-center justify-center mb-6">
+                <Shield className="h-6 w-6 text-yellow-400" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Compliance Management</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-semibold text-blue-900 mb-4">Compliance Management</h3>
+              <p className="text-blue-800">
                 Stay compliant with Australian building codes, safety regulations, and industry standards with automated tracking.
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6">
-                <FileText className="h-6 w-6 text-green-600" />
+            <div className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-12 h-12 bg-yellow-400 rounded-lg flex items-center justify-center mb-6">
+                <FileText className="h-6 w-6 text-blue-900" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Automated Reporting</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-semibold text-white mb-4">Automated Reporting</h3>
+              <p className="text-blue-100">
                 Generate professional reports instantly with photos, data, and compliance documentation for stakeholders.
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6">
-                <Users className="h-6 w-6 text-purple-600" />
+            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-12 h-12 bg-blue-800 rounded-lg flex items-center justify-center mb-6">
+                <Users className="h-6 w-6 text-yellow-400" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Team Collaboration</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-semibold text-blue-900 mb-4">Team Collaboration</h3>
+              <p className="text-blue-800">
                 Connect project managers, supervisors, and QA teams with real-time updates and communication tools.
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-6">
-                <Clock className="h-6 w-6 text-red-600" />
+            <div className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-12 h-12 bg-yellow-400 rounded-lg flex items-center justify-center mb-6">
+                <Clock className="h-6 w-6 text-blue-900" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Real-Time Tracking</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-semibold text-white mb-4">Real-Time Tracking</h3>
+              <p className="text-blue-100">
                 Monitor project progress, defect resolution, and quality metrics with live dashboards and notifications.
               </p>
             </div>
 
-            <div className="bg-white rounded-xl p-8 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
-                <TrendingUp className="h-6 w-6 text-indigo-600" />
+            <div className="bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="w-12 h-12 bg-blue-800 rounded-lg flex items-center justify-center mb-6">
+                <TrendingUp className="h-6 w-6 text-yellow-400" />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 mb-4">Analytics & Insights</h3>
-              <p className="text-slate-600">
+              <h3 className="text-xl font-semibold text-blue-900 mb-4">Analytics & Insights</h3>
+              <p className="text-blue-800">
                 Gain valuable insights into quality trends, team performance, and project efficiency with detailed analytics.
               </p>
             </div>
@@ -282,11 +282,11 @@ export default function LandingPage() {
             Join hundreds of Australian construction companies using Site-Proof to deliver higher quality projects.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/auth/signup" 
+            <Link
+              href="/auth/signup"
               className="site-proof-btn-secondary text-lg px-8 py-4"
             >
-              Start Your Free Trial
+              Get Started Today
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link 
@@ -297,7 +297,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="text-blue-200 text-sm mt-6">
-            14-day free trial • No credit card required • Australian support team
+            Professional QA software • Australian support team • Trusted by industry leaders
           </p>
         </div>
       </section>

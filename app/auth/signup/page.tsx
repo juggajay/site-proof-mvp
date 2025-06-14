@@ -56,7 +56,7 @@ export default function SignupPage() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 font-heading">
-                Start Your Free Trial
+                Create Your Account
               </h2>
               <p className="text-slate-600 mt-2 font-primary">
                 Join hundreds of Australian construction companies
@@ -221,7 +221,7 @@ export default function SignupPage() {
                 disabled={isLoading}
                 className="w-full h-12 site-proof-btn-primary text-base font-semibold"
               >
-                {isLoading ? 'Creating Account...' : 'Start Free Trial'}
+                {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
             </form>
 
@@ -241,11 +241,11 @@ export default function SignupPage() {
               <div className="flex items-center justify-center space-x-6 text-sm text-slate-500">
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  14-day free trial
+                  Professional QA software
                 </div>
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  No credit card required
+                  Australian owned & operated
                 </div>
               </div>
             </div>
