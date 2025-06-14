@@ -1,10 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import Image from 'next/image'
 import { createClient } from '../../../../../../../lib/supabase/client'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../../components/ui/select'
 import { Cloud } from 'lucide-react'
+<<<<<<< HEAD
+=======
+import { toast } from 'sonner'
+import { saveSiteDiaryAction } from '../../../../../../../actions'
+>>>>>>> f526c5abd66b568aa5c3e49065ccd9c2343d179b
 
 interface SiteDiaryTabProps {
   lot: any
@@ -28,7 +33,7 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
   const [activities, setActivities] = useState(dailyReport?.general_activities || '')
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([])
   const [isCapturing, setIsCapturing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const supabase = createClient()
@@ -68,27 +73,54 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
     loadDiaryEntries()
   }, [loadDiaryEntries])
 
-  // Save weather and activities
-  const saveGeneralInfo = async () => {
-    setIsSaving(true)
-    try {
-      const { error } = await supabase
-        .from('daily_lot_reports')
-        .update({
-          weather,
-          general_activities: activities,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', dailyReport.id)
-
-      if (error) throw error
-      onUpdate()
-    } catch (error) {
-      console.error('Error saving general info:', error)
-      alert('Failed to save changes. Please try again.')
-    } finally {
-      setIsSaving(false)
+  // Save weather and activities using server action
+  const handleSave = () => {
+    console.log('=== SAVE BUTTON CLICKED ===')
+    console.log('Weather:', weather)
+    console.log('Activities (general comments):', activities)
+    
+    if (!activities.trim()) {
+      console.log('No comments - showing error')
+      toast.error('Please add some general comments')
+      return
     }
+
+    if (!weather) {
+      console.log('No weather - showing error')
+      toast.error('Please select weather conditions')
+      return
+    }
+
+    console.log('Starting save process...')
+    
+    startTransition(async () => {
+      try {
+        console.log('Creating FormData...')
+        const formData = new FormData()
+        formData.append('lotId', lot.id)
+        formData.append('reportDate', new Date().toISOString().split('T')[0]) // Add missing reportDate
+        formData.append('generalComments', activities)
+        formData.append('weather', weather)
+        
+        console.log('FormData contents:')
+        console.log('- lotId:', lot.id)
+        console.log('- reportDate:', new Date().toISOString().split('T')[0])
+        console.log('- generalComments:', activities)
+        console.log('- weather:', weather)
+        
+        console.log('Calling saveSiteDiaryAction...')
+        const result = await saveSiteDiaryAction(formData)
+        console.log('Save result:', result)
+        toast.success(result.message)
+        onUpdate()
+      } catch (error) {
+        console.error('=== SAVE ERROR ===')
+        console.error('Error type:', typeof error)
+        console.error('Error message:', error instanceof Error ? error.message : String(error))
+        console.error('Full error:', error)
+        toast.error(error instanceof Error ? error.message : 'Failed to save')
+      }
+    })
   }
 
   // Handle photo capture
@@ -249,10 +281,14 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
             <SelectContent>
               {weatherOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
+<<<<<<< HEAD
                   <div className="flex items-center gap-2">
                     <span>{option.icon}</span>
                     <span>{option.label}</span>
                   </div>
+=======
+                  {option.icon} {option.label}
+>>>>>>> f526c5abd66b568aa5c3e49065ccd9c2343d179b
                 </SelectItem>
               ))}
             </SelectContent>
@@ -273,11 +309,11 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
         </div>
 
         <button
-          onClick={saveGeneralInfo}
-          disabled={isSaving}
+          onClick={handleSave}
+          disabled={isPending}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
         >
-          {isSaving ? (
+          {isPending ? (
             <>
               <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
