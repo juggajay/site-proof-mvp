@@ -56,7 +56,7 @@
     --error-500: 239 68 68;
     --error-800: 153 27 27;
 
-    /* Updated shadcn/ui variables with new color scheme */
+    /* Updated shadcn/ui variables with research-backed color scheme */
     --background: 248 250 252;
     --foreground: 15 23 42;
     --card: 255 255 255;
@@ -65,8 +65,8 @@
     --popover-foreground: 15 23 42;
     --primary: 37 99 235;
     --primary-foreground: 255 255 255;
-    --secondary: 241 245 249;
-    --secondary-foreground: 15 23 42;
+    --secondary: 249 115 22;
+    --secondary-foreground: 255 255 255;
     --muted: 241 245 249;
     --muted-foreground: 100 116 139;
     --accent: 241 245 249;
@@ -74,7 +74,7 @@
     --destructive: 239 68 68;
     --destructive-foreground: 255 255 255;
     --border: 226 232 240;
-    --input: 226 232 240;
+    --input: 203 213 225;
     --ring: 37 99 235;
     --radius: 0.75rem;
   }
@@ -88,13 +88,13 @@
     --popover-foreground: 248 250 252;
     --primary: 59 130 246;
     --primary-foreground: 15 23 42;
-    --secondary: 51 65 85;
-    --secondary-foreground: 248 250 252;
+    --secondary: 249 115 22;
+    --secondary-foreground: 255 255 255;
     --muted: 51 65 85;
     --muted-foreground: 148 163 184;
     --accent: 51 65 85;
     --accent-foreground: 248 250 252;
-    --destructive: 220 38 38;
+    --destructive: 239 68 68;
     --destructive-foreground: 248 250 252;
     --border: 51 65 85;
     --input: 51 65 85;
