@@ -214,9 +214,15 @@ export default function LotPage({ params }: LotPageProps) {
   }
 
   const handleAssignmentComplete = () => {
-    // Reload data after assignment
-    loadLotData()
-    setIsAssignModalOpen(false)
+    console.log('Assignment success callback triggered');
+    
+    // Close modal first
+    setIsAssignModalOpen(false);
+    
+    // Add a small delay then force reload to ensure assignment is visible
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   }
 
   const handleBackToProject = () => {
@@ -449,6 +455,7 @@ export default function LotPage({ params }: LotPageProps) {
           open={isAssignModalOpen}
           onOpenChange={setIsAssignModalOpen}
           lot={lot as any}
+          onSuccess={handleAssignmentComplete}
         />
       </div>
     </div>

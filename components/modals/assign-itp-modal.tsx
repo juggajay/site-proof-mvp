@@ -22,9 +22,10 @@ interface AssignItpModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     lot: LotWithItp | null;
+    onSuccess?: () => void;
 }
 
-export function AssignItpModal({ open, onOpenChange, lot }: AssignItpModalProps) {
+export function AssignItpModal({ open, onOpenChange, lot, onSuccess }: AssignItpModalProps) {
     const [isPending, startTransition] = useTransition();
     const [itps, setItps] = useState<ITP[]>([]);
     
@@ -84,6 +85,7 @@ export function AssignItpModal({ open, onOpenChange, lot }: AssignItpModalProps)
                 toast.success(`ITP assigned to lot ${lot.lot_number} successfully!`);
                 form.reset();
                 onOpenChange(false);
+                onSuccess?.();
             } catch (error) {
                 toast.error(error instanceof Error ? error.message : 'Failed to assign ITP.');
             }

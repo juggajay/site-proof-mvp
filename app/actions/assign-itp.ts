@@ -66,8 +66,9 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
 
     console.log('✅ Assignment successful:', data)
 
-    // Revalidate the page
+    // Revalidate both the daily-report page and the main lot page
     revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}/daily-report`)
+    revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}`)
 
     return { success: true, assignment: data }
 
