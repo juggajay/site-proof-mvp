@@ -11,44 +11,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../ui/badge'
 import { toast } from 'sonner'
 import { siteDiaryService } from '../../lib/services/site-diary-service'
-import type {
-  CompleteSiteDiary,
-  ManpowerEntryForm,
-  EquipmentEntryForm,
-  DeliveryEntryForm,
-  EventEntryForm,
+import {
+  SiteDiaryEntry,
+  ManpowerEntry,
+  EquipmentEntry,
+  DeliveryEntry,
+  EventEntry,
+  ManpowerFormData,
+  EquipmentFormData,
+  DeliveryFormData,
+  EventFormData,
   EventCategory,
-  ImpactLevel
-} from '../../types/phase1-site-diary'
+  ImpactLevel,
+  COMMON_TRADES,
+  COMMON_EQUIPMENT,
+  EVENT_CATEGORIES,
+  IMPACT_LEVELS
+} from '../../types/site-diary'
 
-// Constants for dropdowns
-const COMMON_TRADES = [
-  'General Labourer',
-  'Plant Operator',
-  'Truck Driver',
-  'Concrete Finisher',
-  'Steel Fixer',
-  'Carpenter',
-  'Electrician',
-  'Plumber',
-  'Supervisor',
-  'Foreman',
-  'Safety Officer'
-] as const
-
-const COMMON_EQUIPMENT = [
-  'Excavator',
-  'Crane',
-  'Concrete Pump',
-  'Bulldozer',
-  'Loader',
-  'Dump Truck',
-  'Compactor',
-  'Generator',
-  'Welding Equipment',
-  'Scaffolding'
-] as const
-
+// Weather conditions for dropdowns
 const WEATHER_CONDITIONS = [
   'sunny',
   'partly_cloudy',
@@ -61,20 +42,6 @@ const WEATHER_CONDITIONS = [
   'wind',
   'fog'
 ] as const
-
-const EVENT_CATEGORIES: EventCategory[] = [
-  'DELAY',
-  'INSTRUCTION',
-  'SAFETY',
-  'WEATHER',
-  'INSPECTION',
-  'QUALITY_ISSUE',
-  'VISITOR',
-  'MEETING',
-  'OTHER'
-]
-
-const IMPACT_LEVELS: ImpactLevel[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
 
 interface ComprehensiveSiteDiaryProps {
   projectId: string
@@ -175,7 +142,7 @@ export function ComprehensiveSiteDiary({
   date = new Date().toISOString().split('T')[0]!,
   onUpdate 
 }: ComprehensiveSiteDiaryProps) {
-  const [siteDiary, setSiteDiary] = useState<CompleteSiteDiary | null>(null)
+  const [siteDiary, setSiteDiary] = useState<SiteDiaryEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeSection, setActiveSection] = useState<'overview' | 'manpower' | 'equipment' | 'deliveries' | 'events'>('overview')
@@ -188,7 +155,7 @@ export function ComprehensiveSiteDiary({
   const [safetyBriefing, setSafetyBriefing] = useState(false)
 
   // Entry form states
-  const [manpowerForm, setManpowerForm] = useState<ManpowerEntryForm>({
+  const [manpowerForm, setManpowerForm] = useState<ManpowerFormData>({
     trade: '',
     workers_count: 1,
     hours_worked: 8,
@@ -198,7 +165,7 @@ export function ComprehensiveSiteDiary({
     overtime_hours: 0
   })
 
-  const [equipmentForm, setEquipmentForm] = useState<EquipmentEntryForm>({
+  const [equipmentForm, setEquipmentForm] = useState<EquipmentFormData>({
     equipment_type: '',
     operator: '',
     hours_used: 8,
@@ -208,7 +175,7 @@ export function ComprehensiveSiteDiary({
     downtime_reason: ''
   })
 
-  const [deliveryForm, setDeliveryForm] = useState<DeliveryEntryForm>({
+  const [deliveryForm, setDeliveryForm] = useState<DeliveryFormData>({
     supplier: '',
     material_type: '',
     quantity: 0,
@@ -219,7 +186,7 @@ export function ComprehensiveSiteDiary({
     delivery_docket: ''
   })
 
-  const [eventForm, setEventForm] = useState<EventEntryForm>({
+  const [eventForm, setEventForm] = useState<EventFormData>({
     category: 'OTHER',
     title: '',
     description: '',
