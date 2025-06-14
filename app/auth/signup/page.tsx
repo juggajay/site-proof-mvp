@@ -51,9 +51,9 @@ export default function SignupPage() {
     <div className="min-h-screen bg-slate-50">
       <AuthHeader />
       
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-8">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+      <div className="flex items-center justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 font-heading">
                 Create Your Account
