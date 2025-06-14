@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '../ui/dropdown-menu'
-import { User as UserIcon, LogOut, HardHat, Bell, Search } from 'lucide-react'
+import { User as UserIcon, LogOut, ShieldCheck, Bell, Search, CheckCircle2 } from 'lucide-react'
 import { ThemeToggle } from '../theme-toggle'
 import Link from 'next/link'
 
@@ -23,17 +23,31 @@ export function Header({ user }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo and Brand */}
+          {/* Enhanced Logo and Brand - Research-Backed Design */}
           <div className="flex items-center space-x-4">
             <Link href="/dashboard" className="flex items-center space-x-3 group">
-              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200">
-                <HardHat className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <div className="text-2xl font-bold text-gradient-primary font-heading">
-                  Site Proof
+              {/* Professional QA Badge Icon */}
+              <div className="relative">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                  <ShieldCheck className="w-7 h-7 text-white" />
                 </div>
-                <span className="text-xs text-neutral-500 font-medium -mt-1">MVP</span>
+                {/* Quality Assurance Indicator */}
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-br from-secondary-500 to-secondary-600 rounded-full flex items-center justify-center shadow-md">
+                  <CheckCircle2 className="w-3 h-3 text-white" />
+                </div>
+              </div>
+              
+              {/* Enhanced Brand Typography */}
+              <div className="flex flex-col">
+                <div className="text-2xl font-bold font-heading leading-tight">
+                  <span className="text-primary-700">Site</span>
+                  <span className="text-secondary-600 ml-1">Proof</span>
+                </div>
+                <div className="flex items-center space-x-2 -mt-1">
+                  <span className="text-xs text-neutral-500 font-medium">Quality Assurance Platform</span>
+                  <div className="w-1 h-1 bg-neutral-300 rounded-full"></div>
+                  <span className="text-xs text-primary-600 font-semibold">MVP</span>
+                </div>
               </div>
             </Link>
           </div>
