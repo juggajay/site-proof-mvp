@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { createClient } from '../../../../../../../lib/supabase/client'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../../components/ui/select'
+import { Cloud } from 'lucide-react'
 
 interface SiteDiaryTabProps {
   lot: any
@@ -236,26 +238,25 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
         
         {/* Weather Selector */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <Cloud className="h-4 w-4" />
             Weather Conditions
           </label>
-          <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
-            {weatherOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setWeather(option.value)}
-                className={`p-2 text-center rounded-lg border-2 transition-all ${
-                  weather === option.value
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
-                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 text-gray-600 dark:text-gray-400'
-                }`}
-                title={option.label}
-              >
-                <div className="text-lg mb-1">{option.icon}</div>
-                <div className="text-xs">{option.label.split(' ')[0]}</div>
-              </button>
-            ))}
-          </div>
+          <Select value={weather} onValueChange={setWeather}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select weather conditions" />
+            </SelectTrigger>
+            <SelectContent>
+              {weatherOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center gap-2">
+                    <span>{option.icon}</span>
+                    <span>{option.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* General Activities */}
@@ -285,7 +286,7 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
               Saving...
             </>
           ) : (
-            'Save Changes'
+            'Save Diary'
           )}
         </button>
       </div>
