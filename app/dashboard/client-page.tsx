@@ -45,16 +45,16 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
           </Button>
         </div>
 
-        {/* Enhanced Metrics Cards - Research-Backed Design */}
+        {/* Enhanced Metrics Cards - DRAMATIC VISIBLE COLORS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Projects - Primary Blue (Trust & Authority) */}
-          <Card className="bg-gradient-to-br from-primary-600 to-primary-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
+          {/* Total Projects - Bright Blue */}
+          <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-primary-100 text-sm font-medium mb-2">Total Projects</p>
+                  <p className="text-blue-100 text-sm font-medium mb-2">Total Projects</p>
                   <p className="text-3xl font-bold font-heading">{totalProjects}</p>
-                  <p className="text-primary-200 text-xs mt-1">All time</p>
+                  <p className="text-blue-200 text-xs mt-1">All time</p>
                 </div>
                 <div className="bg-white/20 p-3 rounded-xl group-hover:bg-white/30 transition-colors duration-200">
                   <FolderKanban className="w-6 h-6" />
@@ -63,14 +63,14 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
             </CardContent>
           </Card>
 
-          {/* Active Projects - Success Green (Growth & Progress) */}
-          <Card className="bg-gradient-to-br from-success-500 to-success-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
+          {/* Active Projects - Bright Green */}
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-success-100 text-sm font-medium mb-2">Active Projects</p>
+                  <p className="text-green-100 text-sm font-medium mb-2">Active Projects</p>
                   <p className="text-3xl font-bold font-heading">{activeProjects}</p>
-                  <p className="text-success-200 text-xs mt-1">In progress</p>
+                  <p className="text-green-200 text-xs mt-1">In progress</p>
                 </div>
                 <div className="bg-white/20 p-3 rounded-xl group-hover:bg-white/30 transition-colors duration-200">
                   <TrendingUp className="w-6 h-6" />
@@ -79,14 +79,14 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
             </CardContent>
           </Card>
 
-          {/* Completed Projects - Secondary Orange (Energy & Achievement) */}
-          <Card className="bg-gradient-to-br from-secondary-500 to-secondary-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
+          {/* Completed Projects - Bright Orange */}
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-secondary-100 text-sm font-medium mb-2">Completed</p>
+                  <p className="text-orange-100 text-sm font-medium mb-2">Completed</p>
                   <p className="text-3xl font-bold font-heading">{completedProjects}</p>
-                  <p className="text-secondary-200 text-xs mt-1">Delivered</p>
+                  <p className="text-orange-200 text-xs mt-1">Delivered</p>
                 </div>
                 <div className="bg-white/20 p-3 rounded-xl group-hover:bg-white/30 transition-colors duration-200">
                   <CheckCircle2 className="w-6 h-6" />
@@ -95,14 +95,14 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
             </CardContent>
           </Card>
 
-          {/* Pending Projects - Warning Amber (Attention & Action Needed) */}
-          <Card className="bg-gradient-to-br from-warning-500 to-warning-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
+          {/* Pending Projects - Bright Purple */}
+          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 scale-on-hover group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-warning-100 text-sm font-medium mb-2">Pending</p>
+                  <p className="text-purple-100 text-sm font-medium mb-2">Pending</p>
                   <p className="text-3xl font-bold font-heading">{pendingProjects}</p>
-                  <p className="text-warning-200 text-xs mt-1">Awaiting start</p>
+                  <p className="text-purple-200 text-xs mt-1">Awaiting start</p>
                 </div>
                 <div className="bg-white/20 p-3 rounded-xl group-hover:bg-white/30 transition-colors duration-200">
                   <Clock className="w-6 h-6" />
@@ -170,7 +170,7 @@ export function DashboardClientPage({ projects }: DashboardClientPageProps) {
                       </div>
 
                       <div className="flex items-center justify-between pt-2">
-                        <Badge variant="active">
+                        <Badge variant="success">
                           Active
                         </Badge>
                         

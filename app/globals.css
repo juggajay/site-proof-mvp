@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,57 +6,52 @@
 
 @layer base {
   :root {
-    /* Professional Trust - Primary Blue (Research-Backed) */
-    --primary-50: 239 246 255;
-    --primary-100: 219 234 254;
-    --primary-200: 191 219 254;
-    --primary-300: 147 197 253;
-    --primary-400: 96 165 250;
-    --primary-500: 59 130 246;   /* Main brand color - Trust & Professionalism */
-    --primary-600: 37 99 235;    /* Primary action color */
-    --primary-700: 29 78 216;    /* Hover states */
-    --primary-800: 30 64 175;
-    --primary-900: 30 58 138;
-    
-    /* Construction Orange - Energy & Safety */
-    --secondary-50: 255 247 237;
-    --secondary-100: 255 237 213;
-    --secondary-200: 254 215 170;
-    --secondary-300: 253 186 116;
-    --secondary-400: 251 146 60;
-    --secondary-500: 249 115 22;  /* Accent color - Energy & Action */
-    --secondary-600: 234 88 12;   /* Secondary actions */
-    --secondary-700: 194 65 12;   /* Hover states */
-    --secondary-800: 154 52 18;
-    --secondary-900: 124 45 18;
-    
-    /* Modern Gray Scale - Precision & Technology */
-    --neutral-50: 248 250 252;
-    --neutral-100: 241 245 249;
-    --neutral-200: 226 232 240;
-    --neutral-300: 203 213 225;
-    --neutral-400: 148 163 184;
-    --neutral-500: 100 116 139;
-    --neutral-600: 71 85 105;
-    --neutral-700: 51 65 85;
-    --neutral-800: 30 41 59;
-    --neutral-900: 15 23 42;
-    
-    /* Success/Warning/Error */
-    --success-50: 236 253 245;
-    --success-100: 209 250 229;
-    --success-500: 16 185 129;
-    --success-800: 6 95 70;
-    --warning-50: 255 251 235;
-    --warning-100: 254 243 199;
-    --warning-500: 245 158 11;
-    --warning-800: 146 64 14;
-    --error-50: 254 242 242;
-    --error-100: 254 226 226;
-    --error-500: 239 68 68;
-    --error-800: 153 27 27;
+    /* Primary Blue - Construction Trust */
+    --primary-50: #eff6ff;
+    --primary-100: #dbeafe;
+    --primary-200: #bfdbfe;
+    --primary-300: #93c5fd;
+    --primary-400: #60a5fa;
+    --primary-500: #3b82f6;
+    --primary-600: #2563eb;
+    --primary-700: #1d4ed8;
+    --primary-800: #1e40af;
+    --primary-900: #1e3a8a;
 
-    /* Updated shadcn/ui variables with research-backed color scheme */
+    /* Secondary Orange - Construction Energy */
+    --secondary-50: #fff7ed;
+    --secondary-100: #ffedd5;
+    --secondary-200: #fed7aa;
+    --secondary-300: #fdba74;
+    --secondary-400: #fb923c;
+    --secondary-500: #f97316;
+    --secondary-600: #ea580c;
+    --secondary-700: #c2410c;
+
+    /* Neutral Modern Grays */
+    --neutral-50: #f8fafc;
+    --neutral-100: #f1f5f9;
+    --neutral-200: #e2e8f0;
+    --neutral-300: #cbd5e1;
+    --neutral-400: #94a3b8;
+    --neutral-500: #64748b;
+    --neutral-600: #475569;
+    --neutral-700: #334155;
+    --neutral-800: #1e293b;
+    --neutral-900: #0f172a;
+
+    /* Semantic Colors */
+    --success-50: #ecfdf5;
+    --success-500: #10b981;
+    --success-600: #059669;
+    --warning-50: #fffbeb;
+    --warning-500: #f59e0b;
+    --warning-600: #d97706;
+    --error-50: #fef2f2;
+    --error-500: #ef4444;
+    --error-600: #dc2626;
+
+    /* Updated shadcn/ui variables with new color scheme */
     --background: 248 250 252;
     --foreground: 15 23 42;
     --card: 255 255 255;
@@ -106,85 +101,42 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+
   body {
-    @apply bg-background text-foreground font-body;
+    background-color: var(--neutral-50);
+    color: var(--neutral-900);
     font-family: 'Inter', sans-serif;
   }
 }
 
 @layer components {
-  /* Typography Classes */
-  .font-heading {
-    font-family: 'Inter', sans-serif;
+  /* Enhanced typography classes */
+  .text-heading {
     font-weight: 600;
     letter-spacing: -0.025em;
+    color: var(--neutral-900);
   }
 
-  .font-body {
-    font-family: 'Inter', sans-serif;
+  .text-body {
     font-weight: 400;
     line-height: 1.6;
+    color: var(--neutral-700);
   }
 
-  .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+  .text-muted {
+    color: var(--neutral-500);
   }
 
-  /* Enhanced Button Variants */
-  .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 rounded-lg px-6 py-3 font-medium;
-  }
-
-  .btn-secondary {
-    @apply bg-white border-2 border-primary-600 text-primary-600 hover:bg-primary-50 shadow-md hover:shadow-lg transition-all duration-200 rounded-lg px-6 py-3 font-medium;
-  }
-
-  .btn-destructive {
-    @apply bg-error-500 hover:bg-error-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg px-6 py-3 font-medium;
-  }
-
-  /* Enhanced Card Styling */
-  .card-modern {
-    @apply bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl overflow-hidden;
-  }
-
-  .card-header-gradient {
-    @apply bg-gradient-to-r from-primary-50 to-secondary-50 border-b border-neutral-200;
-  }
-
-  /* Status Badge Variants */
-  .badge-success {
-    @apply bg-success-100 text-success-800 border border-success-200 px-3 py-1 rounded-full text-xs font-medium;
-  }
-
-  .badge-warning {
-    @apply bg-warning-100 text-warning-800 border border-warning-200 px-3 py-1 rounded-full text-xs font-medium;
-  }
-
-  .badge-error {
-    @apply bg-error-100 text-error-800 border border-error-200 px-3 py-1 rounded-full text-xs font-medium;
-  }
-
-  /* Enhanced Form Fields */
-  .input-modern {
-    @apply border-neutral-300 focus:border-primary-500 focus:ring-primary-200 rounded-lg transition-all duration-200 hover:border-neutral-400;
-  }
-
-  /* Modern Table Styling */
-  .table-modern {
-    @apply border-separate border-spacing-0;
-  }
-
-  .table-header-modern {
-    @apply bg-neutral-100 font-semibold text-neutral-900 border-b-2 border-neutral-200;
-  }
-
-  .table-row-modern {
-    @apply hover:bg-neutral-50 transition-colors duration-150;
-  }
-
-  .table-cell-modern {
-    @apply border-b border-neutral-200;
+  /* Gradient text utility */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, var(--primary-600), var(--secondary-500));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 
