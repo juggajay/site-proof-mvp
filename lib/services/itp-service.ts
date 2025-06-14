@@ -63,7 +63,7 @@ export class ITPService {
       const { data, error } = await this.supabase
         .from('itps')
         .select('*')
-        .eq('organization_id', organizationId)
+        .or(`organization_id.eq.${organizationId},organization_id.eq.00000000-0000-0000-0000-000000000000`)
         .order('title')
 
       if (error) {
