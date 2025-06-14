@@ -133,6 +133,8 @@ export class ITPService {
         .select('*')
         .eq('lot_id', lotId)
         .eq('status', 'assigned')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
       if (error) {
