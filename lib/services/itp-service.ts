@@ -116,9 +116,10 @@ export class ITPService {
         .select('*')
         .eq('lot_id', lotId)
         .eq('status', 'assigned')
-        .single()
+        .maybeSingle()
 
       if (error) {
+        console.warn('Assignment query error:', error)
         return null
       }
 

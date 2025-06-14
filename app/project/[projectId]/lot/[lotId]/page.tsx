@@ -1,87 +1,254 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '../../../../../lib/supabase/client'
+import { AssignItpModal } from '../../../../../components/modals/assign-itp-modal'
+import { Button } from '../../../../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../../components/ui/card'
+import { Badge } from '../../../../../components/ui/badge'
+import { Loader2, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
+// Local interfaces that match our database schema
+interface Lot {
+  id: string
+  lot_number: string
+  description: string | null
+  location: string | null
+  priority: 'low' | 'medium' | 'high'
+  project_id: string
+  created_at: string
+  updated_at: string
+}
+
+interface Assignment {
+  id: string
+  lot_id: string
+  project_id: string
+  itp_id: string
+  assigned_to: string
+  assigned_by: string
+  status: string
+  scheduled_date: string
+  completed_date: string | null
+  priority: string
+  notes: string | null
+  organization_id: string
+  created_at: string
+  updated_at: string
+}
+
+interface ITP {
+  id: string
+  title: string
+  description: string | null
+  category: string
+  estimated_duration: string
+  complexity: 'simple' | 'moderate' | 'complex'
+  required_certifications: string[] | null
+  organization_id: string
+  created_at: string
+  updated_at: string
+}
+
+interface ItpItem {
+  id: string
+  itp_id: string
+  item_number: string
+  description: string
+  inspection_type: string
+  acceptance_criteria: string
+  reference_standard: string | null
+  required_documentation: string | null
+  hold_point: boolean
+  witness_point: boolean
+  created_at: string
+  updated_at: string
+}
 
 interface LotPageProps {
-  params: { 
+  params: {
     projectId: string
-    lotId: string 
+    lotId: string
   }
 }
 
 export default function LotPage({ params }: LotPageProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedAction, setSelectedAction] = useState<string | null>(null)
+  const [lot, setLot] = useState<Lot | null>(null)
+  const [assignment, setAssignment] = useState<Assignment | null>(null)
+  const [itp, setItp] = useState<ITP | null>(null)
+  const [itpItems, setItpItems] = useState<ItpItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const router = useRouter()
 
-  const handleStartInspection = async () => {
-    setIsLoading(true)
-    setSelectedAction('inspection')
-    
+  useEffect(() => {
+    loadLotData()
+  }, [params.lotId])
+
+  const loadLotData = async () => {
     try {
-      // Simulate starting an inspection
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Navigate to inspection page (create this later)
-      router.push(`/project/${params.projectId}/lot/${params.lotId}/inspection/new`)
-      
+      setIsLoading(true)
+      const supabase = createClient()
+
+      // Load lot data
+      const { data: lotData, error: lotError } = await supabase
+        .from('lots')
+        .select(`
+          id,
+          lot_number,
+          description,
+          location,
+          priority,
+          project_id,
+          created_at,
+          updated_at
+        `)
+        .eq('id', params.lotId)
+        .single()
+
+      if (lotError) {
+        console.error('Error loading lot:', lotError)
+        toast.error('Failed to load lot data')
+        return
+      }
+
+      setLot(lotData)
+
+      // Check for existing ITP assignment
+      const { data: assignmentData, error: assignmentError } = await supabase
+        .from('itp_assignments')
+        .select(`
+          id,
+          lot_id,
+          project_id,
+          itp_id,
+          assigned_to,
+          assigned_by,
+          status,
+          scheduled_date,
+          completed_date,
+          priority,
+          notes,
+          organization_id,
+          created_at,
+          updated_at
+        `)
+        .eq('lot_id', params.lotId)
+        .eq('status', 'assigned')
+        .maybeSingle()
+
+      if (assignmentError) {
+        console.warn('Error loading assignment:', assignmentError)
+      } else if (assignmentData) {
+        setAssignment(assignmentData)
+        await loadItpData(assignmentData.itp_id)
+      }
+
     } catch (error) {
-      console.error('Error starting inspection:', error)
-      alert('Error starting inspection. Please try again.')
+      console.error('Error loading lot data:', error)
+      toast.error('Failed to load lot data')
     } finally {
       setIsLoading(false)
-      setSelectedAction(null)
     }
   }
 
-  const handleEditLot = async () => {
-    setIsLoading(true)
-    setSelectedAction('edit')
-    
+  const loadItpData = async (itpId: string) => {
     try {
-      // Simulate edit action
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Navigate to edit page (create this later)
-      router.push(`/project/${params.projectId}/lot/${params.lotId}/edit`)
-      
+      const supabase = createClient()
+
+      // Load ITP details
+      const { data: itpData, error: itpError } = await supabase
+        .from('itps')
+        .select(`
+          id,
+          title,
+          description,
+          category,
+          estimated_duration,
+          complexity,
+          required_certifications,
+          organization_id,
+          created_at,
+          updated_at
+        `)
+        .eq('id', itpId)
+        .single()
+
+      if (itpError) {
+        console.error('Error loading ITP:', itpError)
+        return
+      }
+
+      setItp(itpData)
+
+      // Load ITP items (checklist items)
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('itp_items')
+        .select(`
+          id,
+          itp_id,
+          item_number,
+          description,
+          inspection_type,
+          acceptance_criteria,
+          reference_standard,
+          required_documentation,
+          hold_point,
+          witness_point,
+          created_at,
+          updated_at
+        `)
+        .eq('itp_id', itpId)
+        .order('item_number')
+
+      if (itemsError) {
+        console.error('Error loading ITP items:', itemsError)
+      } else {
+        setItpItems(itemsData || [])
+      }
+
     } catch (error) {
-      console.error('Error navigating to edit:', error)
-      alert('Edit functionality coming soon!')
-    } finally {
-      setIsLoading(false)
-      setSelectedAction(null)
+      console.error('Error loading ITP data:', error)
     }
   }
 
-  const handleViewHistory = async () => {
-    setIsLoading(true)
-    setSelectedAction('history')
-    
-    try {
-      // Simulate loading history
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Navigate to history page (create this later)
-      router.push(`/project/${params.projectId}/lot/${params.lotId}/history`)
-      
-    } catch (error) {
-      console.error('Error loading history:', error)
-      alert('History functionality coming soon!')
-    } finally {
-      setIsLoading(false)
-      setSelectedAction(null)
-    }
+  const handleAssignmentComplete = () => {
+    // Reload data after assignment
+    loadLotData()
+    setIsAssignModalOpen(false)
   }
 
   const handleBackToProject = () => {
     router.push(`/project/${params.projectId}`)
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading lot data...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!lot) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Lot Not Found</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">The requested lot could not be found.</p>
+          <Button onClick={handleBackToProject}>Back to Project</Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Breadcrumb Navigation */}
         <nav className="mb-6">
           <button
@@ -95,145 +262,194 @@ export default function LotPage({ params }: LotPageProps) {
           </button>
         </nav>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Lot Details
-          </h1>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Project ID
-              </label>
-              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm bg-gray-100 dark:bg-gray-700 p-2 rounded">
-                {params.projectId}
-              </p>
+        {/* Lot Header */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">Lot {lot.lot_number}</CardTitle>
+                <CardDescription>{lot.description || 'No description provided'}</CardDescription>
+              </div>
+              <Badge variant={lot.priority === 'high' ? 'destructive' : lot.priority === 'medium' ? 'default' : 'secondary'}>
+                {lot.priority} priority
+              </Badge>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Lot ID
-              </label>
-              <p className="text-gray-900 dark:text-gray-100 font-mono text-sm bg-gray-100 dark:bg-gray-700 p-2 rounded">
-                {params.lotId}
-              </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Location
+                </label>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {lot.location || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Lot ID
+                </label>
+                <p className="text-gray-900 dark:text-gray-100 font-mono text-sm">
+                  {lot.id}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                  Created
+                </label>
+                <p className="text-gray-900 dark:text-gray-100 text-sm">
+                  {new Date(lot.created_at).toLocaleDateString()}
+                </p>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* ITP Assignment Status */}
+        {!assignment ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Inspection & Test Plan</CardTitle>
+              <CardDescription>
+                No ITP has been assigned to this lot yet. Assign an ITP to begin inspections.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => setIsAssignModalOpen(true)}>
+                Assign ITP
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* ITP Details */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>{itp?.title}</CardTitle>
+                    <CardDescription>{itp?.description}</CardDescription>
+                  </div>
+                  <Badge variant="outline">
+                    {assignment.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Category
+                    </label>
+                    <p className="text-gray-900 dark:text-gray-100">
+                      {itp?.category}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Complexity
+                    </label>
+                    <Badge variant={itp?.complexity === 'complex' ? 'destructive' : itp?.complexity === 'moderate' ? 'default' : 'secondary'}>
+                      {itp?.complexity}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Estimated Duration
+                    </label>
+                    <p className="text-gray-900 dark:text-gray-100">
+                      {itp?.estimated_duration}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ITP Checklist */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Inspection Checklist</CardTitle>
+                <CardDescription>
+                  Complete all inspection items below. Items marked with 🔴 are hold points.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {itpItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No checklist items found for this ITP.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {itpItems.map((item) => (
+                      <Card key={item.id} className="border-l-4 border-l-blue-500">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-mono text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                  {item.item_number}
+                                </span>
+                                {item.hold_point && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    🔴 Hold Point
+                                  </Badge>
+                                )}
+                                {item.witness_point && (
+                                  <Badge variant="outline" className="text-xs">
+                                    👁️ Witness Point
+                                  </Badge>
+                                )}
+                              </div>
+                              <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                                {item.description}
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="font-medium text-gray-500">Inspection Type:</span>
+                                  <p className="text-gray-900 dark:text-gray-100">{item.inspection_type}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-gray-500">Acceptance Criteria:</span>
+                                  <p className="text-gray-900 dark:text-gray-100">{item.acceptance_criteria}</p>
+                                </div>
+                                {item.reference_standard && (
+                                  <div>
+                                    <span className="font-medium text-gray-500">Reference Standard:</span>
+                                    <p className="text-gray-900 dark:text-gray-100">{item.reference_standard}</p>
+                                  </div>
+                                )}
+                                {item.required_documentation && (
+                                  <div>
+                                    <span className="font-medium text-gray-500">Required Documentation:</span>
+                                    <p className="text-gray-900 dark:text-gray-100">{item.required_documentation}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              <Button variant="outline" size="sm">
+                                <Clock className="h-4 w-4 mr-1" />
+                                Pending
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
+        )}
 
-          <div className="border-t dark:border-gray-600 pt-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              Inspection Details
-            </h2>
-            <div className="flex items-center gap-2 mb-4">
-              <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <p className="text-gray-600 dark:text-gray-300">
-                Route is working! This page is now accessible.
-              </p>
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-              You can now add your inspection lot functionality here.
-            </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleStartInspection}
-              disabled={isLoading}
-              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                selectedAction === 'inspection'
-                  ? 'bg-blue-700 text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {selectedAction === 'inspection' ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Start Inspection
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleEditLot}
-              disabled={isLoading}
-              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                selectedAction === 'edit'
-                  ? 'bg-gray-300 text-gray-700'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {selectedAction === 'edit' ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit Lot
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleViewHistory}
-              disabled={isLoading}
-              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                selectedAction === 'history'
-                  ? 'bg-gray-300 text-gray-700'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {selectedAction === 'history' ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  View History
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Status Information */}
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-              Next Steps
-            </h3>
-            <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-              <li>• Click 'Start Inspection' to begin a new inspection</li>
-              <li>• Use 'Edit Lot' to modify lot details</li>
-              <li>• View 'History' to see past inspections</li>
-              <li>• All buttons now have loading states and navigation</li>
-            </ul>
-          </div>
-        </div>
+        {/* Assign ITP Modal */}
+        <AssignItpModal
+          open={isAssignModalOpen}
+          onOpenChange={setIsAssignModalOpen}
+          lot={lot as any}
+        />
       </div>
     </div>
   )
