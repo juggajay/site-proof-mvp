@@ -119,7 +119,7 @@ export default function LotPage({ params }: LotPageProps) {
       
       setLot(lotData)
 
-      // Check for existing ITP assignment
+      // Check for existing ITP assignment - get the most recent one
       const { data: assignmentData, error: assignmentError } = await supabase
         .from('itp_assignments')
         .select(`
@@ -140,6 +140,8 @@ export default function LotPage({ params }: LotPageProps) {
         `)
         .eq('lot_id', params.lotId)
         .eq('status', 'assigned')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
       console.log('🔍 Assignment query result:', { assignmentData, assignmentError })
