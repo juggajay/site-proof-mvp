@@ -148,3 +148,101 @@ export async function saveInspectionAnswersAction(answers: Partial<ConformanceRe
         throw new Error(error instanceof Error ? error.message : 'Failed to save inspection answers');
     }
 }
+
+// --- Save Site Diary Action ---
+const saveSiteDiarySchema = z.object({
+  lotId: z.string().uuid(),
+  reportDate: z.string(), // YYYY-MM-DD format
+  generalComments: z.string().min(1, "General comments are required"),
+  weather: z.string().min(1, "Weather condition is required"),
+});
+
+export async function saveSiteDiaryAction(formData: FormData) {
+  try {
+    // Get current user
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      throw new Error('Authentication required');
+    }
+
+    // Validate form data
+    const validatedData = saveSiteDiarySchema.parse({
+      lotId: formData.get('lotId'),
+      reportDate: formData.get('reportDate'),
+      generalComments: formData.get('generalComments'),
+      weather: formData.get('weather'),
+    });
+
+    // Upsert daily report (create or update)
+    const { data: dailyReport, error } = await supabase
+      .from('daily_reports')
+      .upsert(
+        {
+          lot_id: validatedData.lotId,
+          report_date: validatedData.reportDate,
+          general_comments: validatedData.generalComments,
+          weather: validatedData.weather,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'lot_id,report_date',
+          ignoreDuplicates: false,
+        }
+      )
+      .select('id')
+      .single();
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    // Revalidate the page to show updated data
+    revalidatePath(`/project/*/lot/${validatedData.lotId}`);
+    
+    return {
+      success: true,
+      dailyReportId: dailyReport.id,
+      message: 'Site diary saved successfully'
+    };
+
+  } catch (error) {
+    console.error('Save site diary error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to save site diary');
+  }
+}
+
+// --- Get Diary Photo Upload URL Action (Future-proofing) ---
+export async function getDiaryPhotoUploadUrlAction(dailyReportId: string) {
+  try {
+    const supabase = createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      throw new Error('Authentication required');
+    }
+
+    // Generate unique filename
+    const fileName = `diary-photos/${dailyReportId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+    
+    // Create signed upload URL (expires in 1 hour)
+    const { data, error } = await supabase.storage
+      .from('daily-reports')
+      .createSignedUploadUrl(fileName);
+
+    if (error) {
+      throw new Error(`Storage error: ${error.message}`);
+    }
+
+    return {
+      success: true,
+      uploadUrl: data.signedUrl,
+      filePath: fileName,
+    };
+
+  } catch (error) {
+    console.error('Get upload URL error:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to get upload URL');
+  }
+}
