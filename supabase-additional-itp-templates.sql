@@ -1,6 +1,5 @@
 -- Additional ITP Templates for Civil-Q Platform
 -- This script adds 5 new high-value, industry-standard ITP templates for the Australian civil market.
--- These are created as global templates (organization_id is NULL).
 
 DO $$
 DECLARE
@@ -9,11 +8,28 @@ DECLARE
     pavement_itp_id UUID;
     proof_roll_itp_id UUID;
     topsoil_itp_id UUID;
+    default_org_id UUID := '00000000-0000-0000-0000-000000000000';
 BEGIN
     
     -- Template 5: Conduit & Pit Installation
-    INSERT INTO public.itps (title, description)
-    VALUES ('Conduit & Pit Installation', 'QA checklist for installing electrical/comms conduits and pits.')
+    INSERT INTO public.itps (
+        title, 
+        description, 
+        complexity, 
+        required_certifications, 
+        organization_id, 
+        created_at, 
+        updated_at
+    )
+    VALUES (
+        'Conduit & Pit Installation', 
+        'QA checklist for installing electrical/comms conduits and pits.',
+        'moderate',
+        '{}',
+        default_org_id,
+        NOW(),
+        NOW()
+    )
     RETURNING id INTO conduit_itp_id;
 
     INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
@@ -26,8 +42,24 @@ BEGIN
         (conduit_itp_id, 'Pit installed to correct level and location?', 'PASS_FAIL', 7);
 
     -- Template 6: Subgrade Preparation
-    INSERT INTO public.itps (title, description)
-    VALUES ('Subgrade Preparation', 'Checklist for the preparation and approval of the subgrade layer before paving.')
+    INSERT INTO public.itps (
+        title, 
+        description, 
+        complexity, 
+        required_certifications, 
+        organization_id, 
+        created_at, 
+        updated_at
+    )
+    VALUES (
+        'Subgrade Preparation', 
+        'Checklist for the preparation and approval of the subgrade layer before paving.',
+        'high',
+        '["Earthworks", "Compaction Testing"]',
+        default_org_id,
+        NOW(),
+        NOW()
+    )
     RETURNING id INTO subgrade_itp_id;
 
     INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
@@ -39,8 +71,24 @@ BEGIN
         (subgrade_itp_id, 'Survey conformance report for levels received?', 'PASS_FAIL', 6);
 
     -- Template 7: Pavement Layer (Unbound Granular)
-    INSERT INTO public.itps (title, description)
-    VALUES ('Pavement Layer - Unbound Granular', 'Inspection for placement of unbound granular pavement materials like DGB20 or DGS40.')
+    INSERT INTO public.itps (
+        title, 
+        description, 
+        complexity, 
+        required_certifications, 
+        organization_id, 
+        created_at, 
+        updated_at
+    )
+    VALUES (
+        'Pavement Layer - Unbound Granular', 
+        'Inspection for placement of unbound granular pavement materials like DGB20 or DGS40.',
+        'moderate',
+        '["Pavement Construction", "Materials Testing"]',
+        default_org_id,
+        NOW(),
+        NOW()
+    )
     RETURNING id INTO pavement_itp_id;
 
     INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
@@ -52,8 +100,24 @@ BEGIN
         (pavement_itp_id, 'Final surface level and shape conform to design?', 'PASS_FAIL', 6);
 
     -- Template 8: Proof Rolling
-    INSERT INTO public.itps (title, description)
-    VALUES ('Proof Rolling Inspection', 'Checklist for conducting a proof roll to detect unstable areas in the subgrade.')
+    INSERT INTO public.itps (
+        title, 
+        description, 
+        complexity, 
+        required_certifications, 
+        organization_id, 
+        created_at, 
+        updated_at
+    )
+    VALUES (
+        'Proof Rolling Inspection', 
+        'Checklist for conducting a proof roll to detect unstable areas in the subgrade.',
+        'moderate',
+        '["Earthworks", "Heavy Equipment Operation"]',
+        default_org_id,
+        NOW(),
+        NOW()
+    )
     RETURNING id INTO proof_roll_itp_id;
 
     INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
@@ -65,8 +129,24 @@ BEGIN
         (proof_roll_itp_id, 'Area passed or failed proof roll?', 'PASS_FAIL', 6);
 
     -- Template 9: Topsoiling & Seeding
-    INSERT INTO public.itps (title, description)
-    VALUES ('Topsoiling & Seeding', 'Checklist for landscape finishing works, topsoil placement, and seeding.')
+    INSERT INTO public.itps (
+        title, 
+        description, 
+        complexity, 
+        required_certifications, 
+        organization_id, 
+        created_at, 
+        updated_at
+    )
+    VALUES (
+        'Topsoiling & Seeding', 
+        'Checklist for landscape finishing works, topsoil placement, and seeding.',
+        'low',
+        '["Landscaping", "Horticulture"]',
+        default_org_id,
+        NOW(),
+        NOW()
+    )
     RETURNING id INTO topsoil_itp_id;
 
     INSERT INTO public.itp_items (itp_id, description, inspection_type, "order") VALUES
