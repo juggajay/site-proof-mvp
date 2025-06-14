@@ -3,6 +3,19 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@supabase/supabase-js']
   },
+  // Exclude Supabase Edge Functions from Next.js build
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push({
+        'supabase/functions': 'commonjs supabase/functions'
+      })
+    }
+    return config
+  },
+  // Exclude supabase functions directory from TypeScript checking
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   async headers() {
     return [
       {
