@@ -5,11 +5,8 @@ import Image from 'next/image'
 import { createClient } from '../../../../../../../lib/supabase/client'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../../../components/ui/select'
 import { Cloud } from 'lucide-react'
-<<<<<<< HEAD
-=======
 import { toast } from 'sonner'
 import { saveSiteDiaryAction } from '../../../../../../../actions'
->>>>>>> f526c5abd66b568aa5c3e49065ccd9c2343d179b
 
 interface SiteDiaryTabProps {
   lot: any
@@ -281,14 +278,10 @@ export function SiteDiaryTab({ lot, dailyReport, onUpdate }: SiteDiaryTabProps) 
             <SelectContent>
               {weatherOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-<<<<<<< HEAD
                   <div className="flex items-center gap-2">
                     <span>{option.icon}</span>
                     <span>{option.label}</span>
                   </div>
-=======
-                  {option.icon} {option.label}
->>>>>>> f526c5abd66b568aa5c3e49065ccd9c2343d179b
                 </SelectItem>
               ))}
             </SelectContent>

@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '../components/theme-provider'
 import { AuthProvider } from '../contexts/auth-context'
+import { Toaster } from '@/components/ui/toaster'
 import { Metadata } from 'next'
 
 const inter = Inter({
@@ -25,6 +26,7 @@ export default function RootLayout({
         <AuthProvider>
           <ThemeProvider defaultTheme="system">
             {children}
+            <Toaster />
           </ThemeProvider>
         </AuthProvider>
       </body>

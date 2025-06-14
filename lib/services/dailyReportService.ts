@@ -1,5 +1,5 @@
 // lib/services/dailyReportService.ts
-import { createClient } from '../supabase/client'
+import { createClient } from 'lib/supabase/client'
 import type {
   Project,
   Lot,
@@ -16,11 +16,11 @@ import type {
   CreatePlantDocketForm,
   CreateMaterialDocketForm,
   Database
-} from '../../types/database'
+} from 'types/database'
 import type {
   CreateComplianceCheckForm,
   UpdateComplianceCheckForm
-} from '../../types/compliance'
+} from 'types/compliance'
 
 class DailyReportService {
   private supabase = createClient()
@@ -36,8 +36,10 @@ class DailyReportService {
       .select(`
         id,
         name,
+        lot_number,
         description,
-        status,
+        location,
+        priority,
         project_id,
         created_at,
         updated_at,
@@ -47,7 +49,6 @@ class DailyReportService {
           description,
           project_number,
           location,
-          status,
           organization_id,
           created_at,
           updated_at

@@ -316,8 +316,10 @@ export interface ItpItem {
 export interface LotWithProject {
   id: string
   name: string
+  lot_number: string
   description: string | null
-  status: string
+  location: string | null
+  priority: 'low' | 'medium' | 'high'
   project_id: string
   created_at: string
   updated_at: string
