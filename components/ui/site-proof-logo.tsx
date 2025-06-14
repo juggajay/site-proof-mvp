@@ -1,84 +1,168 @@
-import { cn } from '@/lib/utils'
-import { ShieldCheck } from 'lucide-react'
+import React from 'react'
+import { Check } from 'lucide-react'
+import { cn } from '../../lib/utils'
 
 interface SiteProofLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   showText?: boolean
   className?: string
+  variant?: 'default' | 'white' | 'dark'
 }
 
-const sizeConfig = {
+const sizeClasses = {
   sm: {
-    icon: 'h-6 w-6',
-    text: 'text-lg',
-    container: 'gap-2'
+    container: 'h-8',
+    diamond: 'w-6 h-6',
+    check: 'w-3 h-3',
+    text: 'text-sm',
+    tagline: 'text-xs'
   },
   md: {
-    icon: 'h-8 w-8',
-    text: 'text-xl',
-    container: 'gap-3'
+    container: 'h-10',
+    diamond: 'w-8 h-8',
+    check: 'w-4 h-4',
+    text: 'text-base',
+    tagline: 'text-sm'
   },
   lg: {
-    icon: 'h-10 w-10',
-    text: 'text-2xl',
-    container: 'gap-3'
+    container: 'h-16',
+    diamond: 'w-12 h-12',
+    check: 'w-6 h-6',
+    text: 'text-xl',
+    tagline: 'text-base'
   },
   xl: {
-    icon: 'h-12 w-12',
+    container: 'h-24',
+    diamond: 'w-20 h-20',
+    check: 'w-10 h-10',
     text: 'text-3xl',
-    container: 'gap-4'
+    tagline: 'text-lg'
   }
 }
 
 export function SiteProofLogo({ 
   size = 'md', 
   showText = true, 
-  className 
+  className,
+  variant = 'default'
 }: SiteProofLogoProps) {
-  const config = sizeConfig[size]
+  const sizes = sizeClasses[size]
   
+  const getTextColor = () => {
+    switch (variant) {
+      case 'white':
+        return 'text-white'
+      case 'dark':
+        return 'text-slate-900'
+      default:
+        return 'text-slate-900'
+    }
+  }
+
   return (
-    <div className={cn(
-      'flex items-center',
-      config.container,
-      className
-    )}>
-      {/* Site-Proof Logo Icon */}
-      <div 
-        className={cn(
-          'rounded-lg flex items-center justify-center',
-          config.icon
-        )}
-        style={{ 
-          background: 'var(--site-proof-clarity-blue)',
-          color: 'var(--site-proof-white)'
-        }}
-      >
-        <ShieldCheck className={cn(config.icon, 'p-1')} />
+    <div className={cn('flex items-center gap-3', sizes.container, className)}>
+      {/* Diamond Logo with Checkmark */}
+      <div className="relative">
+        {/* Outer Diamond Border */}
+        <div 
+          className={cn(
+            'relative transform rotate-45 border-2 border-yellow-400 bg-gradient-to-br from-yellow-400 to-yellow-500',
+            sizes.diamond
+          )}
+          style={{
+            borderRadius: '4px'
+          }}
+        >
+          {/* Inner Diamond */}
+          <div 
+            className="absolute inset-1 bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center"
+            style={{
+              borderRadius: '2px'
+            }}
+          >
+            {/* Checkmark - Counter-rotate to keep it upright */}
+            <Check 
+              className={cn(
+                'text-yellow-400 transform -rotate-45 stroke-[3]',
+                sizes.check
+              )}
+            />
+          </div>
+        </div>
       </div>
-      
-      {/* Site-Proof Brand Text */}
+
+      {/* Text */}
       {showText && (
         <div className="flex flex-col">
-          <span 
-            className={cn(
-              'font-heading font-bold leading-none',
-              config.text
-            )}
-            style={{ color: 'var(--site-proof-charcoal)' }}
-          >
-            Site-Proof
-          </span>
-          {(size === 'lg' || size === 'xl') && (
-            <span 
-              className="text-xs font-primary opacity-75 leading-none mt-1"
-              style={{ color: 'var(--site-proof-charcoal)' }}
-            >
-              Quality Assurance Platform
-            </span>
+          <div className={cn(
+            'font-bold tracking-wide font-heading',
+            sizes.text,
+            getTextColor()
+          )}>
+            SITE PROOF
+          </div>
+          {size !== 'sm' && (
+            <div className={cn(
+              'font-medium tracking-wider opacity-80 font-primary',
+              sizes.tagline,
+              getTextColor()
+            )}>
+              CONSTRUCTION QA SOFTWARE
+            </div>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// Alternative simplified version for very small spaces
+export function SiteProofMark({ 
+  size = 'md',
+  className 
+}: { 
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  className?: string 
+}) {
+  const markSizes = {
+    xs: 'w-4 h-4',
+    sm: 'w-6 h-6', 
+    md: 'w-8 h-8',
+    lg: 'w-12 h-12'
+  }
+
+  const checkSizes = {
+    xs: 'w-2 h-2',
+    sm: 'w-3 h-3',
+    md: 'w-4 h-4', 
+    lg: 'w-6 h-6'
+  }
+
+  return (
+    <div className={cn('relative', className)}>
+      <div 
+        className={cn(
+          'relative transform rotate-45 border-2 border-yellow-400 bg-gradient-to-br from-yellow-400 to-yellow-500',
+          markSizes[size]
+        )}
+        style={{
+          borderRadius: '4px'
+        }}
+      >
+        <div 
+          className="absolute inset-1 bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center"
+          style={{
+            borderRadius: '2px'
+          }}
+        >
+          <Check 
+            className={cn(
+              'text-yellow-400 transform -rotate-45 stroke-[3]',
+              checkSizes[size]
+            )}
+          />
+        </div>
+      </div>
     </div>
   )
 }

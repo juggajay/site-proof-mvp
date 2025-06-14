@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SiteProofLogo } from '../ui/site-proof-logo'
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  ClipboardCheck, 
-  FileText, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  ClipboardCheck,
+  FileText,
   Settings,
   HelpCircle
 } from 'lucide-react'
@@ -26,15 +26,15 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="flex h-full w-64 flex-col bg-card border-r">
+    <div className="flex h-full w-64 flex-col bg-white border-r border-slate-200">
       {/* Logo in sidebar */}
-      <div className="flex h-16 items-center border-b px-6">
+      <div className="flex h-16 items-center border-b border-slate-200 px-6">
         <SiteProofLogo size="sm" showText={true} />
       </div>
       
       {/* Sidebar content */}
       <div className="flex-1 overflow-auto py-4">
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-1 px-4">
           {navigation.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -42,10 +42,10 @@ export function Sidebar() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors font-primary',
+                  'flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors font-primary',
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    ? 'bg-blue-800 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-blue-800 hover:bg-slate-50'
                 )}
               >
                 <item.icon className="mr-3 h-5 w-5" />

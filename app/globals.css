@@ -6,41 +6,48 @@
 
 @layer base {
   :root {
-    /* Site-Proof Brand Colors - EXACT HEX VALUES */
-    --site-proof-clarity-blue: #3498DB;
-    --site-proof-charcoal: #2C3E50;
-    --site-proof-ochre: #B7410E;
-    --site-proof-off-white: #F4F6F7;
+    /* Site-Proof Professional B2B Brand Colors - Based on Actual Logo */
+    --site-proof-primary-blue: #1B4F72; /* Deep professional blue from logo background */
+    --site-proof-gold: #F1C40F; /* Professional gold from logo diamond */
+    --site-proof-dark-blue: #154360; /* Darker blue for depth */
+    --site-proof-charcoal: #2C3E50; /* Professional charcoal */
     --site-proof-white: #FFFFFF;
+    --site-proof-off-white: #F8F9FA;
     
-    /* Supporting Colors */
-    --site-proof-neutral-grey: #AAB7B8;
-    --site-proof-border-grey: #EAECEE;
-    --site-proof-placeholder: #7F8C8D;
+    /* Supporting Professional Colors */
+    --site-proof-neutral-grey: #6C757D;
+    --site-proof-light-grey: #E9ECEF;
+    --site-proof-border-grey: #DEE2E6;
+    --site-proof-text-muted: #6C757D;
+    
+    /* Professional Construction Industry Colors */
+    --site-proof-safety-orange: #FF6B35; /* For alerts/warnings */
+    --site-proof-success-green: #28A745; /* For success states */
+    --site-proof-error-red: #DC3545; /* For errors */
     
     /* Scrim for text on images */
-    --site-proof-scrim: rgba(44, 62, 80, 0.65);
+    --site-proof-scrim: rgba(27, 79, 114, 0.75);
 
-    /* shadcn/ui variables mapped to Site-Proof colors */
-    --background: 244 246 247; /* site-proof-off-white */
+    /* shadcn/ui variables mapped to Professional Site-Proof colors */
+    --background: 248 249 250; /* site-proof-off-white */
     --foreground: 44 62 80; /* site-proof-charcoal */
     --card: 255 255 255; /* site-proof-white */
     --card-foreground: 44 62 80; /* site-proof-charcoal */
     --popover: 255 255 255; /* site-proof-white */
     --popover-foreground: 44 62 80; /* site-proof-charcoal */
-    --primary: 52 152 219; /* site-proof-clarity-blue */
+    --primary: 27 79 114; /* site-proof-primary-blue */
     --primary-foreground: 255 255 255; /* site-proof-white */
-    --secondary: 44 62 80; /* site-proof-charcoal */
-    --secondary-foreground: 255 255 255; /* site-proof-white */
-    --muted: 244 246 247; /* site-proof-off-white */
-    --muted-foreground: 127 140 141; /* site-proof-placeholder */
-    --accent: 244 246 247; /* site-proof-off-white */
+    --secondary: 241 196 15; /* site-proof-gold */
+    --secondary-foreground: 44 62 80; /* site-proof-charcoal */
+    --muted: 248 249 250; /* site-proof-off-white */
+    --muted-foreground: 108 117 125; /* site-proof-text-muted */
+    --accent: 241 196 15; /* site-proof-gold */
     --accent-foreground: 44 62 80; /* site-proof-charcoal */
-    --destructive: 183 65 14; /* site-proof-ochre for errors */
+    --destructive: 220 53 69; /* site-proof-error-red */
     --destructive-foreground: 255 255 255; /* site-proof-white */
-    --border: 234 236 238; /* site-proof-border-grey */
-    --input: 204 209 209; /* site-proof-neutral-grey */
-    --ring: 52 152 219; /* site-proof-clarity-blue */
+    --border: 222 226 230; /* site-proof-border-grey */
+    --input: 233 236 239; /* site-proof-light-grey */
+    --ring: 27 79 114; /* site-proof-primary-blue */
     --radius: 0.375rem; /* 6px */
   }
 
@@ -101,14 +108,14 @@
     letter-spacing: 0.05em;
   }
 
-  /* MANDATORY 12-Column Grid System */
+  /* Professional B2B Container System */
   .site-proof-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 24px;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 20px;
+    gap: 24px;
   }
 
   @media (max-width: 768px) {
@@ -119,78 +126,82 @@
     }
   }
 
-  /* Button System - EXACT STYLES REQUIRED */
+  /* Professional B2B Button System */
   .site-proof-btn-primary {
-    background-color: var(--site-proof-clarity-blue);
+    background-color: var(--site-proof-primary-blue);
     color: var(--site-proof-white);
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    padding: 12px 24px;
-    border-radius: 6px;
+    padding: 14px 28px;
+    border-radius: 8px;
     border: none;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
+    box-shadow: 0 2px 4px rgba(27, 79, 114, 0.2);
   }
 
   .site-proof-btn-primary:hover {
-    background-color: #2980B9; /* Darker shade of Clarity Blue */
+    background-color: var(--site-proof-dark-blue);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    box-shadow: 0 4px 12px rgba(27, 79, 114, 0.3);
   }
 
   .site-proof-btn-primary:focus {
-    outline: 2px solid var(--site-proof-clarity-blue);
+    outline: 2px solid var(--site-proof-primary-blue);
     outline-offset: 2px;
   }
 
   .site-proof-btn-primary:disabled {
     background-color: var(--site-proof-neutral-grey);
-    color: var(--site-proof-placeholder);
+    color: var(--site-proof-text-muted);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
   }
 
   .site-proof-btn-secondary {
-    background-color: var(--site-proof-charcoal);
-    color: var(--site-proof-white);
+    background-color: var(--site-proof-gold);
+    color: var(--site-proof-charcoal);
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    padding: 12px 24px;
-    border-radius: 6px;
+    padding: 14px 28px;
+    border-radius: 8px;
     border: none;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
+    box-shadow: 0 2px 4px rgba(241, 196, 15, 0.2);
   }
 
   .site-proof-btn-secondary:hover {
-    background-color: #1B2A3C; /* Darker shade of Charcoal */
+    background-color: #D4AC0D;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3);
   }
 
   .site-proof-btn-secondary:focus {
-    outline: 2px solid var(--site-proof-charcoal);
+    outline: 2px solid var(--site-proof-gold);
     outline-offset: 2px;
   }
 
   .site-proof-btn-tertiary {
     background-color: transparent;
-    color: var(--site-proof-ochre);
-    border: 2px solid var(--site-proof-ochre);
+    color: var(--site-proof-primary-blue);
+    border: 2px solid var(--site-proof-primary-blue);
     font-family: 'Inter', sans-serif;
     font-weight: 600;
-    padding: 10px 22px; /* Account for border */
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 12px 26px;
+    border-radius: 8px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: inline-flex;
@@ -200,12 +211,12 @@
   }
 
   .site-proof-btn-tertiary:hover {
-    background-color: var(--site-proof-ochre);
+    background-color: var(--site-proof-primary-blue);
     color: var(--site-proof-white);
   }
 
   .site-proof-btn-tertiary:focus {
-    outline: 2px solid var(--site-proof-ochre);
+    outline: 2px solid var(--site-proof-primary-blue);
     outline-offset: 2px;
   }
 
