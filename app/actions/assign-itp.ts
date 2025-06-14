@@ -67,8 +67,20 @@ export async function assignITPToLot(assignment: CreateITPAssignment) {
 
     console.log('✅ Assignment successful:', data)
 
-    // Revalidate both the daily-report page and the main lot page
-    revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}/daily-report`)
+    // CRITICAL: Update the lot's itp_id field so the JOIN query works
+    const { error: lotUpdateError } = await supabase
+      .from('lots')
+      .update({ itp_id: assignment.itp_id })
+      .eq('id', assignment.lot_id)
+
+    if (lotUpdateError) {
+      console.error('❌ Failed to update lot itp_id:', lotUpdateError)
+      throw new Error(`Failed to update lot: ${lotUpdateError.message}`)
+    }
+
+    console.log('✅ Lot itp_id updated successfully')
+
+    // Revalidate only the main lot page (not daily-report to avoid redirect)
     revalidatePath(`/project/${assignment.project_id}/lot/${assignment.lot_id}`)
 
     return { success: true, assignment: data }
