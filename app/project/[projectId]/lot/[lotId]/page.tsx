@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../../../../components/ui/badge'
 import { Loader2, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { LotInspectionClientPage } from './lot-inspection-client-page'
 // Local interfaces that match our database schema
 interface Lot {
   id: string
@@ -333,127 +334,37 @@ export default function LotPage({ params }: LotPageProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {/* ITP Details */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{itp?.title}</CardTitle>
-                    <CardDescription>{itp?.description}</CardDescription>
-                  </div>
-                  <Badge variant="outline">
-                    {assignment?.status || 'assigned'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Category
-                    </label>
-                    <p className="text-gray-900 dark:text-gray-100">
-                      {itp?.category}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Complexity
-                    </label>
-                    <Badge variant={itp?.complexity === 'complex' ? 'destructive' : itp?.complexity === 'moderate' ? 'default' : 'secondary'}>
-                      {itp?.complexity}
-                    </Badge>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                      Estimated Duration
-                    </label>
-                    <p className="text-gray-900 dark:text-gray-100">
-                      {itp?.estimated_duration}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* ITP Checklist */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Inspection Checklist</CardTitle>
-                <CardDescription>
-                  Complete all inspection items below. Items marked with 🔴 are hold points.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {itpItems.length === 0 ? (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No checklist items found for this ITP.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {itpItems.map((item) => (
-                      <Card key={item.id} className="border-l-4 border-l-blue-500">
-                        <CardContent className="pt-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-mono text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                                  {item.item_number}
-                                </span>
-                                {item.hold_point && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    🔴 Hold Point
-                                  </Badge>
-                                )}
-                                {item.witness_point && (
-                                  <Badge variant="outline" className="text-xs">
-                                    👁️ Witness Point
-                                  </Badge>
-                                )}
-                              </div>
-                              <h4 className="font-medium text-gray-900 dark:text-white mb-2">
-                                {item.description}
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="font-medium text-gray-500">Inspection Type:</span>
-                                  <p className="text-gray-900 dark:text-gray-100">{item.inspection_type}</p>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-gray-500">Acceptance Criteria:</span>
-                                  <p className="text-gray-900 dark:text-gray-100">{item.acceptance_criteria}</p>
-                                </div>
-                                {item.reference_standard && (
-                                  <div>
-                                    <span className="font-medium text-gray-500">Reference Standard:</span>
-                                    <p className="text-gray-900 dark:text-gray-100">{item.reference_standard}</p>
-                                  </div>
-                                )}
-                                {item.required_documentation && (
-                                  <div>
-                                    <span className="font-medium text-gray-500">Required Documentation:</span>
-                                    <p className="text-gray-900 dark:text-gray-100">{item.required_documentation}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 ml-4">
-                              <Button variant="outline" size="sm">
-                                <Clock className="h-4 w-4 mr-1" />
-                                Pending
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <LotInspectionClientPage lotData={{
+            id: lot.id,
+            lot_number: lot.lot_number,
+            description: lot.description,
+            location: lot.location,
+            priority: lot.priority,
+            project_id: lot.project_id,
+            created_at: lot.created_at,
+            updated_at: lot.updated_at,
+            projects: {
+              name: 'Highway 101 Expansion', // You may want to fetch this from the project data
+              project_number: 'Project #'
+            },
+            status: assignment?.status || 'IN_PROGRESS',
+            itps: itp ? {
+              id: itp.id,
+              title: itp.title,
+              description: itp.description,
+              category: itp.category,
+              complexity: itp.complexity,
+              estimated_duration: itp.estimated_duration,
+              required_certifications: itp.required_certifications,
+              organization_id: itp.organization_id,
+              created_at: itp.created_at,
+              updated_at: itp.updated_at,
+              itp_items: itpItems.map(item => ({
+                ...item,
+                conformance_records: [] // Add conformance records if available
+              }))
+            } : null
+          } as any} />
         )}
 
         {/* Assign ITP Modal */}
