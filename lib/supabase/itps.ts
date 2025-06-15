@@ -8,8 +8,6 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
   console.log('📋 Project ID:', projectId)
   
   try {
-    console.log('🔗 Supabase client:', supabase)
-    
     // First try to get project-specific ITPs
     const { data, error } = await supabase
       .from('itps')
@@ -24,7 +22,11 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
     console.log('📊 Project-specific query result - data:', data)
     console.log('❌ Project-specific query result - error:', error)
     
-    if (error) throw error;
+    if (error) {
+      console.error('💥 Database connection error:', error)
+      console.error('💡 Check Supabase environment variables in .env.local')
+      throw error;
+    }
     
     // If we found project-specific ITPs, return them
     if (data && data.length > 0) {
@@ -42,12 +44,15 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
       `)
       .eq('is_active', true)
       .order('name')
-      .limit(10); // Limit to prevent too many results
+      .limit(10);
       
     console.log('📊 Fallback query result - data:', fallbackData)
     console.log('❌ Fallback query result - error:', fallbackError)
     
-    if (fallbackError) throw fallbackError;
+    if (fallbackError) {
+      console.error('💥 Fallback query error:', fallbackError)
+      throw fallbackError;
+    }
     
     if (fallbackData && fallbackData.length > 0) {
       console.log('✅ Found', fallbackData.length, 'fallback ITPs')
