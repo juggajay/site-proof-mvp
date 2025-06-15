@@ -7,56 +7,8 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
   console.log('🔍 Starting getITPsByProject function')
   console.log('📋 Project ID:', projectId)
   
-  // Return mock data for testing - bypassing database issues
-  const mockITPs: ITP[] = [
-    {
-      id: 'itp-1',
-      project_id: projectId,
-      name: 'Concrete Foundation ITP',
-      description: 'Inspection and testing procedures for concrete foundation work',
-      category: 'Structural',
-      complexity: 'moderate',
-      estimated_duration: '2-4 hours',
-      required_certifications: ['Concrete Testing', 'Structural Inspection'],
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: 'itp-2',
-      project_id: projectId,
-      name: 'Steel Frame ITP',
-      description: 'Quality assurance for steel frame construction',
-      category: 'Structural',
-      complexity: 'high',
-      estimated_duration: '4-6 hours',
-      required_certifications: ['Steel Welding', 'Structural Inspection'],
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: 'itp-3',
-      project_id: projectId,
-      name: 'Electrical Installation ITP',
-      description: 'Electrical systems inspection and testing',
-      category: 'Electrical',
-      complexity: 'moderate',
-      estimated_duration: '3-5 hours',
-      required_certifications: ['Electrical License', 'Safety Inspection'],
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  ];
-  
-  console.log('📊 Returning mock ITP data:', mockITPs)
-  return mockITPs;
-  
-  // Original database code (commented out for testing)
-  /*
   try {
-    console.log(' Supabase client:', supabase)
+    console.log('🔗 Supabase client:', supabase)
     
     const { data, error } = await supabase
       .from('itps')
@@ -77,7 +29,6 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
     console.error('💥 getITPsByProject error:', error)
     return []
   }
-  */
 }
 
 export async function getITPById(itpId: string): Promise<ITP | null> {
@@ -97,47 +48,19 @@ export async function getITPById(itpId: string): Promise<ITP | null> {
 export async function getITPItemsByITP(itpId: string): Promise<ITPItem[]> {
   console.log('🔍 Loading ITP items for:', itpId);
   
-  const mockItems: ITPItem[] = [
-    {
-      id: 'item-1',
-      itp_id: itpId,
-      item_number: '1.1',
-      description: 'Verify foundation depth meets specifications',
-      acceptance_criteria: 'Depth ≥ 1.5m as per drawings',
-      inspection_method: 'Physical measurement',
-      is_mandatory: true,
-      sort_order: 1,
-      required_documentation: 'Survey report, photos',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'item-2',
-      itp_id: itpId,
-      item_number: '1.2',
-      description: 'Check concrete strength test results',
-      acceptance_criteria: 'Minimum 25 MPa compressive strength',
-      inspection_method: 'Laboratory test results',
-      is_mandatory: true,
-      sort_order: 2,
-      required_documentation: 'Lab test certificates',
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'item-3',
-      itp_id: itpId,
-      item_number: '1.3',
-      description: 'Inspect reinforcement placement',
-      acceptance_criteria: 'As per structural drawings',
-      inspection_method: 'Visual inspection',
-      is_mandatory: false,
-      sort_order: 3,
-      required_documentation: 'Photos, inspection checklist',
-      created_at: new Date().toISOString()
-    }
-  ];
+  const { data, error } = await supabase
+    .from('itp_items')
+    .select('*')
+    .eq('itp_id', itpId)
+    .order('sort_order');
+
+  if (error) {
+    console.error('❌ Error loading ITP items:', error);
+    throw error;
+  }
   
-  console.log('📊 Returning mock ITP items:', mockItems);
-  return mockItems;
+  console.log('📊 Loaded ITP items from database:', data);
+  return data || [];
 }
 
 export async function createITP(itp: Omit<ITP, 'id' | 'created_at' | 'updated_at'>): Promise<ITP> {
