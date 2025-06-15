@@ -46,6 +46,7 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
         .single()
 
       let organizationId = 'demo-org'
+      let projectId = 'demo-project'
       
       if (lotError) {
         console.warn('Using mock lot data:', lotError.message)
@@ -64,6 +65,7 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
       } else if (lotData) {
         setLot(lotData)
         organizationId = lotData.project_id
+        projectId = lotData.project_id
       }
 
       // Use ITP service to load data with fallbacks
@@ -76,6 +78,15 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
       setAvailableITPs(itps)
       setTeamMembers(members)
       setCurrentAssignment(assignment)
+      
+      // Load enhanced ITPs for our modal
+      try {
+        const enhancedITPsData = await getITPsByProject(projectId)
+        setEnhancedITPs(enhancedITPsData)
+      } catch (enhancedError) {
+        console.warn('Could not load enhanced ITPs, using fallback:', enhancedError)
+        setEnhancedITPs([])
+      }
     } catch (error) {
       console.error('Error loading QA inspection data:', error)
       setError('Failed to load inspection data. Please try again.')
@@ -115,6 +126,17 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
     } catch (error) {
       console.error('💥 Assignment failed:', error)
       throw error
+    }
+  }
+
+  const handleITPSelection = async (selectedITPId: string) => {
+    try {
+      console.log('🎯 Selected ITP ID:', selectedITPId)
+      // For now, just log the selection - you can enhance this to create actual assignment
+      setShowITPModal(false)
+      // TODO: Implement actual ITP assignment logic here
+    } catch (error) {
+      console.error('Error handling ITP selection:', error)
     }
   }
 
@@ -185,12 +207,12 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
         
         <div className="text-center py-6 border-t">
           <h4 className="text-lg font-medium mb-4">Assign Additional ITP</h4>
-          <AssignITPButton
-            lot={lot}
-            availableITPs={availableITPs}
-            teamMembers={teamMembers}
-            onAssign={handleAssignment}
-          />
+          <button
+            onClick={() => setShowITPModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Assign Additional ITP
+          </button>
         </div>
       </div>
     )
@@ -206,12 +228,23 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
         No Inspection & Test Plan has been assigned to this lot yet.
       </p>
       
-      <AssignITPButton
-        lot={lot}
-        availableITPs={availableITPs}
-        teamMembers={teamMembers}
-        onAssign={handleAssignment}
-      />
+      <button
+        onClick={() => setShowITPModal(true)}
+        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors"
+      >
+        Select ITP
+      </button>
+      
+      {/* PHASE 5: Add ITP Selection Modal */}
+      {showITPModal && (
+        <ITPSelectionModal
+          isOpen={showITPModal}
+          onClose={() => setShowITPModal(false)}
+          onSelectITP={handleITPSelection}
+          projectId={lot?.project_id || 'demo-project'}
+          lotName={lot?.name || 'Demo Lot'}
+        />
+      )}
     </div>
   )
 }
