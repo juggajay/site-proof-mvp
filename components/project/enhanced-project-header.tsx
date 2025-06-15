@@ -14,6 +14,7 @@ interface EnhancedProjectHeaderProps {
   startDate?: string
   endDate?: string
   onNewLot?: () => void
+  onTeamManagement?: () => void
 }
 
 export function EnhancedProjectHeader({
@@ -26,7 +27,8 @@ export function EnhancedProjectHeader({
   completedLots,
   startDate,
   endDate,
-  onNewLot
+  onNewLot,
+  onTeamManagement
 }: EnhancedProjectHeaderProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -126,7 +128,12 @@ export function EnhancedProjectHeader({
               
               {/* Quick Actions */}
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="border-[#1B4F72]/20 text-[#1B4F72] hover:bg-[#1B4F72]/10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-[#1B4F72]/20 text-[#1B4F72] hover:bg-[#1B4F72]/10"
+                  onClick={onTeamManagement}
+                >
                   <Users className="h-4 w-4 mr-2" />
                   Team
                 </Button>

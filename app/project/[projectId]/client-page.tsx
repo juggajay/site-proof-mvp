@@ -9,9 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../../components/ui/badge'
 import CreateLotModal from '../../../components/modals/create-lot-modal'
 import { EnhancedProjectHeader } from '../../../components/project/enhanced-project-header'
+import { SubcontractorManagement } from '../../../components/project/subcontractor-management'
 
 export function ProjectClientPage({ project, lots }: { project: Project; lots: LotWithItp[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false)
   
   // Calculate lot statistics
   const totalLots = lots.length
@@ -40,6 +42,7 @@ export function ProjectClientPage({ project, lots }: { project: Project; lots: L
         startDate={project.created_at}
         endDate={undefined}
         onNewLot={() => setIsModalOpen(true)}
+        onTeamManagement={() => setIsTeamModalOpen(true)}
       />
       <Card className="border-[#1B4F72]/20 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-[#1B4F72]/5 to-[#F1C40F]/5 border-b border-[#1B4F72]/10">
@@ -94,6 +97,14 @@ export function ProjectClientPage({ project, lots }: { project: Project; lots: L
         </CardContent>
       </Card>
       <CreateLotModal open={isModalOpen} onOpenChange={setIsModalOpen} projectId={project.id} />
+      
+      {/* Team Management Modal */}
+      {isTeamModalOpen && (
+        <SubcontractorManagement
+          projectId={project.id}
+          onClose={() => setIsTeamModalOpen(false)}
+        />
+      )}
     </div>
   )
 }
