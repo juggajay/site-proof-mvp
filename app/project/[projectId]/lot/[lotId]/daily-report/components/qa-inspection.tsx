@@ -8,6 +8,10 @@ import { assignITPToLot } from '../../../../../../actions/assign-itp'
 import { FileText, AlertCircle } from 'lucide-react'
 import { Button } from '../../../../../../../components/ui/button'
 import type { CreateITPAssignment, Lot, ITP, TeamMember, ITPAssignment } from '../../../../../../../types'
+// PHASE 2: Add ITP imports to QA component
+import ITPSelectionModal from '../../../../../../../components/itps/ITPSelectionModal'
+import { getITPsByProject } from '../../../../../../../lib/supabase/itps'
+import type { ITP as EnhancedITP } from '../../../../../../../types/database'
 
 interface QAInspectionProps {
   dailyReportId: string
