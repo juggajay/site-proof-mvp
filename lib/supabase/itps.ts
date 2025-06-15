@@ -46,7 +46,7 @@ export async function getITPItemsByITP(itpId: string): Promise<ItpItem[]> {
 export async function createITP(itp: Omit<ITP, 'id' | 'created_at' | 'updated_at'>): Promise<ITP> {
   const { data, error } = await supabase
     .from('itps')
-    .insert(itp)
+    .insert([itp])
     .select()
     .single();
 
@@ -57,7 +57,7 @@ export async function createITP(itp: Omit<ITP, 'id' | 'created_at' | 'updated_at
 export async function updateITP(id: string, updates: Partial<ITP>): Promise<ITP> {
   const { data, error } = await supabase
     .from('itps')
-    .update(updates)
+    .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single();
@@ -78,7 +78,7 @@ export async function deleteITP(id: string): Promise<void> {
 export async function createITPItem(item: Omit<ItpItem, 'id' | 'created_at'>): Promise<ItpItem> {
   const { data, error } = await supabase
     .from('itp_items')
-    .insert(item)
+    .insert([item])
     .select()
     .single();
 
