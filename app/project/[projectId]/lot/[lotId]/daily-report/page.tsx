@@ -220,17 +220,26 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
           </div>
         )}
 
-        {activeTab === 'dockets' && dailyReport && (
+        {activeTab === 'dockets' && (
           <div>
-            {/* EXISTING FUNCTIONAL DOCKETS COMPONENT */}
-            <DocketsTab 
-              lot={lot}
-              dailyReport={dailyReport}
-              onUpdate={() => {
-                // Refresh data if needed
-                console.log('Dockets updated')
-              }}
-            />
+            {dailyReport ? (
+              /* EXISTING FUNCTIONAL DOCKETS COMPONENT */
+              <DocketsTab
+                lot={lot}
+                dailyReport={dailyReport}
+                onUpdate={() => {
+                  // Refresh data if needed
+                  console.log('Dockets updated')
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B4F72] mx-auto"></div>
+                  <p className="mt-2 text-sm text-[#6C757D] font-primary">Loading dockets...</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -263,18 +272,36 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
               </div>
 
               <div className="p-6">
-                {complianceTab === 'qa' && dailyReport && (
-                  <QAInspection
-                    dailyReportId={dailyReport.id}
-                    lotId={params.lotId}
-                  />
+                {complianceTab === 'qa' && (
+                  dailyReport ? (
+                    <QAInspection
+                      dailyReportId={dailyReport.id}
+                      lotId={params.lotId}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1B4F72] mx-auto"></div>
+                        <p className="mt-2 text-sm text-[#6C757D] font-primary">Loading QA inspection...</p>
+                      </div>
+                    </div>
+                  )
                 )}
 
-                {complianceTab === 'environmental' && dailyReport && (
-                  <EnvironmentalCompliance
-                    dailyReportId={dailyReport.id}
-                    projectId={params.projectId}
-                  />
+                {complianceTab === 'environmental' && (
+                  dailyReport ? (
+                    <EnvironmentalCompliance
+                      dailyReportId={dailyReport.id}
+                      projectId={params.projectId}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1B4F72] mx-auto"></div>
+                        <p className="mt-2 text-sm text-[#6C757D] font-primary">Loading environmental compliance...</p>
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
             </div>
