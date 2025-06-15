@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { ComprehensiveSiteDiary } from '../../../../../../components/site-diary/comprehensive-site-diary'
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../../../components/ui/card'
+import { DocketsTab } from './components/dockets-tab'
+import QAInspection from './components/qa-inspection'
+import EnvironmentalCompliance from './components/environmental-compliance'
 import { Calendar, ArrowLeft, FileText, CheckSquare, ClipboardList } from 'lucide-react'
 import { Button } from '../../../../../../components/ui/button'
+import { createClient } from '../../../../../../lib/supabase/client'
 import Link from 'next/link'
-
-/* Site-Proof Professional B2B Daily Report Page - Dashboard Style Implementation */
 
 interface DailyReportPageProps {
   params: {
@@ -17,38 +18,98 @@ interface DailyReportPageProps {
 }
 
 export default function DailyReportPage({ params }: DailyReportPageProps) {
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date()
     const dateString = today.toISOString().split('T')[0]
-    return dateString || new Date().toLocaleDateString('en-CA') // fallback to YYYY-MM-DD format
+    return dateString || today.toLocaleDateString('en-CA') // fallback to YYYY-MM-DD format
   })
-  const [projectName, setProjectName] = useState('') 
+  const [projectName, setProjectName] = useState('')
   const [lotNumber, setLotNumber] = useState('')
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('site-diary') // Add active tab state
+  const [activeTab, setActiveTab] = useState('site-diary')
+  const [dailyReport, setDailyReport] = useState<any>(null)
+  const [lot, setLot] = useState<any>(null)
+  const [complianceTab, setComplianceTab] = useState<'qa' | 'environmental'>('qa')
+
+  const supabase = createClient()
 
   // Load project and lot data
   useEffect(() => {
     const loadProjectData = async () => {
       setIsLoading(true)
       try {
-        // Replace with your actual data fetching logic
-        // Example:
-        // const project = await getProject(params.projectId)
-        // const lot = await getLot(params.lotId)
-        
-        // Mock data for now - replace with actual API calls
-        setProjectName('Sample Construction Project')
-        setLotNumber('1')
+        // Load lot data
+        const { data: lotData, error: lotError } = await supabase
+          .from('lots')
+          .select('*')
+          .eq('id', params.lotId)
+          .single()
+
+        if (lotData) {
+          setLot(lotData)
+          setLotNumber(lotData.name || 'Unknown')
+          
+          // Load project data
+          const { data: projectData } = await supabase
+            .from('projects')
+            .select('name')
+            .eq('id', params.projectId)
+            .single()
+          
+          setProjectName(projectData?.name || 'Unknown Project')
+        } else {
+          // Fallback data
+          setProjectName('Sample Construction Project')
+          setLotNumber('Demo Lot')
+          setLot({ id: params.lotId, name: 'Demo Lot' })
+        }
+
+        // Load or create daily report
+        const { data: reportData, error: reportError } = await supabase
+          .from('daily_reports')
+          .select('*')
+          .eq('lot_id', params.lotId)
+          .eq('report_date', selectedDate)
+          .single()
+
+        if (reportData) {
+          setDailyReport(reportData)
+        } else {
+          // Create new daily report
+          const { data: newReport, error: createError } = await supabase
+            .from('daily_reports')
+            .insert({
+              lot_id: params.lotId,
+              report_date: selectedDate,
+              weather_conditions: 'Clear',
+              temperature: 22,
+              created_by: 'current-user' // Replace with actual user ID
+            })
+            .select()
+            .single()
+
+          if (newReport) {
+            setDailyReport(newReport)
+          }
+        }
       } catch (error) {
         console.error('Error loading project data:', error)
+        // Set fallback data
+        setProjectName('Sample Construction Project')
+        setLotNumber('Demo Lot')
+        setLot({ id: params.lotId, name: 'Demo Lot' })
       } finally {
         setIsLoading(false)
       }
     }
 
     loadProjectData()
-  }, [params.projectId, params.lotId])
+  }, [params.projectId, params.lotId, selectedDate, supabase])
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate)
+    setDailyReport(null) // Reset daily report to trigger reload
+  }
 
   if (isLoading) {
     return (
@@ -78,7 +139,7 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
               Daily Lot Report - {lotNumber}
             </h1>
             <p className="text-[#6C757D] font-primary">
-              {new Date(selectedDate).toLocaleDateString('en-AU')} • {projectName}
+              {selectedDate ? new Date(selectedDate).toLocaleDateString('en-AU') : 'No date selected'} • {projectName}
             </p>
           </div>
         </div>
@@ -89,7 +150,7 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             className="text-sm font-primary border-none outline-none bg-transparent text-[#1B4F72]"
           />
         </div>
@@ -145,7 +206,7 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
         </div>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content - Using Existing Functional Components */}
       <div className="mt-0">
         {activeTab === 'site-diary' && (
           <div>
@@ -159,80 +220,65 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
           </div>
         )}
 
-        {activeTab === 'dockets' && (
-          <Card className="border-[#1B4F72]/20 bg-gradient-to-br from-slate-50 to-blue-50">
-            <CardHeader className="bg-gradient-to-r from-[#1B4F72]/5 to-[#F1C40F]/5 border-b border-[#1B4F72]/10">
-              <CardTitle className="flex items-center gap-2 text-[#1B4F72] font-heading">
-                <FileText className="h-5 w-5" />
-                Labour, Plant & Materials Dockets
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#1B4F72]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FileText className="h-8 w-8 text-[#1B4F72]" />
-                </div>
-                <h3 className="text-xl font-bold text-[#1B4F72] mb-2 font-heading">
-                  Digital Dockets Coming Soon
-                </h3>
-                <p className="text-slate-600 mb-6 max-w-md mx-auto font-primary">
-                  Track labour hours, plant usage, and material deliveries with digital dockets that integrate seamlessly with your Site Diary.
-                </p>
-                
-                <div className="bg-white border border-[#1B4F72]/20 rounded-lg p-6 max-w-lg mx-auto shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-xs font-bold text-blue-600">2</span>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-semibold text-[#1B4F72] mb-1 font-heading">Phase 2 Feature</p>
-                      <p className="text-sm text-slate-600 font-primary">
-                        Digital docket management will automatically integrate with your existing Site Diary data to provide comprehensive project tracking and payroll integration.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {activeTab === 'dockets' && dailyReport && (
+          <div>
+            {/* EXISTING FUNCTIONAL DOCKETS COMPONENT */}
+            <DocketsTab 
+              lot={lot}
+              dailyReport={dailyReport}
+              onUpdate={() => {
+                // Refresh data if needed
+                console.log('Dockets updated')
+              }}
+            />
+          </div>
         )}
 
         {activeTab === 'compliance' && (
-          <Card className="border-[#1B4F72]/20 bg-gradient-to-br from-slate-50 to-green-50">
-            <CardHeader className="bg-gradient-to-r from-[#1B4F72]/5 to-[#F1C40F]/5 border-b border-[#1B4F72]/10">
-              <CardTitle className="flex items-center gap-2 text-[#1B4F72] font-heading">
-                <CheckSquare className="h-5 w-5" />
-                QA & Environmental Compliance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="py-12">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-[#1B4F72]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckSquare className="h-8 w-8 text-[#1B4F72]" />
-                </div>
-                <h3 className="text-xl font-bold text-[#1B4F72] mb-2 font-heading">
-                  Compliance Tracking Coming Soon
-                </h3>
-                <p className="text-slate-600 mb-6 max-w-md mx-auto font-primary">
-                  Monitor quality assurance checks, environmental compliance, and safety standards with automated reporting.
-                </p>
-                
-                <div className="bg-white border border-[#1B4F72]/20 rounded-lg p-6 max-w-lg mx-auto shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-xs font-bold text-green-600">2</span>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-semibold text-[#1B4F72] mb-1 font-heading">Phase 2 Feature</p>
-                      <p className="text-sm text-slate-600 font-primary">
-                        Automated compliance reporting based on your Site Diary events, inspection data, and safety briefings with real-time compliance scoring.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+          <div className="space-y-6">
+            {/* Compliance Sub-tabs */}
+            <div className="bg-white rounded-lg shadow border border-[#1B4F72]/10">
+              <div className="border-b border-gray-200">
+                <nav className="flex space-x-8 px-6">
+                  {[
+                    { key: 'qa', label: '🔍 QA Inspection', desc: 'Quality Assurance' },
+                    { key: 'environmental', label: '🌿 Environmental', desc: 'Environmental Compliance' }
+                  ].map(({ key, label, desc }) => (
+                    <button
+                      key={key}
+                      onClick={() => setComplianceTab(key as 'qa' | 'environmental')}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 font-primary ${
+                        complianceTab === key
+                          ? 'border-[#1B4F72] text-[#1B4F72]'
+                          : 'border-transparent text-gray-500 hover:text-[#1B4F72] hover:border-[#1B4F72]/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{label}</span>
+                      </div>
+                      <div className="text-xs opacity-70 mt-1">{desc}</div>
+                    </button>
+                  ))}
+                </nav>
               </div>
-            </CardContent>
-          </Card>
+
+              <div className="p-6">
+                {complianceTab === 'qa' && dailyReport && (
+                  <QAInspection
+                    dailyReportId={dailyReport.id}
+                    lotId={params.lotId}
+                  />
+                )}
+
+                {complianceTab === 'environmental' && dailyReport && (
+                  <EnvironmentalCompliance
+                    dailyReportId={dailyReport.id}
+                    projectId={params.projectId}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
