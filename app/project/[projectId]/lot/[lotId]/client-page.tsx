@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { FullLotData, ConformanceRecord } from '../../../../../types';
 import { Button } from '../../../../../components/ui/button';
-import ChecklistItem from '../../../../../components/checklist-item';
+import { ChecklistItem } from '../../../../../components/checklist-item';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import { saveInspectionAnswersAction } from '../../../../../actions';
@@ -75,8 +75,16 @@ export function LotInspectionClientPage({ lotData }: { lotData: FullLotData }) {
           .map(item => (
             <ChecklistItem
               key={item.id}
-              item={item}
-              onUpdate={(itemId, data) => handleAnswerChange(itemId, data)}
+              item={{
+                id: item.id,
+                item_description: item.item_description,
+                item_type: item.item_type === 'NUMERIC' ? 'MEASUREMENT' : item.item_type as 'PASS_FAIL' | 'TEXT_INPUT',
+                required: true,
+                acceptance_criteria: item.acceptance_criteria
+              }}
+              value={undefined}
+              onChange={() => {}}
+              onSave={() => handleAnswerChange(item.id, {})}
             />
           ))
         }

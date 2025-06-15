@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
-import ChecklistItem from '../checklist-item'
+import { ChecklistItem } from '../checklist-item'
 import { Save, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '../../lib/supabase/client'
@@ -244,9 +244,16 @@ export default function ComplianceTab({ lotData }: ComplianceTabProps) {
               .map((item) => (
                 <ChecklistItem
                   key={item.id}
-                  item={item}
-                  onUpdate={handleItemUpdate}
-                  disabled={isSaving}
+                  item={{
+                    id: item.id,
+                    item_description: item.item_description,
+                    item_type: item.item_type === 'NUMERIC' ? 'MEASUREMENT' : item.item_type as 'PASS_FAIL' | 'TEXT_INPUT',
+                    required: true, // Default to true for compliance items
+                    acceptance_criteria: item.acceptance_criteria
+                  }}
+                  value={undefined}
+                  onChange={() => {}}
+                  onSave={() => handleItemUpdate(item.id, {})}
                 />
               ))}
           </div>
