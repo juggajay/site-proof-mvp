@@ -25,6 +25,11 @@ export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps
   const [currentAssignment, setCurrentAssignment] = useState<ITPAssignment | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // PHASE 3: Add ITP state management
+  const [showITPModal, setShowITPModal] = useState(false)
+  const [enhancedITPs, setEnhancedITPs] = useState<EnhancedITP[]>([])
+  const [isLoadingITPs, setIsLoadingITPs] = useState(false)
 
   const supabase = createClient()
 
