@@ -29,12 +29,6 @@ export default function ITPSelectionModal({
   const [previewItems, setPreviewItems] = useState<ItpItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && projectId) {
-      loadITPs();
-    }
-  }, [isOpen, projectId, loadITPs]);
-
   const loadITPs = useCallback(async () => {
     try {
       setLoading(true);
@@ -46,6 +40,12 @@ export default function ITPSelectionModal({
       setLoading(false);
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (isOpen && projectId) {
+      loadITPs();
+    }
+  }, [isOpen, projectId, loadITPs]);
 
   const handleITPSelect = async (itpId: string) => {
     setSelectedITPId(itpId);
