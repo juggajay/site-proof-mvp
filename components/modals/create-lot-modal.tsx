@@ -52,8 +52,8 @@ export default function CreateLotModal({ open, onOpenChange, projectId }: Create
         try {
           const { data, error } = await supabase
             .from('itps')
-            .select('id, title, description')
-            .order('title')
+            .select('id, name, description')
+            .order('name')
 
           if (error) {
             console.error('Error fetching ITPs:', error)
@@ -63,7 +63,7 @@ export default function CreateLotModal({ open, onOpenChange, projectId }: Create
 
           setItps(data?.map(item => ({
             id: item.id,
-            title: item.title,
+            title: item.name,
             description: item.description,
           })) || [])
         } catch (error) {
