@@ -3,64 +3,36 @@ import type { ITP, ITPItem, ITPWithItems, ITPWithStats } from '@/types/database'
 
 const supabase = createClientComponentClient();
 
-export async function getITPsByProject(projectId: string): Promise<ITP[]> {
-  console.log('🔍 Starting getITPsByProject function')
+export async function getITPsByProject(projectId?: string): Promise<ITP[]> {
+  console.log('🔍 Fetching ITPs from database...')
   console.log('📋 Project ID:', projectId)
   
   try {
-    // First try to get project-specific ITPs
+    // REMOVE PROJECT FILTER - get all ITPs for now
     const { data, error } = await supabase
       .from('itps')
-      .select(`
-        *,
-        itp_items(*)
-      `)
-      .eq('project_id', projectId)
+      .select('id, name, description, created_at, updated_at, is_active, category, complexity, estimated_duration, required_certifications')
+      // .eq('project_id', projectId)  // Comment this out - remove project filter
       .eq('is_active', true)
-      .order('name');
+      .order('created_at', { ascending: false });
       
-    console.log('📊 Project-specific query result - data:', data)
-    console.log('❌ Project-specific query result - error:', error)
+    console.log('📊 Database response:', { data, error })
     
     if (error) {
-      console.error('💥 Database connection error:', error)
+      console.error('💥 Error fetching ITPs:', error)
       console.error('💡 Check Supabase environment variables in .env.local')
-      throw error;
+      return [];
     }
     
-    // If we found project-specific ITPs, return them
-    if (data && data.length > 0) {
-      console.log('✅ Found', data.length, 'project-specific ITPs')
-      return data;
-    }
+    console.log(`✅ Found ${data?.length || 0} ITPs`)
     
-    // If no project-specific ITPs found, try to get any active ITPs as fallback
-    console.log('⚠️ No project-specific ITPs found, trying fallback query...')
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('itps')
-      .select(`
-        *,
-        itp_items(*)
-      `)
-      .eq('is_active', true)
-      .order('name')
-      .limit(10);
-      
-    console.log('📊 Fallback query result - data:', fallbackData)
-    console.log('❌ Fallback query result - error:', fallbackError)
+    // Add project_id field to match expected interface
+    const itpsWithProjectId = (data || []).map(itp => ({
+      ...itp,
+      project_id: projectId || 'default-project'
+    }));
     
-    if (fallbackError) {
-      console.error('💥 Fallback query error:', fallbackError)
-      throw fallbackError;
-    }
-    
-    if (fallbackData && fallbackData.length > 0) {
-      console.log('✅ Found', fallbackData.length, 'fallback ITPs')
-      return fallbackData;
-    }
-    
-    console.log('⚠️ No ITPs found at all')
-    return [];
+    return itpsWithProjectId;
   } catch (error) {
     console.error('💥 getITPsByProject error:', error)
     return []
