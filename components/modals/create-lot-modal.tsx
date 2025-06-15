@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '../../lib/supabase/client'
+import { getITPsByProject } from '../../lib/supabase/itps'
 import { createLotAction } from '../../actions'
 import { toast } from 'sonner'
 import { Button } from '../ui/button'
@@ -33,6 +34,7 @@ interface CreateLotModalProps {
 export default function CreateLotModal({ open, onOpenChange, projectId }: CreateLotModalProps) {
   const [itps, setItps] = useState<{id: string, title: string, description: string}[]>([])
   const [isPending, startTransition] = useTransition()
+  const [isLoadingItps, setIsLoadingItps] = useState(false)
   const supabase = createClient()
 
   const form = useForm<LotFormValues>({
@@ -47,34 +49,45 @@ export default function CreateLotModal({ open, onOpenChange, projectId }: Create
 
   // Fetch ITPs when modal opens
   useEffect(() => {
-    if (open) {
+    if (open && projectId) {
       const fetchItps = async () => {
+        console.log('🔍 CreateLotModal: Fetching ITPs for project:', projectId)
+        setIsLoadingItps(true)
+        
         try {
-          const { data, error } = await supabase
-            .from('itps')
-            .select('id, name, description')
-            .order('name')
+          // Use the proper service function with project filtering
+          const itpData = await getITPsByProject(projectId)
+          console.log('📊 CreateLotModal: Received ITP data:', itpData)
 
-          if (error) {
-            console.error('Error fetching ITPs:', error)
-            toast.error('Failed to load ITP templates')
+          if (!itpData || itpData.length === 0) {
+            console.warn('⚠️ CreateLotModal: No ITPs found for project:', projectId)
+            toast.error('No ITP templates found for this project')
+            setItps([])
             return
           }
 
-          setItps(data?.map(item => ({
+          const formattedItps = itpData.map(item => ({
             id: item.id,
             title: item.name,
-            description: item.description,
-          })) || [])
+            description: item.description || '',
+          }))
+          
+          console.log('✅ CreateLotModal: Formatted ITPs:', formattedItps)
+          setItps(formattedItps)
+          toast.success(`Loaded ${formattedItps.length} ITP templates`)
+          
         } catch (error) {
-          console.error('Error fetching ITPs:', error)
+          console.error('💥 CreateLotModal: Error fetching ITPs:', error)
           toast.error('Failed to load ITP templates')
+          setItps([])
+        } finally {
+          setIsLoadingItps(false)
         }
       }
 
       fetchItps()
     }
-  }, [open, supabase])
+  }, [open, projectId])
 
   const onSubmit = async (values: LotFormValues) => {
     startTransition(async () => {
@@ -140,21 +153,43 @@ export default function CreateLotModal({ open, onOpenChange, projectId }: Create
             <Select
               value={form.watch('itpId')}
               onValueChange={(value: string) => form.setValue('itpId', value)}
-              disabled={isPending}
+              disabled={isPending || isLoadingItps}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select an ITP template" />
+                <SelectValue placeholder={
+                  isLoadingItps
+                    ? "Loading ITP templates..."
+                    : itps.length === 0
+                      ? "No ITP templates available"
+                      : "Select an ITP template"
+                } />
               </SelectTrigger>
               <SelectContent>
-                {itps.map((itp) => (
-                  <SelectItem key={itp.id} value={itp.id}>
-                    {itp.title}
+                {itps.length > 0 ? (
+                  itps.map((itp) => (
+                    <SelectItem key={itp.id} value={itp.id}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{itp.title}</span>
+                        {itp.description && (
+                          <span className="text-sm text-muted-foreground">{itp.description}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-itps" disabled>
+                    {isLoadingItps ? "Loading..." : "No ITP templates found"}
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
             {form.formState.errors.itpId && (
               <p className="text-sm text-destructive">{form.formState.errors.itpId.message}</p>
+            )}
+            {itps.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Found {itps.length} ITP template{itps.length !== 1 ? 's' : ''} for this project
+              </p>
             )}
           </div>
 

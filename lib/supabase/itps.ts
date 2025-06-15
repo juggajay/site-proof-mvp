@@ -10,6 +10,7 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
   try {
     console.log('🔗 Supabase client:', supabase)
     
+    // First try to get project-specific ITPs
     const { data, error } = await supabase
       .from('itps')
       .select(`
@@ -20,11 +21,41 @@ export async function getITPsByProject(projectId: string): Promise<ITP[]> {
       .eq('is_active', true)
       .order('name');
       
-    console.log('📊 Query result - data:', data)
-    console.log('❌ Query result - error:', error)
+    console.log('📊 Project-specific query result - data:', data)
+    console.log('❌ Project-specific query result - error:', error)
     
     if (error) throw error;
-    return data || [];
+    
+    // If we found project-specific ITPs, return them
+    if (data && data.length > 0) {
+      console.log('✅ Found', data.length, 'project-specific ITPs')
+      return data;
+    }
+    
+    // If no project-specific ITPs found, try to get any active ITPs as fallback
+    console.log('⚠️ No project-specific ITPs found, trying fallback query...')
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('itps')
+      .select(`
+        *,
+        itp_items(*)
+      `)
+      .eq('is_active', true)
+      .order('name')
+      .limit(10); // Limit to prevent too many results
+      
+    console.log('📊 Fallback query result - data:', fallbackData)
+    console.log('❌ Fallback query result - error:', fallbackError)
+    
+    if (fallbackError) throw fallbackError;
+    
+    if (fallbackData && fallbackData.length > 0) {
+      console.log('✅ Found', fallbackData.length, 'fallback ITPs')
+      return fallbackData;
+    }
+    
+    console.log('⚠️ No ITPs found at all')
+    return [];
   } catch (error) {
     console.error('💥 getITPsByProject error:', error)
     return []
