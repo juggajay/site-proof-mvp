@@ -1,250 +1,128 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '../../../../../../../lib/supabase/client'
-import { itpService } from '../../../../../../../lib/services/itp-service'
-import { AssignITPButton } from '../../../../../../../components/assign-itp-button'
-import { assignITPToLot } from '../../../../../../actions/assign-itp'
-import { FileText, AlertCircle } from 'lucide-react'
-import { Button } from '../../../../../../../components/ui/button'
-import type { CreateITPAssignment, Lot, ITP, TeamMember, ITPAssignment } from '../../../../../../../types'
-// PHASE 2: Add ITP imports to QA component
-import ITPSelectionModal from '../../../../../../../components/itps/ITPSelectionModal'
-import { getITPsByProject } from '../../../../../../../lib/supabase/itps'
-import type { ITP as EnhancedITP } from '../../../../../../../types/database'
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import ITPSelectionModal from '@/components/itps/ITPSelectionModal'
 
 interface QAInspectionProps {
   dailyReportId: string
   lotId: string
 }
 
-export default function QAInspection({ dailyReportId, lotId }: QAInspectionProps): JSX.Element {
-  const [lot, setLot] = useState<Lot | null>(null)
-  const [availableITPs, setAvailableITPs] = useState<ITP[]>([])
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
-  const [currentAssignment, setCurrentAssignment] = useState<ITPAssignment | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
-  // PHASE 3: Add ITP state management
+export function QAInspection({ dailyReportId, lotId }: QAInspectionProps) {
   const [showITPModal, setShowITPModal] = useState(false)
-  const [enhancedITPs, setEnhancedITPs] = useState<EnhancedITP[]>([])
-  const [isLoadingITPs, setIsLoadingITPs] = useState(false)
+  const [selectedITP, setSelectedITP] = useState<any>(null)
 
-  const supabase = createClient()
-
-  const loadData = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    
-    try {
-      // Load lot data
-      const { data: lotData, error: lotError } = await supabase
-        .from('lots')
-        .select('*')
-        .eq('id', lotId)
-        .single()
-
-      let organizationId = 'demo-org'
-      let projectId = 'demo-project'
-      
-      if (lotError) {
-        console.warn('Using mock lot data:', lotError.message)
-        // Create mock lot data for demonstration
-        const mockLot: Lot = {
-          id: lotId,
-          name: 'Demo Lot A1',
-          description: 'Highway construction lot A1',
-          location: 'Highway Section 1',
-          priority: 'medium',
-          project_id: 'demo-project',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        setLot(mockLot)
-      } else if (lotData) {
-        setLot(lotData)
-        organizationId = lotData.project_id
-        projectId = lotData.project_id
-      }
-
-      // Use ITP service to load data with fallbacks
-      const [itps, members, assignment] = await Promise.all([
-        itpService.getAvailableITPs(organizationId),
-        itpService.getTeamMembers(organizationId),
-        itpService.getCurrentAssignment(lotId)
-      ])
-
-      setAvailableITPs(itps)
-      setTeamMembers(members)
-      setCurrentAssignment(assignment)
-      
-      // Load enhanced ITPs for our modal
-      try {
-        const enhancedITPsData = await getITPsByProject(projectId)
-        setEnhancedITPs(enhancedITPsData)
-      } catch (enhancedError) {
-        console.warn('Could not load enhanced ITPs, using fallback:', enhancedError)
-        setEnhancedITPs([])
-      }
-    } catch (error) {
-      console.error('Error loading QA inspection data:', error)
-      setError('Failed to load inspection data. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [lotId, supabase])
-
-  useEffect(() => {
-    if (dailyReportId && lotId) {
-      loadData()
-    }
-  }, [dailyReportId, lotId, loadData])
-
-  const handleAssignment = async (assignmentData: CreateITPAssignment) => {
-    try {
-      console.log('📝 Form data being submitted:', assignmentData)
-      
-      // Add default UUIDs if missing
-      const completeAssignment = {
-        ...assignmentData,
-        lot_id: lot?.id || '550e8400-e29b-41d4-a716-446655440002',
-        project_id: lot?.project_id || '550e8400-e29b-41d4-a716-446655440001',
-        organization_id: '550e8400-e29b-41d4-a716-446655440000'
-      }
-      
-      console.log('📤 Complete assignment data:', completeAssignment)
-      
-      const result = await assignITPToLot(completeAssignment)
-      
-      if (!result.success) {
-        throw new Error(result.error)
-      }
-      
-      console.log('🎉 Assignment completed successfully!')
-      await loadData()
-    } catch (error) {
-      console.error('💥 Assignment failed:', error)
-      throw error
-    }
+  // Mock lot data for debugging - in real app this would come from props
+  const lot = {
+    id: lotId,
+    lot_number: 'LOT-001',
+    name: 'Demo Lot',
+    itp_id: null // No ITP assigned initially
   }
 
-  const handleITPSelection = async (selectedITPId: string) => {
-    try {
-      console.log('🎯 Selected ITP ID:', selectedITPId)
-      // For now, just log the selection - you can enhance this to create actual assignment
-      setShowITPModal(false)
-      // TODO: Implement actual ITP assignment logic here
-    } catch (error) {
-      console.error('Error handling ITP selection:', error)
-    }
-  }
+  const projectId = 'demo-project' // This would come from props in real app
 
-  if (isLoading) {
-    return <div className="text-center py-12">Loading...</div>
-  }
+  console.log('QA Component - Lot data:', lot) // Debug log
 
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">
-          <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-          <p>{error}</p>
-        </div>
-        <Button variant="outline" onClick={loadData}>
-          Retry
-        </Button>
-      </div>
-    )
-  }
-
-  if (!lot) {
-    return <div className="text-center py-12">Lot not found</div>
-  }
-
-  if (currentAssignment) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <FileText className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-green-800">Active ITP Assignment</h3>
-              <p className="text-green-600">Status: {currentAssignment.status}</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-gray-700">ITP ID:</span>
-              <span className="ml-2 text-gray-600">{currentAssignment.itp_id}</span>
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Assigned To:</span>
-              <span className="ml-2 text-gray-600">{currentAssignment.assigned_to}</span>
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Priority:</span>
-              <span className="ml-2 text-gray-600">{currentAssignment.priority}</span>
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Scheduled:</span>
-              <span className="ml-2 text-gray-600">
-                {currentAssignment.scheduled_date ? new Date(currentAssignment.scheduled_date).toLocaleDateString() : 'Not scheduled'}
-              </span>
-            </div>
-          </div>
-          
-          {currentAssignment.notes && (
-            <div className="mt-4 pt-4 border-t border-green-200">
-              <span className="font-medium text-gray-700">Notes:</span>
-              <p className="mt-1 text-gray-600">{currentAssignment.notes}</p>
-            </div>
-          )}
-        </div>
-        
-        <div className="text-center py-6 border-t">
-          <h4 className="text-lg font-medium mb-4">Assign Additional ITP</h4>
-          <button
-            onClick={() => setShowITPModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            Assign Additional ITP
-          </button>
-        </div>
-      </div>
-    )
+  const handleSelectITP = (itpId: string) => {
+    console.log('Selected ITP ID:', itpId) // Debug log
+    setSelectedITP({ id: itpId, name: 'Selected ITP' })
+    setShowITPModal(false)
+    // TODO: Save ITP assignment to lot
   }
 
   return (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 mx-auto mb-4 text-muted-foreground">
-        <FileText className="w-full h-full" />
-      </div>
-      <h3 className="text-xl font-semibold mb-2">No ITP Assigned</h3>
-      <p className="text-muted-foreground mb-6">
-        No Inspection & Test Plan has been assigned to this lot yet.
-      </p>
-      
-      <button
-        onClick={() => setShowITPModal(true)}
-        className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors"
-      >
-        Select ITP
-      </button>
-      
-      {/* PHASE 5: Add ITP Selection Modal */}
+    <div className="space-y-6 p-6">
+      {/* Debug Info */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardHeader>
+          <CardTitle className="text-blue-900">Debug Info</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm">
+            <p><strong>Lot ID:</strong> {lot?.id || 'Not available'}</p>
+            <p><strong>Lot Number:</strong> {lot?.lot_number || 'Not available'}</p>
+            <p><strong>Current ITP ID:</strong> {lot?.itp_id || 'None assigned'}</p>
+            <p><strong>Project ID:</strong> {projectId}</p>
+            <p><strong>Selected ITP:</strong> {selectedITP?.name || 'None'}</p>
+            <p><strong>Daily Report ID:</strong> {dailyReportId}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* QA Inspection Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle>QA Inspection Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {lot?.itp_id || selectedITP ? (
+            // ITP is assigned
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h3 className="font-medium text-green-900 mb-2">✅ ITP Assigned</h3>
+                <div className="text-green-700 text-sm space-y-1">
+                  <p><strong>ITP:</strong> {selectedITP?.name || 'Assigned (ID: ' + lot?.itp_id + ')'}</p>
+                  {selectedITP && (
+                    <>
+                      <p><strong>Category:</strong> {selectedITP.category}</p>
+                      <p><strong>Complexity:</strong> {selectedITP.complexity}</p>
+                      <p><strong>Duration:</strong> {selectedITP.estimated_duration}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">Next Steps:</h4>
+                <p className="text-gray-700 text-sm mb-3">ITP is assigned. Ready to proceed with quality inspection.</p>
+                <Button variant="outline" disabled>
+                  Start Inspection (Coming Soon)
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // No ITP assigned
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <h3 className="font-medium text-amber-900 mb-2">⚠️ ITP Required</h3>
+                <p className="text-amber-700 text-sm mb-3">
+                  An Inspection & Test Plan must be selected before quality inspection can begin.
+                </p>
+                <Button 
+                  onClick={() => setShowITPModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Select ITP
+                </Button>
+              </div>
+              
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-2">About ITPs:</h4>
+                <p className="text-gray-600 text-sm">
+                  Inspection & Test Plans define the quality assurance procedures for construction activities. 
+                  Select the appropriate ITP based on the type of work being performed.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ITP Selection Modal */}
       {showITPModal && (
         <ITPSelectionModal
           isOpen={showITPModal}
           onClose={() => setShowITPModal(false)}
-          onSelectITP={handleITPSelection}
-          projectId={lot?.project_id || 'demo-project'}
+          onSelectITP={handleSelectITP}
+          projectId={projectId}
           lotName={lot?.name || 'Demo Lot'}
         />
       )}
     </div>
   )
 }
+
+export default QAInspection
