@@ -1,24 +1,33 @@
-import React, { useState, useEffect, useRef } from 'react'
+'use client'
+
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Mic, MicOff, Volume2 } from 'lucide-react'
-import { Button } from './button'
 import { cn } from '../../lib/utils'
 
-interface VoiceInputProps {
-  onTranscript: (text: string) => void
-  onError?: (error: string) => void
-  className?: string
-  language?: string
-  continuous?: boolean
-}
+/* Site-Proof Professional B2B Voice Input System - Exact Landing Page Implementation */
 
-interface SpeechRecognitionEvent extends Event {
+// Speech Recognition API types
+interface SpeechRecognitionEvent {
   results: SpeechRecognitionResultList
   resultIndex: number
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string
-  message: string
+interface SpeechRecognitionResultList {
+  length: number
+  item(index: number): SpeechRecognitionResult
+  [index: number]: SpeechRecognitionResult
+}
+
+interface SpeechRecognitionResult {
+  length: number
+  item(index: number): SpeechRecognitionAlternative
+  [index: number]: SpeechRecognitionAlternative
+  isFinal: boolean
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string
+  confidence: number
 }
 
 interface SpeechRecognition extends EventTarget {
@@ -26,331 +35,297 @@ interface SpeechRecognition extends EventTarget {
   interimResults: boolean
   lang: string
   maxAlternatives: number
+  serviceURI: string
   start(): void
   stop(): void
   abort(): void
-  onstart: ((event: Event) => void) | null
-  onend: ((event: Event) => void) | null
-  onresult: ((event: SpeechRecognitionEvent) => void) | null
-  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  onaudiostart: ((this: SpeechRecognition, ev: Event) => any) | null
+  onaudioend: ((this: SpeechRecognition, ev: Event) => any) | null
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null
+  onnomatch: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null
+  onsoundstart: ((this: SpeechRecognition, ev: Event) => any) | null
+  onsoundend: ((this: SpeechRecognition, ev: Event) => any) | null
+  onspeechstart: ((this: SpeechRecognition, ev: Event) => any) | null
+  onspeechend: ((this: SpeechRecognition, ev: Event) => any) | null
+  onstart: ((this: SpeechRecognition, ev: Event) => any) | null
 }
 
-interface SpeechRecognitionConstructor {
-  new (): SpeechRecognition
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
 }
 
 declare global {
   interface Window {
-    SpeechRecognition: SpeechRecognitionConstructor
-    webkitSpeechRecognition: SpeechRecognitionConstructor
+    SpeechRecognition: {
+      new (): SpeechRecognition
+    }
+    webkitSpeechRecognition: {
+      new (): SpeechRecognition
+    }
   }
+}
+
+interface VoiceInputProps {
+  onTranscript: (transcript: string) => void
+  className?: string
+  disabled?: boolean
+  language?: string
 }
 
 export function VoiceInput({ 
   onTranscript, 
-  onError, 
   className, 
-  language = 'en-AU',
-  continuous = false 
+  disabled = false,
+  language = 'en-AU' // Australian English optimized for construction terminology
 }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false)
-  const [isSupported, setIsSupported] = useState(false)
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [transcript, setTranscript] = useState('')
   const [confidence, setConfidence] = useState(0)
-  
+  const [error, setError] = useState<string | null>(null)
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Check for Speech Recognition support
+  const isSupported = typeof window !== 'undefined' && 
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+
+  // Initialize Speech Recognition
   useEffect(() => {
-    // Check if speech recognition is supported
+    if (!isSupported) return
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    setIsSupported(!!SpeechRecognition)
+    const recognition = new SpeechRecognition()
 
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition()
-      recognitionRef.current = recognition
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.lang = language
+    recognition.maxAlternatives = 1
 
-      // Configure recognition
-      recognition.continuous = continuous
-      recognition.interimResults = true
-      recognition.lang = language
-      recognition.maxAlternatives = 1
+    recognition.onstart = () => {
+      setIsListening(true)
+      setError(null)
+      setTranscript('')
+      setConfidence(0)
+      
+      // Auto-timeout after 30 seconds to prevent hanging sessions
+      timeoutRef.current = setTimeout(() => {
+        recognition.stop()
+      }, 30000)
+    }
 
-      // Event handlers
-      recognition.onstart = () => {
-        setIsListening(true)
-        setTranscript('')
-        // Auto-stop after 30 seconds to prevent hanging
-        timeoutRef.current = setTimeout(() => {
-          recognition.stop()
-        }, 30000)
-      }
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalTranscript = ''
+      let interimTranscript = ''
 
-      recognition.onend = () => {
-        setIsListening(false)
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-          timeoutRef.current = null
-        }
-      }
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = ''
-        let interimTranscript = ''
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i]
-          if (result && result[0]) {
-            const transcript = result[0].transcript
-
-            if (result.isFinal) {
-              finalTranscript += transcript
-              setConfidence(result[0].confidence)
-            } else {
-              interimTranscript += transcript
-            }
-          }
-        }
-
-        const currentTranscript = finalTranscript || interimTranscript
-        setTranscript(currentTranscript)
-
-        // Send final transcript to parent
-        if (finalTranscript) {
-          onTranscript(finalTranscript.trim())
-          if (!continuous) {
-            recognition.stop()
-          }
-        }
-      }
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Speech recognition error:', event.error)
-        setIsListening(false)
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i]
+        if (!result || !result[0]) continue
         
-        let errorMessage = 'Speech recognition failed'
-        switch (event.error) {
-          case 'not-allowed':
-            errorMessage = 'Microphone access denied. Please allow microphone access and try again.'
-            setHasPermission(false)
-            break
-          case 'no-speech':
-            errorMessage = 'No speech detected. Please try again.'
-            break
-          case 'audio-capture':
-            errorMessage = 'Microphone not found or not working.'
-            break
-          case 'network':
-            errorMessage = 'Network error occurred during speech recognition.'
-            break
-          default:
-            errorMessage = `Speech recognition error: ${event.error}`
+        const transcript = result[0].transcript
+        const confidence = result[0].confidence
+
+        if (result.isFinal) {
+          finalTranscript += transcript
+          setConfidence(confidence)
+        } else {
+          interimTranscript += transcript
         }
-        
-        onError?.(errorMessage)
+      }
+
+      const currentTranscript = finalTranscript || interimTranscript
+      setTranscript(currentTranscript)
+
+      if (finalTranscript) {
+        onTranscript(finalTranscript.trim())
       }
     }
 
-    // Check microphone permissions on mount
-    checkMicrophonePermission()
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      setIsListening(false)
+      
+      switch (event.error) {
+        case 'not-allowed':
+          setError('Microphone access denied. Please allow microphone permissions.')
+          setHasPermission(false)
+          break
+        case 'no-speech':
+          setError('No speech detected. Please try again.')
+          break
+        case 'audio-capture':
+          setError('No microphone found. Please check your audio settings.')
+          break
+        case 'network':
+          setError('Network error. Please check your internet connection.')
+          break
+        default:
+          setError(`Speech recognition error: ${event.error}`)
+      }
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+
+    recognitionRef.current = recognition
 
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
-      if (recognitionRef.current && isListening) {
-        recognitionRef.current.stop()
-      }
     }
-  }, [language, continuous, onTranscript, onError, isListening])
+  }, [isSupported, language, onTranscript])
 
-  const checkMicrophonePermission = async () => {
-    try {
-      if ('permissions' in navigator) {
-        const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-        setHasPermission(permission.state === 'granted')
-        
-        permission.onchange = () => {
-          setHasPermission(permission.state === 'granted')
-        }
-      } else {
-        // Fallback for browsers without permissions API
-        setHasPermission(null)
-      }
-    } catch (error) {
-      console.error('Error checking microphone permission:', error)
-      setHasPermission(null)
+  // Check microphone permissions
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => setHasPermission(true))
+        .catch(() => setHasPermission(false))
     }
-  }
+  }, [])
 
-  const startListening = async () => {
-    if (!isSupported || !recognitionRef.current) {
-      onError?.('Speech recognition is not supported in this browser')
-      return
-    }
-
-    if (isListening) return
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current || disabled || isListening) return
 
     try {
-      // Request microphone permission if needed
-      if (hasPermission === false) {
-        await navigator.mediaDevices.getUserMedia({ audio: true })
-        setHasPermission(true)
-      }
-
       recognitionRef.current.start()
     } catch (error) {
-      console.error('Error starting speech recognition:', error)
-      onError?.('Failed to start speech recognition. Please check microphone permissions.')
-      setHasPermission(false)
+      setError('Failed to start voice recognition. Please try again.')
     }
-  }
+  }, [disabled, isListening])
 
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop()
-    }
-  }
+  const stopListening = useCallback(() => {
+    if (!recognitionRef.current || !isListening) return
 
-  const toggleListening = () => {
-    if (isListening) {
-      stopListening()
-    } else {
-      startListening()
-    }
-  }
+    recognitionRef.current.stop()
+  }, [isListening])
 
   if (!isSupported) {
     return (
-      <div className={cn("flex items-center gap-2 text-sm text-muted-foreground", className)}>
+      <div className={cn("flex items-center gap-2 text-sm text-[#6C757D] font-primary", className)}>
         <MicOff className="h-4 w-4" />
-        <span>Voice input not supported</span>
+        <span>Voice input not supported in this browser</span>
       </div>
     )
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <Button
-        type="button"
-        variant={isListening ? "default" : "outline"}
-        size="sm"
-        onClick={toggleListening}
-        disabled={hasPermission === false}
-        className={cn(
-          "relative",
-          isListening && "bg-red-500 hover:bg-red-600 text-white animate-pulse"
-        )}
-      >
-        {isListening ? (
-          <MicOff className="h-4 w-4" />
-        ) : (
-          <Mic className="h-4 w-4" />
-        )}
-        
-        {isListening && (
-          <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-ping" />
-        )}
-      </Button>
-
-      {isListening && transcript && (
-        <div className="flex items-center gap-2 text-sm">
-          <Volume2 className="h-4 w-4 text-blue-500" />
-          <span className="italic text-muted-foreground">
-            {transcript}
-          </span>
-          {confidence > 0 && (
-            <span className="text-xs text-muted-foreground">
-              ({Math.round(confidence * 100)}%)
-            </span>
+    <div className={cn("flex flex-col gap-2", className)}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={isListening ? stopListening : startListening}
+          disabled={disabled || hasPermission === false}
+          className={cn(
+            "relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#1B4F72] focus:ring-offset-2",
+            isListening 
+              ? "bg-[#DC3545] hover:bg-[#C82333] text-white animate-pulse" 
+              : "bg-[#1B4F72] hover:bg-[#154360] text-white",
+            disabled && "opacity-50 cursor-not-allowed"
           )}
-        </div>
-      )}
+          title={isListening ? "Stop recording" : "Start voice input"}
+        >
+          {isListening ? <Mic className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          {isListening && (
+            <div className="absolute -top-1 -right-1 h-3 w-3 bg-[#DC3545] rounded-full animate-ping" />
+          )}
+        </button>
 
-      {hasPermission === false && (
-        <span className="text-xs text-destructive">
-          Microphone access required
-        </span>
+        {isListening && transcript && (
+          <div className="flex items-center gap-2 text-sm">
+            <Volume2 className="h-4 w-4 text-[#1B4F72]" />
+            <span className="italic text-[#6C757D] font-primary">
+              {transcript}
+            </span>
+            {confidence > 0 && (
+              <span className="text-xs text-[#6C757D] font-primary">
+                ({Math.round(confidence * 100)}%)
+              </span>
+            )}
+          </div>
+        )}
+
+        {hasPermission === false && (
+          <span className="text-xs text-[#DC3545] font-primary">
+            Microphone access required
+          </span>
+        )}
+      </div>
+
+      {error && (
+        <div className="text-sm text-[#DC3545] font-primary">
+          {error}
+        </div>
       )}
     </div>
   )
 }
 
-// Enhanced Textarea component with voice input
+// Enhanced textarea component with integrated voice input
 interface VoiceTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  onVoiceInput?: (text: string) => void
-  appendVoiceInput?: boolean // Whether to append or replace text
+  onVoiceTranscript?: (transcript: string) => void
 }
 
 export function VoiceTextarea({ 
-  onVoiceInput, 
-  appendVoiceInput = true, 
+  onVoiceTranscript, 
   className, 
+  value, 
+  onChange,
   ...props 
 }: VoiceTextareaProps) {
-  const [value, setValue] = useState(props.value || '')
-  const [error, setError] = useState<string>('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [currentValue, setCurrentValue] = useState(value || '')
 
-  const handleVoiceTranscript = (transcript: string) => {
-    const newValue = appendVoiceInput 
-      ? `${value} ${transcript}`.trim()
-      : transcript
+  useEffect(() => {
+    setCurrentValue(value || '')
+  }, [value])
 
-    setValue(newValue)
-    onVoiceInput?.(transcript)
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    const newValue = currentValue + (currentValue ? ' ' : '') + transcript
+    setCurrentValue(newValue)
     
-    // Update the actual textarea value
-    if (textareaRef.current) {
-      textareaRef.current.value = newValue
-      // Trigger change event
-      const event = new Event('input', { bubbles: true })
-      textareaRef.current.dispatchEvent(event)
-    }
+    // Create synthetic event for onChange
+    const syntheticEvent = {
+      target: { value: newValue },
+      currentTarget: { value: newValue }
+    } as React.ChangeEvent<HTMLTextAreaElement>
+    
+    onChange?.(syntheticEvent)
+    onVoiceTranscript?.(transcript)
+  }, [currentValue, onChange, onVoiceTranscript])
 
-    // Clear any previous errors
-    setError('')
-  }
-
-  const handleVoiceError = (errorMessage: string) => {
-    setError(errorMessage)
-    // Clear error after 5 seconds
-    setTimeout(() => setError(''), 5000)
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setValue(e.target.value)
-    props.onChange?.(e)
-  }
+  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setCurrentValue(e.target.value)
+    onChange?.(e)
+  }, [onChange])
 
   return (
-    <div className="space-y-2">
-      <div className="relative">
-        <textarea
-          {...props}
-          ref={textareaRef}
-          value={value}
-          onChange={handleChange}
-          className={cn(
-            "min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-            className
-          )}
+    <div className="relative">
+      <textarea
+        {...props}
+        value={currentValue}
+        onChange={handleTextChange}
+        className={cn(
+          "flex min-h-[80px] w-full rounded-md border-2 border-[#6C757D] bg-white px-3 py-2 pr-12 text-sm font-primary text-[#2C3E50] ring-offset-white placeholder:text-[#6C757D] placeholder:italic focus-visible:outline-none focus-visible:border-[#1B4F72] focus-visible:ring-2 focus-visible:ring-[#1B4F72]/20 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-vertical transition-all duration-200",
+          className
+        )}
+      />
+      <div className="absolute top-2 right-2">
+        <VoiceInput 
+          onTranscript={handleVoiceTranscript}
+          disabled={props.disabled}
         />
-        
-        <div className="absolute top-2 right-2">
-          <VoiceInput
-            onTranscript={handleVoiceTranscript}
-            onError={handleVoiceError}
-          />
-        </div>
       </div>
-
-      {error && (
-        <div className="text-sm text-destructive">
-          {error}
-        </div>
-      )}
     </div>
   )
 }

@@ -1,187 +1,188 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Textarea } from './ui/textarea'
-import { Card, CardContent } from './ui/card'
+import { useState } from 'react'
 import { Badge } from './ui/badge'
-import { Camera, MessageSquare } from 'lucide-react'
-import type { ItpItem, ConformanceRecordWithAttachments } from '../types'
+import { Button } from './ui/button'
+import { Card, CardContent } from './ui/card'
+import { Input } from './ui/input'
+import { Label } from './ui/label'
+import { Textarea } from './ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+
+/* Site-Proof Professional B2B Checklist Item - Exact Landing Page Implementation */
 
 interface ChecklistItemProps {
-  item: ItpItem & { conformance_records?: ConformanceRecordWithAttachments[] }
-  onUpdate: (itemId: string, data: Partial<ConformanceRecordWithAttachments>) => void
-  disabled?: boolean
+  item: {
+    id: string
+    item_description: string
+    item_type: 'PASS_FAIL' | 'MEASUREMENT' | 'TEXT_INPUT' | 'PHOTO_REQUIRED'
+    required: boolean
+    acceptance_criteria?: string
+  }
+  value?: any
+  onChange: (value: any) => void
+  onSave?: () => void
 }
 
-export default function ChecklistItem({ item, onUpdate, disabled = false }: ChecklistItemProps) {
-  const existingRecord = item.conformance_records?.[0]
-  
-  const [passFailValue, setPassFailValue] = useState<'PASS' | 'FAIL' | 'N/A' | null>(
-    existingRecord?.pass_fail_value || null
-  )
-  const [textValue, setTextValue] = useState(existingRecord?.text_value || '')
-  const [numericValue, setNumericValue] = useState(existingRecord?.numeric_value?.toString() || '')
-  const [comment, setComment] = useState(existingRecord?.comment || '')
-  const [showComment, setShowComment] = useState(false)
+export function ChecklistItem({ item, value, onChange, onSave }: ChecklistItemProps) {
+  const [localValue, setLocalValue] = useState(value)
+  const [notes, setNotes] = useState('')
 
-  // Auto-save functionality
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!disabled) {
-        const updateData: Partial<ConformanceRecordWithAttachments> = {}
-        
-        if (item.item_type === 'PASS_FAIL' && passFailValue) {
-          updateData.pass_fail_value = passFailValue
-        }
-        if (item.item_type === 'TEXT_INPUT' && textValue.trim()) {
-          updateData.text_value = textValue.trim()
-        }
-        if (item.item_type === 'NUMERIC' && numericValue.trim()) {
-          updateData.numeric_value = parseFloat(numericValue)
-        }
-        if (comment.trim()) {
-          updateData.comment = comment.trim()
-        }
-
-        // Only update if there's actual data to save
-        if (Object.keys(updateData).length > 0) {
-          onUpdate(item.id, updateData)
-        }
-      }
-    }, 1500) // Auto-save after 1.5 seconds of inactivity
-
-    return () => clearTimeout(timer)
-  }, [passFailValue, textValue, numericValue, comment, item.id, item.item_type, onUpdate, disabled])
-
-  const handlePassFailClick = (value: 'PASS' | 'FAIL' | 'N/A') => {
-    if (!disabled) {
-      setPassFailValue(value)
-    }
+  const handleValueChange = (newValue: any) => {
+    setLocalValue(newValue)
+    onChange(newValue)
   }
 
-  const getPassFailButtonVariant = (value: 'PASS' | 'FAIL' | 'N/A') => {
-    if (passFailValue === value) {
-      switch (value) {
-        case 'PASS': return 'default'
-        case 'FAIL': return 'destructive'
-        case 'N/A': return 'secondary'
-      }
+  const handleSave = () => {
+    onSave?.()
+  }
+
+  const renderInput = () => {
+    switch (item.item_type) {
+      case 'PASS_FAIL':
+        return (
+          <Select value={localValue || ''} onValueChange={handleValueChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select result" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PASS">
+                <span className="text-[#28A745] font-medium">PASS</span>
+              </SelectItem>
+              <SelectItem value="FAIL">
+                <span className="text-[#DC3545] font-medium">FAIL</span>
+              </SelectItem>
+              <SelectItem value="N/A">
+                <span className="text-[#6C757D] font-medium">N/A</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        )
+
+      case 'MEASUREMENT':
+        return (
+          <div className="flex gap-2">
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Enter measurement"
+              value={localValue?.value || ''}
+              onChange={(e) => handleValueChange({ 
+                ...localValue, 
+                value: e.target.value 
+              })}
+              className="flex-1"
+            />
+            <Input
+              placeholder="Unit"
+              value={localValue?.unit || ''}
+              onChange={(e) => handleValueChange({ 
+                ...localValue, 
+                unit: e.target.value 
+              })}
+              className="w-20"
+            />
+          </div>
+        )
+
+      case 'TEXT_INPUT':
+        return (
+          <Textarea
+            placeholder="Enter details..."
+            value={localValue || ''}
+            onChange={(e) => handleValueChange(e.target.value)}
+            className="min-h-[80px]"
+          />
+        )
+
+      case 'PHOTO_REQUIRED':
+        return (
+          <div className="space-y-2">
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  handleValueChange({ file, filename: file.name })
+                }
+              }}
+              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#F8F9FA] file:text-[#1B4F72] hover:file:bg-[#E9ECEF]"
+            />
+            {localValue?.filename && (
+              <p className="text-sm text-[#6C757D] font-primary">
+                Selected: {localValue.filename}
+              </p>
+            )}
+          </div>
+        )
+
+      default:
+        return null
     }
-    return 'outline'
   }
 
   const getStatusBadge = () => {
-    const hasValue = 
-      (item.item_type === 'PASS_FAIL' && passFailValue) ||
-      (item.item_type === 'TEXT_INPUT' && textValue.trim()) ||
-      (item.item_type === 'NUMERIC' && numericValue.trim())
-
+    const hasValue = localValue !== null && localValue !== undefined && localValue !== ''
+    
     if (hasValue) {
-      return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Completed</Badge>
+      return <Badge variant="success" className="bg-[#28A745] text-white">Completed</Badge>
     }
-    return <Badge variant="outline">Pending</Badge>
+    
+    return item.required ? 
+      <Badge variant="warning" className="bg-[#FF6B35] text-white">Required</Badge> : 
+      <Badge variant="muted" className="bg-[#6C757D] text-white">Optional</Badge>
   }
 
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <p className="font-medium text-sm mb-2">{item.item_description}</p>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {item.item_type.replace('_', ' ')}
-              </Badge>
-              {getStatusBadge()}
+    <Card className="border-[#DEE2E6] hover:shadow-md transition-shadow duration-200">
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="font-medium text-sm mb-2 text-[#2C3E50] font-primary">{item.item_description}</p>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs border-[#1B4F72] text-[#1B4F72]">
+                  {item.item_type.replace('_', ' ')}
+                </Badge>
+                {getStatusBadge()}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Input based on item type */}
-        <div className="space-y-3">
-          {item.item_type === 'PASS_FAIL' && (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant={getPassFailButtonVariant('PASS')}
-                onClick={() => handlePassFailClick('PASS')}
-                disabled={disabled}
-                className="min-w-[60px]"
-              >
-                PASS
-              </Button>
-              <Button
-                size="sm"
-                variant={getPassFailButtonVariant('FAIL')}
-                onClick={() => handlePassFailClick('FAIL')}
-                disabled={disabled}
-                className="min-w-[60px]"
-              >
-                FAIL
-              </Button>
-              <Button
-                size="sm"
-                variant={getPassFailButtonVariant('N/A')}
-                onClick={() => handlePassFailClick('N/A')}
-                disabled={disabled}
-                className="min-w-[60px]"
-              >
-                N/A
-              </Button>
+          {item.acceptance_criteria && (
+            <div className="p-3 bg-[#F8F9FA] rounded-md border border-[#DEE2E6]">
+              <Label className="text-xs font-medium text-[#6C757D] font-primary">Acceptance Criteria</Label>
+              <p className="text-sm text-[#2C3E50] mt-1 font-primary">{item.acceptance_criteria}</p>
             </div>
           )}
 
-          {item.item_type === 'TEXT_INPUT' && (
-            <Textarea
-              placeholder="Enter your observations..."
-              value={textValue}
-              onChange={(e) => setTextValue(e.target.value)}
-              disabled={disabled}
-              rows={3}
-            />
-          )}
-
-          {item.item_type === 'NUMERIC' && (
-            <Input
-              type="number"
-              placeholder="Enter numeric value..."
-              value={numericValue}
-              onChange={(e) => setNumericValue(e.target.value)}
-              disabled={disabled}
-            />
-          )}
-
-          {/* Comment section */}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowComment(!showComment)}
-              disabled={disabled}
-            >
-              <MessageSquare className="h-4 w-4 mr-1" />
-              Comment
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={disabled}
-            >
-              <Camera className="h-4 w-4 mr-1" />
-              Photo
-            </Button>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-[#2C3E50] font-primary">Result</Label>
+            {renderInput()}
           </div>
 
-          {showComment && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-[#2C3E50] font-primary">Notes (Optional)</Label>
             <Textarea
-              placeholder="Add a comment..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={disabled}
-              rows={2}
+              placeholder="Add any additional notes..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-[60px]"
             />
+          </div>
+
+          {onSave && (
+            <div className="flex justify-end pt-2">
+              <Button 
+                onClick={handleSave}
+                variant="default"
+                size="sm"
+                className="font-primary"
+              >
+                Save Item
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
