@@ -1,5 +1,5 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { ITP, ItpItem } from '@/types/database';
+import type { ITP, ITPItem, ITPWithItems, ITPWithStats } from '@/types/database';
 
 const supabase = createClientComponentClient();
 
@@ -32,7 +32,7 @@ export async function getITPById(itpId: string): Promise<ITP | null> {
   return data;
 }
 
-export async function getITPItemsByITP(itpId: string): Promise<ItpItem[]> {
+export async function getITPItemsByITP(itpId: string): Promise<ITPItem[]> {
   const { data, error } = await supabase
     .from('itp_items')
     .select('*')
@@ -75,7 +75,7 @@ export async function deleteITP(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function createITPItem(item: Omit<ItpItem, 'id' | 'created_at'>): Promise<ItpItem> {
+export async function createITPItem(item: Omit<ITPItem, 'id' | 'created_at'>): Promise<ITPItem> {
   const { data, error } = await supabase
     .from('itp_items')
     .insert([item])
@@ -86,7 +86,7 @@ export async function createITPItem(item: Omit<ItpItem, 'id' | 'created_at'>): P
   return data;
 }
 
-export async function updateITPItem(id: string, updates: Partial<ItpItem>): Promise<ItpItem> {
+export async function updateITPItem(id: string, updates: Partial<ITPItem>): Promise<ITPItem> {
   const { data, error } = await supabase
     .from('itp_items')
     .update(updates)
@@ -105,4 +105,132 @@ export async function deleteITPItem(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+}
+
+// Enhanced functions for real ITP data management
+export async function getITPsWithStats(projectId: string): Promise<ITPWithStats[]> {
+  const { data, error } = await supabase
+    .from('itp_summary')
+    .select('*')
+    .eq('project_id', projectId);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getITPsByCategory(projectId: string, category: string): Promise<ITP[]> {
+  const { data, error } = await supabase
+    .from('itps')
+    .select(`
+      *,
+      itp_items(*)
+    `)
+    .eq('project_id', projectId)
+    .eq('category', category)
+    .eq('is_active', true)
+    .order('name');
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getITPsByComplexity(projectId: string, complexity: 'low' | 'moderate' | 'high'): Promise<ITP[]> {
+  const { data, error } = await supabase
+    .from('itps')
+    .select(`
+      *,
+      itp_items(*)
+    `)
+    .eq('project_id', projectId)
+    .eq('complexity', complexity)
+    .eq('is_active', true)
+    .order('name');
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function assignITPToLot(lotId: string, itpId: string, inspectorId?: string, dueDate?: string): Promise<void> {
+  const updates: any = {
+    itp_id: itpId,
+    inspection_status: 'pending',
+    updated_at: new Date().toISOString()
+  };
+
+  if (inspectorId) {
+    updates.assigned_inspector_id = inspectorId;
+  }
+
+  if (dueDate) {
+    updates.inspection_due_date = dueDate;
+  }
+
+  const { error } = await supabase
+    .from('lots')
+    .update(updates)
+    .eq('id', lotId);
+
+  if (error) throw error;
+}
+
+export async function updateLotInspectionStatus(
+  lotId: string,
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'approved',
+  notes?: string,
+  photos?: string[]
+): Promise<void> {
+  const updates: any = {
+    inspection_status: status,
+    updated_at: new Date().toISOString()
+  };
+
+  if (notes) {
+    updates.inspection_notes = notes;
+  }
+
+  if (photos) {
+    updates.inspection_photos = photos;
+  }
+
+  if (status === 'completed' || status === 'approved') {
+    updates.inspection_completed_date = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from('lots')
+    .update(updates)
+    .eq('id', lotId);
+
+  if (error) throw error;
+}
+
+export async function getLotsWithITPs(projectId: string): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('lots')
+    .select(`
+      *,
+      itp:itps(*),
+      assigned_inspector:profiles(id, name, email)
+    `)
+    .eq('project_id', projectId)
+    .not('itp_id', 'is', null);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function searchITPs(projectId: string, searchTerm: string): Promise<ITP[]> {
+  const { data, error } = await supabase
+    .from('itps')
+    .select(`
+      *,
+      itp_items(*)
+    `)
+    .eq('project_id', projectId)
+    .eq('is_active', true)
+    .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
+    .order('name');
+
+  if (error) throw error;
+  return data || [];
 }

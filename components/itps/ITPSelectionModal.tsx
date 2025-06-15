@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getITPsByProject, getITPItemsByITP } from '@/lib/supabase/itps';
-import type { ITP, ItpItem } from '@/types/database';
+import type { ITP, ITPItem } from '@/types/database';
 
 interface ITPSelectionModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ export default function ITPSelectionModal({
 }: ITPSelectionModalProps) {
   const [itps, setITPs] = useState<ITP[]>([]);
   const [selectedITPId, setSelectedITPId] = useState<string>('');
-  const [previewItems, setPreviewItems] = useState<ItpItem[]>([]);
+  const [previewItems, setPreviewItems] = useState<ITPItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadITPs = useCallback(async () => {
@@ -86,7 +86,19 @@ export default function ITPSelectionModal({
               <SelectContent>
                 {itps.map((itp) => (
                   <SelectItem key={itp.id} value={itp.id}>
-                    {itp.title}
+                    <div className="flex items-center gap-2">
+                      <span>{itp.name}</span>
+                      {itp.category && (
+                        <Badge variant="outline" className="text-xs">
+                          {itp.category}
+                        </Badge>
+                      )}
+                      {itp.complexity && (
+                        <Badge variant="secondary" className="text-xs">
+                          {itp.complexity}
+                        </Badge>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -107,6 +119,19 @@ export default function ITPSelectionModal({
                     <Badge variant="outline">
                       {previewItems.length} inspection items
                     </Badge>
+                    <Badge variant="outline">
+                      {previewItems.filter(item => item.is_mandatory).length} mandatory
+                    </Badge>
+                    {selectedITP.category && (
+                      <Badge variant="secondary">
+                        {selectedITP.category}
+                      </Badge>
+                    )}
+                    {selectedITP.estimated_duration && (
+                      <Badge variant="outline">
+                        Duration: {selectedITP.estimated_duration}
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="grid gap-2 max-h-40 overflow-y-auto">
@@ -116,6 +141,11 @@ export default function ITPSelectionModal({
                           {item.item_number}
                         </span>
                         <span className="flex-1">{item.description}</span>
+                        {item.is_mandatory && (
+                          <Badge variant="destructive" className="text-xs">
+                            Required
+                          </Badge>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -84,6 +84,14 @@ export interface Database {
           location: string | null
           priority: 'low' | 'medium' | 'high'
           project_id: string
+          itp_id: string | null
+          inspection_status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'approved' | null
+          assigned_inspector_id: string | null
+          inspection_due_date: string | null
+          inspection_completed_date: string | null
+          inspection_notes: string | null
+          inspector_signature: string | null
+          inspection_photos: string[] | null
           created_at: string
           updated_at: string
         }
@@ -95,6 +103,14 @@ export interface Database {
           location?: string | null
           priority?: 'low' | 'medium' | 'high'
           project_id: string
+          itp_id?: string | null
+          inspection_status?: 'pending' | 'in_progress' | 'completed' | 'failed' | 'approved' | null
+          assigned_inspector_id?: string | null
+          inspection_due_date?: string | null
+          inspection_completed_date?: string | null
+          inspection_notes?: string | null
+          inspector_signature?: string | null
+          inspection_photos?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -104,42 +120,88 @@ export interface Database {
           description?: string | null
           location?: string | null
           priority?: 'low' | 'medium' | 'high'
+          itp_id?: string | null
+          inspection_status?: 'pending' | 'in_progress' | 'completed' | 'failed' | 'approved' | null
+          assigned_inspector_id?: string | null
+          inspection_due_date?: string | null
+          inspection_completed_date?: string | null
+          inspection_notes?: string | null
+          inspector_signature?: string | null
+          inspection_photos?: string[] | null
           updated_at?: string
         }
       }
       itps: {
         Row: {
           id: string
-          title: string
+          name: string
           description: string | null
-          category: string
-          estimated_duration: string
-          complexity: 'simple' | 'moderate' | 'complex'
+          project_id: string
+          category: string | null
+          estimated_duration: string | null
+          complexity: 'low' | 'moderate' | 'high' | null
           required_certifications: string[] | null
-          organization_id: string
           created_at: string
           updated_at: string
+          is_active: boolean
         }
         Insert: {
           id?: string
-          title: string
+          name: string
           description?: string | null
-          category: string
-          estimated_duration?: string
-          complexity?: 'simple' | 'moderate' | 'complex'
+          project_id: string
+          category?: string | null
+          estimated_duration?: string | null
+          complexity?: 'low' | 'moderate' | 'high' | null
           required_certifications?: string[] | null
-          organization_id: string
           created_at?: string
           updated_at?: string
+          is_active?: boolean
         }
         Update: {
-          title?: string
+          name?: string
           description?: string | null
-          category?: string
-          estimated_duration?: string
-          complexity?: 'simple' | 'moderate' | 'complex'
+          category?: string | null
+          estimated_duration?: string | null
+          complexity?: 'low' | 'moderate' | 'high' | null
           required_certifications?: string[] | null
           updated_at?: string
+          is_active?: boolean
+        }
+      }
+      itp_items: {
+        Row: {
+          id: string
+          itp_id: string
+          item_number: string
+          description: string
+          acceptance_criteria: string
+          inspection_method: string
+          required_documentation: string | null
+          is_mandatory: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          itp_id: string
+          item_number: string
+          description: string
+          acceptance_criteria: string
+          inspection_method: string
+          required_documentation?: string | null
+          is_mandatory?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          item_number?: string
+          description?: string
+          acceptance_criteria?: string
+          inspection_method?: string
+          required_documentation?: string | null
+          is_mandatory?: boolean
+          sort_order?: number
         }
       }
       itp_assignments: {
@@ -295,21 +357,21 @@ export type Profile = Database['public']['Tables']['profiles']['Row']
 export type ComplianceCheckRow = Database['public']['Tables']['compliance_checks']['Row']
 export type ConformanceRecordRow = Database['public']['Tables']['conformance_records']['Row']
 export type ITP = Database['public']['Tables']['itps']['Row']
+export type ITPItem = Database['public']['Tables']['itp_items']['Row']
 export type ITPAssignment = Database['public']['Tables']['itp_assignments']['Row']
 
-export interface ItpItem {
-  id: string
-  itp_id: string
-  item_number: string
-  description: string
-  item_description: string
-  acceptance_criteria: string
-  test_method: string | null
-  frequency: string | null
-  responsibility: string | null
-  item_type: 'PASS_FAIL' | 'TEXT_INPUT' | 'NUMERIC'
-  order: number
-  conformance_records?: ConformanceRecordRow[]
+// Enhanced ITP interfaces for application use
+export interface ITPWithItems extends ITP {
+  itp_items?: ITPItem[]
+  project?: Project
+}
+
+export interface ITPWithStats extends ITP {
+  total_items: number
+  mandatory_items: number
+  assigned_lots: number
+  completed_inspections: number
+  project?: Project
 }
 
 // Extended types for application use
@@ -350,32 +412,8 @@ export interface FullLotData {
   created_at: string
   updated_at: string
   projects: Project
-  itps: {
-    id: string
-    title: string
-    description: string | null
-    category: string
-    estimated_duration: string
-    complexity: 'simple' | 'moderate' | 'complex'
-    required_certifications: string[] | null
-    organization_id: string
-    created_at: string
-    updated_at: string
-    itp_items: Array<{
-      id: string
-      itp_id: string
-      item_number: string
-      description: string
-      item_description: string
-      acceptance_criteria: string
-      test_method: string | null
-      frequency: string | null
-      responsibility: string | null
-      item_type: 'PASS_FAIL' | 'TEXT_INPUT' | 'NUMERIC'
-      order: number
-      conformance_records?: ConformanceRecordRow[]
-    }>
-  }
+  itp?: ITPWithItems
+  assigned_inspector?: Profile
 }
 
 export interface DailyLotReport {
