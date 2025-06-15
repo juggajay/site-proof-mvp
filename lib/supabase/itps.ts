@@ -3,39 +3,77 @@ import type { ITP, ITPItem, ITPWithItems, ITPWithStats } from '@/types/database'
 
 const supabase = createClientComponentClient();
 
+// Add temporary debug function to test what columns actually exist
+export async function testDatabaseColumns() {
+  console.log('🧪 Testing database columns...');
+  
+  const { data: sample, error } = await supabase
+    .from('itps')
+    .select('*')
+    .limit(1);
+    
+  if (sample && sample.length > 0) {
+    console.log('✅ Available columns:', Object.keys(sample[0]));
+  }
+  
+  if (error) {
+    console.error('❌ Database error:', error);
+  }
+  
+  return { sample, error };
+}
+
 export async function getITPsByProject(projectId?: string): Promise<ITP[]> {
-  console.log('🔍 Fetching ITPs from database...')
-  console.log('📋 Project ID:', projectId)
+  console.log('🔍 Fetching ITPs from database...');
+  console.log('📋 Project ID:', projectId);
   
   try {
-    // REMOVE PROJECT FILTER - get all ITPs for now
+    // First test what columns are available
+    await testDatabaseColumns();
+    
+    // Try with all columns but handle errors gracefully
     const { data, error } = await supabase
       .from('itps')
-      .select('id, name, description, created_at, updated_at, is_active, category, complexity, estimated_duration, required_certifications')
-      // .eq('project_id', projectId)  // Comment this out - remove project filter
-      .eq('is_active', true)
+      .select('id, name, description, project_id, category, estimated_duration, complexity, required_certifications, created_at, updated_at, is_active')
       .order('created_at', { ascending: false });
       
-    console.log('📊 Database response:', { data, error })
+    console.log('📊 Database response:', { data, error });
     
     if (error) {
-      console.error('💥 Error fetching ITPs:', error)
-      console.error('💡 Check Supabase environment variables in .env.local')
-      return [];
+      console.error('💥 Error fetching ITPs:', error);
+      console.error('💡 Trying fallback query with basic columns only...');
+      
+      // Fallback query with minimal columns
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('itps')
+        .select('id, name, description, created_at, updated_at')
+        .order('created_at', { ascending: false });
+        
+      if (fallbackError) {
+        console.error('💥 Fallback query also failed:', fallbackError);
+        return [];
+      }
+      
+      // Map fallback data to match ITP interface
+      const mappedData = (fallbackData || []).map(item => ({
+        ...item,
+        project_id: projectId || 'default-project',
+        category: null,
+        estimated_duration: null,
+        complexity: null as any,
+        required_certifications: null,
+        is_active: true
+      }));
+      
+      console.log(`📊 Found ${mappedData.length} ITPs (fallback)`);
+      return mappedData;
     }
     
-    console.log(`✅ Found ${data?.length || 0} ITPs`)
-    
-    // Add project_id field to match expected interface
-    const itpsWithProjectId = (data || []).map(itp => ({
-      ...itp,
-      project_id: projectId || 'default-project'
-    }));
-    
-    return itpsWithProjectId;
+    console.log(`📊 Found ${data?.length || 0} ITPs`);
+    return data || [];
   } catch (error) {
-    console.error('💥 getITPsByProject error:', error)
-    return []
+    console.error('💥 getITPsByProject error:', error);
+    return [];
   }
 }
 
