@@ -9,6 +9,8 @@ import { Calendar, ArrowLeft, FileText, CheckSquare, ClipboardList } from 'lucid
 import { Button } from '../../../../../../components/ui/button'
 import { createClient } from '../../../../../../lib/supabase/client'
 import Link from 'next/link'
+// STEP 3: Add DocketsView import
+import { DocketsView } from '../../../../../../components/dockets/DocketsView'
 
 interface DailyReportPageProps {
   params: {
@@ -222,24 +224,11 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
 
         {activeTab === 'dockets' && (
           <div>
-            {dailyReport ? (
-              /* EXISTING FUNCTIONAL DOCKETS COMPONENT */
-              <DocketsTab
-                lot={lot}
-                dailyReport={dailyReport}
-                onUpdate={() => {
-                  // Refresh data if needed
-                  console.log('Dockets updated')
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1B4F72] mx-auto"></div>
-                  <p className="mt-2 text-sm text-[#6C757D] font-primary">Loading dockets...</p>
-                </div>
-              </div>
-            )}
+            {/* STEP 3: Replace with new DocketsView component */}
+            <DocketsView
+              lotId={params.lotId}
+              projectId={params.projectId}
+            />
           </div>
         )}
 
