@@ -262,19 +262,10 @@ export default function DailyReportPage({ params }: DailyReportPageProps) {
 
               <div className="p-6">
                 {complianceTab === 'qa' && (
-                  dailyReport ? (
-                    <QAInspection
-                      dailyReportId={dailyReport.id}
-                      lotId={params.lotId}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1B4F72] mx-auto"></div>
-                        <p className="mt-2 text-sm text-[#6C757D] font-primary">Loading QA inspection...</p>
-                      </div>
-                    </div>
-                  )
+                  <QAInspection
+                    dailyReportId={dailyReport?.id || 'demo-daily-report'}
+                    lotId={params.lotId}
+                  />
                 )}
 
                 {complianceTab === 'environmental' && (
