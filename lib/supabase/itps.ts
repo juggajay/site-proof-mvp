@@ -95,14 +95,49 @@ export async function getITPById(itpId: string): Promise<ITP | null> {
 }
 
 export async function getITPItemsByITP(itpId: string): Promise<ITPItem[]> {
-  const { data, error } = await supabase
-    .from('itp_items')
-    .select('*')
-    .eq('itp_id', itpId)
-    .order('sort_order');
-
-  if (error) throw error;
-  return data || [];
+  console.log('🔍 Loading ITP items for:', itpId);
+  
+  const mockItems: ITPItem[] = [
+    {
+      id: 'item-1',
+      itp_id: itpId,
+      item_number: '1.1',
+      description: 'Verify foundation depth meets specifications',
+      acceptance_criteria: 'Depth ≥ 1.5m as per drawings',
+      inspection_method: 'Physical measurement',
+      is_mandatory: true,
+      sort_order: 1,
+      required_documentation: 'Survey report, photos',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'item-2',
+      itp_id: itpId,
+      item_number: '1.2',
+      description: 'Check concrete strength test results',
+      acceptance_criteria: 'Minimum 25 MPa compressive strength',
+      inspection_method: 'Laboratory test results',
+      is_mandatory: true,
+      sort_order: 2,
+      required_documentation: 'Lab test certificates',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: 'item-3',
+      itp_id: itpId,
+      item_number: '1.3',
+      description: 'Inspect reinforcement placement',
+      acceptance_criteria: 'As per structural drawings',
+      inspection_method: 'Visual inspection',
+      is_mandatory: false,
+      sort_order: 3,
+      required_documentation: 'Photos, inspection checklist',
+      created_at: new Date().toISOString()
+    }
+  ];
+  
+  console.log('📊 Returning mock ITP items:', mockItems);
+  return mockItems;
 }
 
 export async function createITP(itp: Omit<ITP, 'id' | 'created_at' | 'updated_at'>): Promise<ITP> {
