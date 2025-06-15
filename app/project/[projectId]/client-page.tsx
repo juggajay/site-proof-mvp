@@ -8,49 +8,66 @@ import { Button } from '../../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
 import CreateLotModal from '../../../components/modals/create-lot-modal'
+import { EnhancedProjectHeader } from '../../../components/project/enhanced-project-header'
 
 export function ProjectClientPage({ project, lots }: { project: Project; lots: LotWithItp[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   
+  // Calculate lot statistics
+  const totalLots = lots.length
+  const activeLots = lots.filter(lot => lot.status === 'ACTIVE' || lot.status === 'IN_PROGRESS').length
+  const completedLots = lots.filter(lot => lot.status === 'COMPLETED').length
+  
   return (
-    <div className="container mx-auto">
-      <div className="mb-6">
-        <Link href="/dashboard" className="inline-flex items-center text-sm text-slate-600 hover:text-[#1B4F72] mb-2 transition-colors">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
+    <div className="container mx-auto p-4">
+      {/* Back Navigation */}
+      <div className="mb-4">
+        <Link href="/dashboard" className="inline-flex items-center text-sm text-slate-600 hover:text-[#1B4F72] transition-colors font-primary">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
         </Link>
-        <h1 className="text-3xl font-heading font-bold text-slate-900">{project.name}</h1>
-        <p className="text-slate-600 font-primary">Project #{project.project_number} - {project.location}</p>
       </div>
-      <Card className="border-slate-200 shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100">
+
+      {/* Enhanced Project Header */}
+      <EnhancedProjectHeader
+        projectName={project.name}
+        projectLocation={project.location || 'Sydney'}
+        projectStatus={'ACTIVE'}
+        organizationName="Site-Proof"
+        totalLots={totalLots}
+        activeLots={activeLots}
+        completedLots={completedLots}
+        startDate={project.created_at}
+        endDate={undefined}
+        onNewLot={() => setIsModalOpen(true)}
+      />
+      <Card className="border-[#1B4F72]/20 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-[#1B4F72]/5 to-[#F1C40F]/5 border-b border-[#1B4F72]/10">
           <div>
-            <CardTitle className="text-slate-900 font-heading">Inspection Lots</CardTitle>
-            <CardDescription className="text-slate-600 font-primary">Manage all inspection lots for this project.</CardDescription>
+            <CardTitle className="text-[#1B4F72] font-heading">Inspection Lots</CardTitle>
+            <CardDescription className="text-[#6C757D] font-primary">Manage all inspection lots for this project.</CardDescription>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} className="site-proof-btn-primary">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Lot
-          </Button>
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-4">
             {lots.map((lot) => (
               <Link href={`/project/${project.id}/lot/${lot.id}/daily-report`} key={lot.id} className="block">
-                <div className="border border-slate-200 rounded-lg p-4 flex items-center justify-between hover:bg-gradient-to-r hover:from-slate-50 hover:to-slate-100 transition-all duration-200 hover:shadow-md">
+                <div className="border border-[#1B4F72]/20 rounded-lg p-4 flex items-center justify-between hover:bg-gradient-to-r hover:from-[#1B4F72]/5 hover:to-blue-50/50 transition-all duration-200 hover:shadow-md hover:border-[#1B4F72]/30">
                   <div className="flex items-center gap-4">
-                    <div className="bg-gradient-to-br from-[#1B4F72] to-[#2E86AB] p-2 rounded-lg">
+                    <div className="bg-[#1B4F72] p-3 rounded-lg">
                       <FileText className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 font-heading">{lot.lot_number}</p>
-                      <p className="text-sm text-slate-600 font-primary">{lot.description}</p>
+                      <p className="font-semibold text-[#1B4F72] font-heading">{lot.lot_number}</p>
+                      <p className="text-sm text-[#6C757D] font-primary">{lot.description}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <Badge className={lot.status === 'COMPLETED'
-                      ? 'bg-gradient-to-r from-[#F1C40F] to-[#F39C12] text-slate-900 border-0'
-                      : 'bg-gradient-to-r from-[#1B4F72] to-[#2E86AB] text-white border-0'
+                      ? 'bg-green-100 text-green-800 border-green-200'
+                      : lot.status === 'ACTIVE' || lot.status === 'IN_PROGRESS'
+                      ? 'bg-blue-100 text-blue-800 border-blue-200'
+                      : 'bg-gray-100 text-gray-800 border-gray-200'
                     }>
                       {lot.status.replace('_', ' ')}
                     </Badge>
@@ -59,6 +76,20 @@ export function ProjectClientPage({ project, lots }: { project: Project; lots: L
                 </div>
               </Link>
             ))}
+            
+            {lots.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-[#1B4F72]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-8 w-8 text-[#1B4F72]" />
+                </div>
+                <h3 className="text-lg font-semibold text-[#1B4F72] mb-2 font-heading">No Lots Yet</h3>
+                <p className="text-[#6C757D] mb-4 font-primary">Get started by creating your first inspection lot.</p>
+                <Button onClick={() => setIsModalOpen(true)} className="bg-[#1B4F72] hover:bg-[#1B4F72]/90 text-white">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create First Lot
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
