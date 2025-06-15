@@ -2,6 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // Temporarily disabled middleware to allow testing without valid Supabase credentials
+  // TODO: Re-enable when proper Supabase environment variables are configured
+  
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -11,8 +14,9 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables in middleware')
+  // Skip Supabase auth check if environment variables are not properly configured
+  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('placeholder')) {
+    console.warn('Middleware disabled: Supabase environment variables not configured')
     return response
   }
 
