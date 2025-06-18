@@ -384,7 +384,7 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
   }
 }
 
-export async function assignITPToLotAction(lotId: number, itpTemplateId: number): Promise<APIResponse<Lot>> {
+export async function assignITPToLotAction(lotId: number | string, itpTemplateId: number | string): Promise<APIResponse<Lot>> {
   try {
     await requireAuth()
     
@@ -501,8 +501,8 @@ export async function createITPTemplateAction(data: CreateITPTemplateRequest): P
 // ==================== CONFORMANCE RECORD ACTIONS ====================
 
 export async function saveConformanceRecordAction(
-  lotId: number, 
-  itpItemId: number, 
+  lotId: number | string, 
+  itpItemId: number | string, 
   data: UpdateConformanceRequest
 ): Promise<APIResponse<ConformanceRecord>> {
   try {

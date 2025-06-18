@@ -124,8 +124,8 @@ export interface Lot {
 
 export interface ConformanceRecord {
   id: number;
-  lot_id: number;
-  itp_item_id: number;
+  lot_id: number | string;
+  itp_item_id: number | string;
   result_pass_fail?: 'PASS' | 'FAIL' | 'N/A';
   result_numeric?: number;
   result_text?: string;
