@@ -108,48 +108,48 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow">
-        <div className="px-6 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div className="px-4 py-4 lg:px-6 lg:py-6">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center">
+            <div className="mb-4 lg:mb-0">
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Dashboard</h1>
               <p className="text-sm text-gray-500">Welcome back, {user.profile?.firstName || user.email}</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 lg:space-x-4 flex-wrap gap-2">
               <button
                 onClick={() => {
                   console.log('=== MANUAL REFRESH TRIGGERED ===')
                   loadDashboardData()
                 }}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 lg:px-4 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors"
               >
                 🔄 Refresh
               </button>
               <button
                 onClick={() => setIsSimpleModalOpen(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 lg:px-4 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors"
               >
-                🧪 Test Create
+                🧪 Test
               </button>
               <button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-3 py-2 lg:px-4 lg:py-2 border border-transparent text-xs lg:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
+                <Plus className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
+                <span className="hidden sm:inline">New </span>Project
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 lg:p-6">
         {/* Stats Overview */}
         {stats && (
           <div className="mb-8">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
               <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
+                <div className="p-4 lg:p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <FolderOpen className="h-6 w-6 text-blue-600" />
@@ -165,7 +165,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
+                <div className="p-4 lg:p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <ClipboardList className="h-6 w-6 text-green-600" />
@@ -181,7 +181,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
+                <div className="p-4 lg:p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <BarChart3 className="h-6 w-6 text-purple-600" />
@@ -197,7 +197,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
+                <div className="p-4 lg:p-5">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
                       <AlertTriangle className="h-6 w-6 text-red-600" />
@@ -248,11 +248,11 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {projects.map((project) => (
                 <Link key={project.id} href={`/project/${project.id}`}>
                   <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
-                    <div className="p-6">
+                    <div className="p-4 lg:p-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-medium text-gray-900 truncate">
                           {project.name}
