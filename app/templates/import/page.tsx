@@ -133,7 +133,7 @@ export default function ImportITPItemsPage() {
             <li>Prepare your CSV file with the ITP items data</li>
             <li>Copy and paste the CSV content in the text area below</li>
             <li>Review the parsed data preview</li>
-            <li>Click "Import Items" to add them to the system</li>
+            <li>Click &quot;Import Items&quot; to add them to the system</li>
           </ol>
         </div>
 
