@@ -101,7 +101,18 @@ export function Sidebar() {
   )
 }
 
-function DesktopSidebarContent({ navigation, settingsNavigation, pathname, logout, isSettingsExpanded, setIsSettingsExpanded }: any) {
+interface SidebarContentProps {
+  navigation: any[]
+  settingsNavigation: any[]
+  pathname: string
+  logout: () => void
+  isSettingsExpanded: boolean
+  setIsSettingsExpanded: (expanded: boolean) => void
+  onNavigate?: () => void
+  isMobile?: boolean
+}
+
+function DesktopSidebarContent({ navigation, settingsNavigation, pathname, logout, isSettingsExpanded, setIsSettingsExpanded }: SidebarContentProps) {
   return (
     <>
       {/* Logo and title */}
@@ -122,7 +133,7 @@ function DesktopSidebarContent({ navigation, settingsNavigation, pathname, logou
   )
 }
 
-function MobileSidebarContent({ navigation, settingsNavigation, pathname, logout, isSettingsExpanded, setIsSettingsExpanded, onNavigate }: any) {
+function MobileSidebarContent({ navigation, settingsNavigation, pathname, logout, isSettingsExpanded, setIsSettingsExpanded, onNavigate }: SidebarContentProps) {
   return (
     <>
       {/* Mobile Logo */}
@@ -145,7 +156,7 @@ function MobileSidebarContent({ navigation, settingsNavigation, pathname, logout
   )
 }
 
-function SidebarNavigation({ navigation, settingsNavigation, pathname, logout, isSettingsExpanded, setIsSettingsExpanded, onNavigate, isMobile = false }: any) {
+function SidebarNavigation({ navigation, settingsNavigation, pathname, logout, isSettingsExpanded, setIsSettingsExpanded, onNavigate, isMobile = false }: SidebarContentProps) {
   const { user } = useAuth()
   
   return (
