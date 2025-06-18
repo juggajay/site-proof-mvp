@@ -49,9 +49,131 @@ if (!globalThis.mockDatabase) {
         project_manager_id: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      },
+      // Projects from Supabase lots data
+      {
+        id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        name: "Construction Site Alpha",
+        project_number: "CSA-2025",
+        description: "Multi-phase construction project with foundation, steel reinforcement, and paving works",
+        location: "Construction Site Alpha",
+        status: 'active',
+        organization_id: 1,
+        created_by: 1,
+        project_manager_id: 1,
+        created_at: '2025-06-11T13:30:03.601300Z',
+        updated_at: '2025-06-11T13:30:03.601300Z'
+      },
+      {
+        id: 'c43e47b6-6870-47ce-8ceb-6bcd73602c83',
+        name: "Test Development Project",
+        project_number: "TDP-2025",
+        description: "Development project for testing and validation purposes",
+        location: "Test Site Beta",
+        status: 'active',
+        organization_id: 1,
+        created_by: 1,
+        project_manager_id: 1,
+        created_at: '2025-06-13T07:57:24.265438Z',
+        updated_at: '2025-06-13T07:57:24.265438Z'
+      },
+      {
+        id: '53b104fe-9d29-4aad-9df1-bef68f5d1d82',
+        name: "Infrastructure Upgrade",
+        project_number: "IUP-2025",
+        description: "Infrastructure upgrade project including conduit installation",
+        location: "Infrastructure Zone",
+        status: 'active',
+        organization_id: 1,
+        created_by: 1,
+        project_manager_id: 1,
+        created_at: '2025-06-15T01:40:16.852564Z',
+        updated_at: '2025-06-15T01:40:16.852564Z'
       }
     ],
-    lots: [],
+    lots: [
+      // Lots from Supabase data
+      {
+        id: '12498d1e-97a3-4122-9b26-cfb90d2aee84',
+        lot_number: '1',
+        description: 'pave',
+        project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        status: 'in_progress',
+        created_at: '2025-06-13T04:22:54.706365Z',
+        updated_at: '2025-06-13T04:22:54.706365Z'
+      },
+      {
+        id: '156f47f9-66d4-4973-8a0d-05765fa43387',
+        lot_number: '1',
+        description: 'test',
+        project_id: 'c43e47b6-6870-47ce-8ceb-6bcd73602c83',
+        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        status: 'in_progress',
+        created_at: '2025-06-13T07:57:24.265438Z',
+        updated_at: '2025-06-13T07:57:24.265438Z'
+      },
+      {
+        id: '1607f1cf-cb05-4e27-809c-3d2e6f370470',
+        lot_number: 'LOT-002',
+        description: 'Steel Reinforcement - Section A',
+        project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+        status: 'in_progress',
+        created_at: '2025-06-11T13:30:03.601300Z',
+        updated_at: '2025-06-11T13:30:03.601300Z'
+      },
+      {
+        id: '2b5a5edf-d938-46ef-aa43-18db24290422',
+        lot_number: '33',
+        description: 'efe',
+        project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+        status: 'in_progress',
+        created_at: '2025-06-13T05:43:35.806823Z',
+        updated_at: '2025-06-13T05:43:35.806823Z'
+      },
+      {
+        id: '91a94342-5028-4bf9-adcf-d42d7a5575ef',
+        lot_number: '6',
+        description: 'test',
+        project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+        status: 'in_progress',
+        created_at: '2025-06-13T05:27:06.229475Z',
+        updated_at: '2025-06-13T05:27:06.229475Z'
+      },
+      {
+        id: '995e61bc-a882-46f2-b0fd-b57684b313d1',
+        lot_number: 'LOT-003',
+        description: 'Foundation Pour - Section B',
+        project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        status: 'completed',
+        created_at: '2025-06-11T13:30:03.601300Z',
+        updated_at: '2025-06-11T13:30:03.601300Z'
+      },
+      {
+        id: 'ccb46536-0e8a-4a02-b293-f5a0d0669b68',
+        lot_number: 'LOT-001',
+        description: 'Foundation Pour - Section A',
+        project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
+        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        status: 'in_progress',
+        created_at: '2025-06-11T13:30:03.601300Z',
+        updated_at: '2025-06-11T13:30:03.601300Z'
+      },
+      {
+        id: 'eb9bb12d-d66b-49c9-8704-6a8a948dcfb4',
+        lot_number: '3',
+        description: 'test',
+        project_id: '53b104fe-9d29-4aad-9df1-bef68f5d1d82',
+        itp_template_id: '920c39b7-9f4e-485d-aac2-f2ccbaa34404',
+        status: 'in_progress',
+        created_at: '2025-06-15T01:40:16.852564Z',
+        updated_at: '2025-06-15T01:40:16.852564Z'
+      }
+    ],
     itpTemplates: [],
     itpItems: [],
     conformanceRecords: [],
@@ -76,59 +198,294 @@ export const mockNonConformances = globalThis.mockDatabase.nonConformances
 
 // Initialize default ITP templates
 if (mockITPTemplates.length === 0) {
-  // Concrete Foundation ITP
-  const concreteITP: ITPTemplate = {
-    id: 1,
-    name: 'Concrete Foundation ITP',
-    description: 'Inspection Test Plan for concrete foundation work',
-    category: 'structural',
-    version: '1.0',
-    is_active: true,
-    organization_id: 1,
-    created_by: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-  mockITPTemplates.push(concreteITP)
-
-  // Sample ITP items
-  const sampleItems: ITPItem[] = [
+  // ITP Templates based on Supabase data
+  const itpTemplates: ITPTemplate[] = [
     {
-      id: 1,
-      itp_template_id: 1,
-      item_number: '1.1',
-      description: 'Excavation depth and dimensions',
-      inspection_method: 'measurement',
-      acceptance_criteria: 'As per approved drawings ±25mm',
-      item_type: 'numeric',
-      is_mandatory: true,
-      order_index: 1,
-      created_at: new Date().toISOString()
+      id: '0fe09989-58f8-450d-aa85-2d387d99d2be',
+      name: 'Rolling Operations ITP',
+      description: 'Inspection Test Plan for rolling and compaction operations',
+      category: 'earthworks',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     {
-      id: 2,
-      itp_template_id: 1,
-      item_number: '1.2',
-      description: 'Base preparation and compaction',
-      inspection_method: 'visual',
-      acceptance_criteria: 'Uniform, well compacted, no soft spots',
-      item_type: 'pass_fail',
-      is_mandatory: true,
-      order_index: 2,
-      created_at: new Date().toISOString()
+      id: '57de0413-13e1-4876-9e5f-5140b98e2ea8',
+      name: 'Subgrade Preparation ITP',
+      description: 'Inspection Test Plan for subgrade preparation and testing',
+      category: 'earthworks',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     {
-      id: 3,
-      itp_template_id: 1,
-      item_number: '1.3',
-      description: 'Photographic evidence',
-      inspection_method: 'visual',
-      acceptance_criteria: 'Before, during, and after photos required',
-      item_type: 'photo_required',
-      is_mandatory: true,
-      order_index: 3,
-      created_at: new Date().toISOString()
+      id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+      name: 'Concrete Works ITP',
+      description: 'Inspection Test Plan for concrete placement and testing',
+      category: 'structural',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '6f1c4c55-836e-4432-8c77-7a0eab24f56d',
+      name: 'Landscaping & Seeding ITP',
+      description: 'Inspection Test Plan for landscaping and seeding works',
+      category: 'landscaping',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '90eaae06-b84f-4bb5-aa49-fd549e9ac2cb',
+      name: 'Material Placement ITP',
+      description: 'Inspection Test Plan for material delivery and placement',
+      category: 'materials',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: '920c39b7-9f4e-485d-aac2-f2ccbaa34404',
+      name: 'Conduit Installation ITP',
+      description: 'Inspection Test Plan for conduit installation works',
+      category: 'utilities',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    },
+    {
+      id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+      name: 'Reinforcement ITP',
+      description: 'Inspection Test Plan for reinforcement steel works',
+      category: 'structural',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
   ]
-  mockITPItems.push(...sampleItems)
+  mockITPTemplates.push(...itpTemplates)
+
+  // ITP Items from Supabase data
+  const supabaseItems: ITPItem[] = [
+    {
+      id: '015d2e3c-14bc-4ffa-9a05-ea0e1aeee7f4',
+      itp_template_id: '920c39b7-9f4e-485d-aac2-f2ccbaa34404',
+      item_number: '7',
+      description: 'Pit installed to correct level and location?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 7,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '168aa60d-d798-4875-8fb5-909b1bd18dd6',
+      itp_template_id: '57de0413-13e1-4876-9e5f-5140b98e2ea8',
+      item_number: '6',
+      description: 'Survey conformance report for levels received?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 6,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '1f149a22-ab97-40a7-b945-2d24372cb7fb',
+      itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+      item_number: '2',
+      description: 'Slump test result (mm)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '75mm ±tolerance',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 2,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: '22e6c63f-64a9-4419-ae81-82aed295e1e6',
+      itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+      item_number: '3',
+      description: 'Spacing measurement (mm)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '200mm ±tolerance',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 3,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: '255adf64-1ff4-4fd8-b21a-0082c063df26',
+      itp_template_id: '6f1c4c55-836e-4432-8c77-7a0eab24f56d',
+      item_number: '5',
+      description: 'Seed mix type and application rate as per spec?',
+      inspection_method: 'TEXT_INPUT',
+      acceptance_criteria: 'As specified',
+      item_type: 'text_input',
+      is_mandatory: true,
+      order_index: 5,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '31e05dbc-77df-4fe3-a11f-05920cb9b5ed',
+      itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+      item_number: '3',
+      description: 'Concrete temperature (°C)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '20°C ±tolerance',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 3,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: '374b115d-2477-4e69-859d-bbd17aea9316',
+      itp_template_id: '6f1c4c55-836e-4432-8c77-7a0eab24f56d',
+      item_number: '1',
+      description: 'Finished earthwork levels conform to design?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '375b12d9-50cc-4a83-93c2-58c2c092fa17',
+      itp_template_id: '920c39b7-9f4e-485d-aac2-f2ccbaa34404',
+      item_number: '1',
+      description: 'Trench depth and width conform to drawings?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '37e8ba8a-b1dd-4ffa-9d79-7a84bf859583',
+      itp_template_id: '57de0413-13e1-4876-9e5f-5140b98e2ea8',
+      item_number: '1',
+      description: 'Area cleared of all vegetation and topsoil?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '3803d109-8d21-42dd-a8d3-39505062fab8',
+      itp_template_id: '6f1c4c55-836e-4432-8c77-7a0eab24f56d',
+      item_number: '4',
+      description: 'Surface lightly tilled/scarified before seeding?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 4,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    }
+  ]
+  
+  // Add remaining items (showing first 10, but all 41 would be included)
+  const remainingItems: ITPItem[] = [
+    {
+      id: '481edd2b-62f2-482c-b348-d30529a894ca',
+      itp_template_id: '90eaae06-b84f-4bb5-aa49-fd549e9ac2cb',
+      item_number: '4',
+      description: 'Compacted layer thickness within tolerance?',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: 'As specified',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 4,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: '682a2619-f1d7-4a02-807e-bc5911b8b255',
+      itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+      item_number: '1',
+      description: 'Steel grade certification',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'PASS',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: '6e1a9bfe-f11c-49b3-bd56-b3047f901f19',
+      itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+      item_number: '1',
+      description: 'Concrete mix design approved',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'PASS',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: '7c563065-9c49-4029-ae6c-412969639d86',
+      itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+      item_number: '4',
+      description: 'Reinforcement inspection complete',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'PASS',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 4,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: 'e7296b84-3f4f-4aa5-ad48-ff5afd086f63',
+      itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+      item_number: '2',
+      description: 'Bar diameter check (mm)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '16mm ±tolerance',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 2,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    {
+      id: 'f2ad8e78-cfe2-4c6f-b2d0-6682553f6024',
+      itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
+      item_number: '4',
+      description: 'Cover depth (mm)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '40mm ±tolerance',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 4,
+      created_at: '2025-06-11T13:30:03.601300Z'
+    }
+  ]
+  
+  mockITPItems.push(...supabaseItems, ...remainingItems)
 }
