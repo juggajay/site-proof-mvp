@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         mockITPItems.push(newItem)
         results.imported++
 
-        console.log(`Imported ITP item ${newId}:`, newItem.description)
+        console.log(`Imported ITP item ${newItem.id}:`, newItem.description)
 
       } catch (error) {
         console.error(`Error processing item ${i + 1}:`, error)
