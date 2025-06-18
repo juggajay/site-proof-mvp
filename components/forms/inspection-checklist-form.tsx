@@ -11,7 +11,7 @@ interface InspectionChecklistFormProps {
 }
 
 interface InspectionFormData {
-  [itemId: number]: {
+  [itemId: string]: {
     result_pass_fail?: 'PASS' | 'FAIL' | 'N/A'
     result_numeric?: string
     result_text?: string
@@ -22,20 +22,20 @@ interface InspectionFormData {
 
 export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionChecklistFormProps) {
   const [formData, setFormData] = useState<InspectionFormData>({})
-  const [savingItems, setSavingItems] = useState<Set<number>>(new Set())
-  const [errors, setErrors] = useState<{[itemId: number]: string}>({})
+  const [savingItems, setSavingItems] = useState<Set<string | number>>(new Set())
+  const [errors, setErrors] = useState<{[itemId: string]: string}>({})
 
   if (!lot.itp_template?.itp_items) {
     return null
   }
 
-  const getExistingRecord = (itemId: number): ConformanceRecord | undefined => {
+  const getExistingRecord = (itemId: string | number): ConformanceRecord | undefined => {
     return lot.conformance_records.find(r => r.itp_item_id === itemId)
   }
 
-  const getItemValue = (itemId: number, field: keyof InspectionFormData[number]) => {
+  const getItemValue = (itemId: string | number, field: keyof InspectionFormData[string]) => {
     const existingRecord = getExistingRecord(itemId)
-    const formValue = formData[itemId]?.[field]
+    const formValue = formData[String(itemId)]?.[field]
     
     if (formValue !== undefined) return formValue
     if (existingRecord) {
@@ -50,33 +50,33 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
     return ''
   }
 
-  const updateFormData = (itemId: number, field: keyof InspectionFormData[number], value: string) => {
+  const updateFormData = (itemId: string | number, field: keyof InspectionFormData[string], value: string) => {
     setFormData(prev => ({
       ...prev,
-      [itemId]: {
-        ...prev[itemId],
+      [String(itemId)]: {
+        ...prev[String(itemId)],
         [field]: value
       }
     }))
     
     // Clear any existing error for this item
-    if (errors[itemId]) {
+    if (errors[String(itemId)]) {
       setErrors(prev => {
         const newErrors = { ...prev }
-        delete newErrors[itemId]
+        delete newErrors[String(itemId)]
         return newErrors
       })
     }
   }
 
   const saveInspectionItem = async (item: ITPItem) => {
-    const itemData = formData[item.id]
+    const itemData = formData[String(item.id)]
     if (!itemData) return
 
     setSavingItems(prev => new Set(prev).add(item.id))
     setErrors(prev => {
       const newErrors = { ...prev }
-      delete newErrors[item.id]
+      delete newErrors[String(item.id)]
       return newErrors
     })
 
@@ -95,20 +95,20 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
         // Clear form data for this item since it's now saved
         setFormData(prev => {
           const newData = { ...prev }
-          delete newData[item.id]
+          delete newData[String(item.id)]
           return newData
         })
         onInspectionSaved()
       } else {
         setErrors(prev => ({
           ...prev,
-          [item.id]: result.error || 'Failed to save inspection'
+          [String(item.id)]: result.error || 'Failed to save inspection'
         }))
       }
     } catch (error) {
       setErrors(prev => ({
         ...prev,
-        [item.id]: 'An unexpected error occurred'
+        [String(item.id)]: 'An unexpected error occurred'
       }))
     } finally {
       setSavingItems(prev => {
@@ -121,7 +121,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
 
   const getItemStatus = (item: ITPItem) => {
     const existingRecord = getExistingRecord(item.id)
-    const hasFormChanges = formData[item.id] && Object.values(formData[item.id]).some(v => v !== '' && v !== undefined)
+    const hasFormChanges = formData[String(item.id)] && Object.values(formData[String(item.id)]).some(v => v !== '' && v !== undefined)
     
     if (hasFormChanges) return 'modified'
     if (existingRecord) {
@@ -142,8 +142,8 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
     }
   }
 
-  const hasUnsavedChanges = (itemId: number) => {
-    return formData[itemId] && Object.values(formData[itemId]).some(v => v !== '' && v !== undefined)
+  const hasUnsavedChanges = (itemId: string | number) => {
+    return formData[String(itemId)] && Object.values(formData[String(itemId)]).some(v => v !== '' && v !== undefined)
   }
 
   return (
@@ -153,7 +153,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
         const existingRecord = getExistingRecord(item.id)
         const isModified = hasUnsavedChanges(item.id)
         const isSaving = savingItems.has(item.id)
-        const error = errors[item.id]
+        const error = errors[String(item.id)]
 
         return (
           <div key={item.id} className="p-6">
