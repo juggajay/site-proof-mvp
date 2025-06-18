@@ -239,8 +239,10 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
       return { success: false, error: 'Project name is required' }
     }
 
+    // Generate new numeric ID
+    const numericIds = mockProjects.map(p => typeof p.id === 'number' ? p.id : 0)
     const newProject: Project = {
-      id: Math.max(0, ...mockProjects.map(p => p.id)) + 1,
+      id: Math.max(0, ...numericIds) + 1,
       name,
       project_number: projectNumber || undefined,
       description: description || undefined,
