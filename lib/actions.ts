@@ -347,7 +347,8 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
   try {
     const user = await requireAuth()
     
-    const projectId = parseInt(formData.get('projectId') as string)
+    const projectIdStr = formData.get('projectId') as string
+    const projectId = isNaN(parseInt(projectIdStr)) ? projectIdStr : parseInt(projectIdStr)
     const lotNumber = formData.get('lotNumber') as string
     const description = formData.get('description') as string
     const locationDescription = formData.get('locationDescription') as string
@@ -362,8 +363,10 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
       return { success: false, error: 'Lot number already exists in this project' }
     }
 
+    // Generate new numeric ID for lot
+    const numericLotIds = mockLots.map(l => typeof l.id === 'number' ? l.id : 0)
     const newLot: Lot = {
-      id: mockLots.length + 1,
+      id: Math.max(0, ...numericLotIds) + 1,
       project_id: projectId,
       lot_number: lotNumber,
       description: description || undefined,

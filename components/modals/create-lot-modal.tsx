@@ -8,7 +8,7 @@ interface CreateLotModalProps {
   isOpen: boolean
   onClose: () => void
   onLotCreated: () => void
-  projectId: number
+  projectId: number | string
 }
 
 export function CreateLotModal({ isOpen, onClose, onLotCreated, projectId }: CreateLotModalProps) {
