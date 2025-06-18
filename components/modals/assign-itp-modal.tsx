@@ -9,13 +9,13 @@ interface AssignITPModalProps {
   isOpen: boolean
   onClose: () => void
   onITPAssigned: () => void
-  lotId: number
-  currentITPTemplateId?: number
+  lotId: number | string
+  currentITPTemplateId?: number | string
 }
 
 export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentITPTemplateId }: AssignITPModalProps) {
   const [templates, setTemplates] = useState<ITPTemplate[]>([])
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(currentITPTemplateId || null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(currentITPTemplateId || null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
   const [error, setError] = useState<string | null>(null)
