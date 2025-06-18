@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createProjectAction } from '@/lib/actions'
+import { useAuth } from '@/contexts/auth-context'
 import { X } from 'lucide-react'
 
 interface CreateProjectModalProps {
@@ -11,10 +12,24 @@ interface CreateProjectModalProps {
 }
 
 export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: CreateProjectModalProps) {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
+  
+  if (!user) {
+    return (
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <p className="text-red-600">Please log in to create a project.</p>
+            <button onClick={onClose} className="mt-4 px-4 py-2 bg-gray-300 rounded">Close</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -22,17 +37,28 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
     setError(null)
 
     try {
+      console.log('Form submitted')
       const formData = new FormData(event.currentTarget)
+      
+      // Debug form data
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value)
+      }
+      
+      console.log('Calling createProjectAction...')
       const result = await createProjectAction(formData)
+      console.log('Result:', result)
 
       if (result.success) {
         onProjectCreated()
         // Reset form
         ;(event.target as HTMLFormElement).reset()
       } else {
-        setError(result.error || 'Failed to create project')
+        console.error('Project creation failed:', result.error)
+        setError(result.error || 'Failed to create project. Please try again.')
       }
     } catch (error) {
+      console.error('Exception in handleSubmit:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)

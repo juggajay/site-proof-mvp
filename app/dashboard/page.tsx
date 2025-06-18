@@ -7,12 +7,14 @@ import { Project, ProjectStats } from '@/types/database'
 import Link from 'next/link'
 import { Plus, FolderOpen, BarChart3, Users, ClipboardList, AlertTriangle } from 'lucide-react'
 import { CreateProjectModal } from '@/components/modals/create-project-modal'
+import { SimpleCreateProjectModal } from '@/components/modals/simple-create-project-modal'
 
 export default function DashboardPage() {
   const { user, logout, loading } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [stats, setStats] = useState<ProjectStats | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isSimpleModalOpen, setIsSimpleModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -44,6 +46,11 @@ export default function DashboardPage() {
 
   const handleProjectCreated = () => {
     setIsCreateModalOpen(false)
+    loadDashboardData()
+  }
+
+  const handleSimpleProjectCreated = () => {
+    setIsSimpleModalOpen(false)
     loadDashboardData()
   }
 
@@ -81,6 +88,12 @@ export default function DashboardPage() {
               <div className="text-sm text-gray-700">
                 Welcome, {user.profile?.firstName || user.email}
               </div>
+              <button
+                onClick={() => setIsSimpleModalOpen(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Test Create
+              </button>
               <button
                 onClick={logout}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
@@ -278,6 +291,13 @@ export default function DashboardPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onProjectCreated={handleProjectCreated}
+      />
+
+      {/* Simple Test Modal */}
+      <SimpleCreateProjectModal
+        isOpen={isSimpleModalOpen}
+        onClose={() => setIsSimpleModalOpen(false)}
+        onProjectCreated={handleSimpleProjectCreated}
       />
     </div>
   )

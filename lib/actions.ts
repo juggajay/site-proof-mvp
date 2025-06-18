@@ -27,7 +27,21 @@ const mockOrganizations: Organization[] = [
     updated_at: new Date().toISOString()
   }
 ]
-const mockProjects: Project[] = []
+const mockProjects: Project[] = [
+  {
+    id: 1,
+    name: "Sample Project",
+    project_number: "PRJ-001",
+    description: "This is a test project to verify the system works",
+    location: "Test Location",
+    status: 'active',
+    organization_id: 1,
+    created_by: 1,
+    project_manager_id: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }
+]
 const mockLots: Lot[] = []
 const mockITPTemplates: ITPTemplate[] = []
 const mockITPItems: ITPItem[] = []
@@ -196,19 +210,28 @@ export async function logoutAction() {
 }
 
 export async function getCurrentUser() {
-  const token = cookies().get('auth-token')?.value
-  if (!token) return null
+  try {
+    const token = cookies().get('auth-token')?.value
+    console.log('getCurrentUser: token exists:', !!token)
+    if (!token) return null
 
-  const payload = verifyToken(token)
-  if (!payload) return null
+    const payload = verifyToken(token)
+    console.log('getCurrentUser: payload:', payload)
+    if (!payload) return null
 
-  return await findUserById(payload.userId)
+    const user = await findUserById(payload.userId)
+    console.log('getCurrentUser: user found:', !!user)
+    return user
+  } catch (error) {
+    console.error('getCurrentUser error:', error)
+    return null
+  }
 }
 
 export async function requireAuth() {
   const user = await getCurrentUser()
   if (!user) {
-    redirect('/auth/login')
+    throw new Error('Authentication required')
   }
   return user
 }
@@ -217,7 +240,13 @@ export async function requireAuth() {
 
 export async function createProjectAction(formData: FormData): Promise<APIResponse<Project>> {
   try {
+    console.log('createProjectAction called')
     const user = await requireAuth()
+    console.log('User authenticated:', user)
+    
+    if (!user) {
+      return { success: false, error: 'Please log in to create a project' }
+    }
     
     const name = formData.get('name') as string
     const projectNumber = formData.get('projectNumber') as string
@@ -226,12 +255,14 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
     const startDate = formData.get('startDate') as string
     const endDate = formData.get('endDate') as string
 
+    console.log('Form data:', { name, projectNumber, description, location, startDate, endDate })
+
     if (!name) {
       return { success: false, error: 'Project name is required' }
     }
 
     const newProject: Project = {
-      id: mockProjects.length + 1,
+      id: Math.max(0, ...mockProjects.map(p => p.id)) + 1,
       name,
       project_number: projectNumber || undefined,
       description: description || undefined,
@@ -252,6 +283,14 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
     return { success: true, data: newProject, message: 'Project created successfully' }
   } catch (error) {
     console.error('Create project error:', error)
+    
+    if (error instanceof Error) {
+      if (error.message === 'Authentication required') {
+        return { success: false, error: 'Please log in to create a project' }
+      }
+      return { success: false, error: error.message }
+    }
+    
     return { success: false, error: 'Failed to create project' }
   }
 }
