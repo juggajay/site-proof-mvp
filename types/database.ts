@@ -97,9 +97,9 @@ export interface ITPItem {
   item_number?: string;
   description: string;
   specification_reference?: string;
-  inspection_method?: 'visual' | 'measurement' | 'test' | 'document_review';
+  inspection_method?: 'visual' | 'measurement' | 'test' | 'document_review' | 'PASS_FAIL' | 'NUMERIC' | 'TEXT_INPUT';
   acceptance_criteria?: string;
-  item_type: 'pass_fail' | 'numeric' | 'text' | 'photo_required';
+  item_type: 'pass_fail' | 'numeric' | 'text' | 'text_input' | 'photo_required';
   is_mandatory: boolean;
   order_index: number;
   created_at: string;
@@ -272,7 +272,7 @@ export interface CreateITPItemRequest {
   specification_reference?: string;
   inspection_method?: string;
   acceptance_criteria?: string;
-  item_type: 'pass_fail' | 'numeric' | 'text' | 'photo_required';
+  item_type: 'pass_fail' | 'numeric' | 'text' | 'text_input' | 'photo_required';
   is_mandatory?: boolean;
   order_index?: number;
 }
