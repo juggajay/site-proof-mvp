@@ -25,17 +25,46 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      const [projectsResult, statsResult] = await Promise.all([
-        getProjectsAction(),
-        getDashboardStatsAction()
-      ])
+      console.log('Loading dashboard data...')
+      
+      // Try Server Actions first, then fallback to API routes
+      let projectsResult = await getProjectsAction()
+      let statsResult = await getDashboardStatsAction()
+      
+      console.log('Server Actions results:', { projectsResult, statsResult })
+      
+      // If Server Actions fail, try API routes
+      if (!projectsResult.success || !statsResult.success) {
+        console.log('Server Actions failed, trying API routes...')
+        
+        try {
+          const [projectsResponse, statsResponse] = await Promise.all([
+            fetch('/api/projects'),
+            fetch('/api/dashboard/stats')
+          ])
+          
+          if (projectsResponse.ok) {
+            projectsResult = await projectsResponse.json()
+            console.log('API projects result:', projectsResult)
+          }
+          
+          if (statsResponse.ok) {
+            statsResult = await statsResponse.json()
+            console.log('API stats result:', statsResult)
+          }
+        } catch (apiError) {
+          console.error('API fallback failed:', apiError)
+        }
+      }
 
       if (projectsResult.success) {
         setProjects(projectsResult.data || [])
+        console.log('Projects set:', projectsResult.data?.length || 0)
       }
 
       if (statsResult.success) {
         setStats(statsResult.data || null)
+        console.log('Stats set:', statsResult.data)
       }
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
@@ -86,6 +115,15 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-500">Welcome back, {user.profile?.firstName || user.email}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => {
+                  console.log('=== MANUAL REFRESH TRIGGERED ===')
+                  loadDashboardData()
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                🔄 Refresh
+              </button>
               <button
                 onClick={() => setIsSimpleModalOpen(true)}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"

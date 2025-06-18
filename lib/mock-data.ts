@@ -3,42 +3,76 @@ import {
   ConformanceRecord, Attachment, InspectionReport, NonConformance
 } from '@/types/database'
 
-// Shared mock database storage
-export const mockUsers: any[] = []
-export const mockProfiles: Profile[] = []
-export const mockOrganizations: Organization[] = [
-  {
-    id: 1,
-    name: "Default Organization",
-    slug: "default-org",
-    description: "Default organization for testing",
-    created_by: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+// Create a global singleton for mock data to ensure consistency across Server Actions and API routes
+declare global {
+  var mockDatabase: {
+    users: any[]
+    profiles: Profile[]
+    organizations: Organization[]
+    projects: Project[]
+    lots: Lot[]
+    itpTemplates: ITPTemplate[]
+    itpItems: ITPItem[]
+    conformanceRecords: ConformanceRecord[]
+    attachments: Attachment[]
+    reports: InspectionReport[]
+    nonConformances: NonConformance[]
+  } | undefined
+}
+
+// Initialize global mock database if it doesn't exist
+if (!globalThis.mockDatabase) {
+  globalThis.mockDatabase = {
+    users: [],
+    profiles: [],
+    organizations: [
+      {
+        id: 1,
+        name: "Default Organization",
+        slug: "default-org",
+        description: "Default organization for testing",
+        created_by: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ],
+    projects: [
+      {
+        id: 1,
+        name: "Sample Project",
+        project_number: "PRJ-001",
+        description: "This is a test project to verify the system works",
+        location: "Test Location",
+        status: 'active',
+        organization_id: 1,
+        created_by: 1,
+        project_manager_id: 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ],
+    lots: [],
+    itpTemplates: [],
+    itpItems: [],
+    conformanceRecords: [],
+    attachments: [],
+    reports: [],
+    nonConformances: []
   }
-]
-export const mockProjects: Project[] = [
-  {
-    id: 1,
-    name: "Sample Project",
-    project_number: "PRJ-001",
-    description: "This is a test project to verify the system works",
-    location: "Test Location",
-    status: 'active',
-    organization_id: 1,
-    created_by: 1,
-    project_manager_id: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-]
-export const mockLots: Lot[] = []
-export const mockITPTemplates: ITPTemplate[] = []
-export const mockITPItems: ITPItem[] = []
-export const mockConformanceRecords: ConformanceRecord[] = []
-export const mockAttachments: Attachment[] = []
-export const mockReports: InspectionReport[] = []
-export const mockNonConformances: NonConformance[] = []
+}
+
+// Export references to the global database
+export const mockUsers = globalThis.mockDatabase.users
+export const mockProfiles = globalThis.mockDatabase.profiles
+export const mockOrganizations = globalThis.mockDatabase.organizations
+export const mockProjects = globalThis.mockDatabase.projects
+export const mockLots = globalThis.mockDatabase.lots
+export const mockITPTemplates = globalThis.mockDatabase.itpTemplates
+export const mockITPItems = globalThis.mockDatabase.itpItems
+export const mockConformanceRecords = globalThis.mockDatabase.conformanceRecords
+export const mockAttachments = globalThis.mockDatabase.attachments
+export const mockReports = globalThis.mockDatabase.reports
+export const mockNonConformances = globalThis.mockDatabase.nonConformances
 
 // Initialize default ITP templates
 if (mockITPTemplates.length === 0) {
