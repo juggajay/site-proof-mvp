@@ -41,9 +41,9 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
       const formData = new FormData(event.currentTarget)
       
       // Debug form data
-      for (let [key, value] of formData.entries()) {
+      formData.forEach((value, key) => {
         console.log(key, value)
-      }
+      })
       
       console.log('Calling createProjectAction...')
       const result = await createProjectAction(formData)

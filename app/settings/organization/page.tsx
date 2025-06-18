@@ -35,7 +35,7 @@ export default function OrganizationSettingsPage() {
               <Building2 className="h-8 w-8 text-gray-600 mr-3" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Organization Settings</h1>
-                <p className="text-sm text-gray-500">Manage your organization's profile and preferences</p>
+                <p className="text-sm text-gray-500">Manage your organization&apos;s profile and preferences</p>
               </div>
             </div>
             <button

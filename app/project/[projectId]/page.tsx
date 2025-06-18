@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { getProjectByIdAction, getLotByIdAction } from '@/lib/actions'
 import { ProjectWithDetails, Lot } from '@/types/database'
@@ -23,13 +23,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
   const projectId = parseInt(params.projectId)
 
-  useEffect(() => {
-    if (user && projectId) {
-      loadProjectData()
-    }
-  }, [user, projectId])
-
-  const loadProjectData = async () => {
+  const loadProjectData = useCallback(async () => {
     try {
       const result = await getProjectByIdAction(projectId)
       if (result.success) {
@@ -43,7 +37,13 @@ export default function ProjectDetailPage({ params }: PageProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [projectId])
+
+  useEffect(() => {
+    if (user && projectId) {
+      loadProjectData()
+    }
+  }, [user, projectId, loadProjectData])
 
   const handleLotCreated = () => {
     setIsCreateLotModalOpen(false)

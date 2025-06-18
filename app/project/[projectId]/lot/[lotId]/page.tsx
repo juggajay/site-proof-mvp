@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { getLotByIdAction, getITPTemplatesAction, assignITPToLotAction, saveConformanceRecordAction } from '@/lib/actions'
 import { LotWithDetails, ITPTemplate, ConformanceRecord, UpdateConformanceRequest } from '@/types/database'
@@ -26,13 +26,7 @@ export default function LotDetailPage({ params }: PageProps) {
   const projectId = parseInt(params.projectId)
   const lotId = parseInt(params.lotId)
 
-  useEffect(() => {
-    if (user && lotId) {
-      loadLotData()
-    }
-  }, [user, lotId])
-
-  const loadLotData = async () => {
+  const loadLotData = useCallback(async () => {
     try {
       const result = await getLotByIdAction(lotId)
       if (result.success) {
@@ -46,7 +40,13 @@ export default function LotDetailPage({ params }: PageProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [lotId])
+
+  useEffect(() => {
+    if (user && lotId) {
+      loadLotData()
+    }
+  }, [user, lotId, loadLotData])
 
   const handleITPAssigned = () => {
     setIsAssignITPModalOpen(false)
