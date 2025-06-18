@@ -47,15 +47,51 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
       
       console.log('Calling createProjectAction...')
       const result = await createProjectAction(formData)
-      console.log('Result:', result)
+      console.log('Server Action Result:', result)
 
       if (result.success) {
         onProjectCreated()
         // Reset form
         ;(event.target as HTMLFormElement).reset()
       } else {
-        console.error('Project creation failed:', result.error)
-        setError(result.error || 'Failed to create project. Please try again.')
+        console.error('Server Action failed:', result.error)
+        
+        // Fallback to API route if server action fails with auth error
+        if (result.error?.includes('log in') || result.error?.includes('Authentication')) {
+          console.log('Trying API route fallback...')
+          try {
+            const apiResponse = await fetch('/api/projects/create', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: formData.get('name'),
+                projectNumber: formData.get('projectNumber'),
+                description: formData.get('description'),
+                location: formData.get('location'),
+                startDate: formData.get('startDate'),
+                endDate: formData.get('endDate')
+              })
+            })
+
+            const apiResult = await apiResponse.json()
+            console.log('API Route Result:', apiResult)
+
+            if (apiResult.success) {
+              onProjectCreated()
+              // Reset form
+              ;(event.target as HTMLFormElement).reset()
+            } else {
+              setError(apiResult.error || 'Failed to create project via API')
+            }
+          } catch (apiError) {
+            console.error('API fallback also failed:', apiError)
+            setError(result.error || 'Failed to create project. Please try again.')
+          }
+        } else {
+          setError(result.error || 'Failed to create project. Please try again.')
+        }
       }
     } catch (error) {
       console.error('Exception in handleSubmit:', error)

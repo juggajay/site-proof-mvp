@@ -13,42 +13,12 @@ import {
   UpdateConformanceRequest, APIResponse, ProjectStats, InspectionSummary
 } from '@/types/database'
 
-// Mock database storage - Replace with actual database in production
-const mockUsers: any[] = []
-const mockProfiles: Profile[] = []
-const mockOrganizations: Organization[] = [
-  {
-    id: 1,
-    name: "Default Organization",
-    slug: "default-org",
-    description: "Default organization for testing",
-    created_by: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-]
-const mockProjects: Project[] = [
-  {
-    id: 1,
-    name: "Sample Project",
-    project_number: "PRJ-001",
-    description: "This is a test project to verify the system works",
-    location: "Test Location",
-    status: 'active',
-    organization_id: 1,
-    created_by: 1,
-    project_manager_id: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-]
-const mockLots: Lot[] = []
-const mockITPTemplates: ITPTemplate[] = []
-const mockITPItems: ITPItem[] = []
-const mockConformanceRecords: ConformanceRecord[] = []
-const mockAttachments: Attachment[] = []
-const mockReports: InspectionReport[] = []
-const mockNonConformances: NonConformance[] = []
+// Import shared mock database storage
+import { 
+  mockUsers, mockProfiles, mockOrganizations, mockProjects, mockLots,
+  mockITPTemplates, mockITPItems, mockConformanceRecords, mockAttachments,
+  mockReports, mockNonConformances
+} from './mock-data'
 
 // JWT helpers
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -211,16 +181,24 @@ export async function logoutAction() {
 
 export async function getCurrentUser() {
   try {
-    const token = cookies().get('auth-token')?.value
+    const cookieStore = cookies()
+    const token = cookieStore.get('auth-token')?.value
     console.log('getCurrentUser: token exists:', !!token)
-    if (!token) return null
+    
+    if (!token) {
+      console.log('getCurrentUser: No token found in cookies')
+      return null
+    }
 
     const payload = verifyToken(token)
     console.log('getCurrentUser: payload:', payload)
-    if (!payload) return null
+    if (!payload) {
+      console.log('getCurrentUser: Invalid token payload')
+      return null
+    }
 
     const user = await findUserById(payload.userId)
-    console.log('getCurrentUser: user found:', !!user)
+    console.log('getCurrentUser: user found:', !!user, user ? user.email : 'no user')
     return user
   } catch (error) {
     console.error('getCurrentUser error:', error)
@@ -611,61 +589,4 @@ export async function handleLogin(formData: FormData) {
   return result
 }
 
-// Initialize default ITP templates for testing
-if (mockITPTemplates.length === 0) {
-  // Concrete Foundation ITP
-  const concreteITP: ITPTemplate = {
-    id: 1,
-    name: 'Concrete Foundation ITP',
-    description: 'Inspection Test Plan for concrete foundation work',
-    category: 'structural',
-    version: '1.0',
-    is_active: true,
-    organization_id: 1,
-    created_by: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-  mockITPTemplates.push(concreteITP)
-
-  // Sample ITP items
-  const sampleItems: ITPItem[] = [
-    {
-      id: 1,
-      itp_template_id: 1,
-      item_number: '1.1',
-      description: 'Excavation depth and dimensions',
-      inspection_method: 'measurement',
-      acceptance_criteria: 'As per approved drawings ±25mm',
-      item_type: 'numeric',
-      is_mandatory: true,
-      order_index: 1,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 2,
-      itp_template_id: 1,
-      item_number: '1.2',
-      description: 'Base preparation and compaction',
-      inspection_method: 'visual',
-      acceptance_criteria: 'Uniform, well compacted, no soft spots',
-      item_type: 'pass_fail',
-      is_mandatory: true,
-      order_index: 2,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 3,
-      itp_template_id: 1,
-      item_number: '1.3',
-      description: 'Photographic evidence',
-      inspection_method: 'visual',
-      acceptance_criteria: 'Before, during, and after photos required',
-      item_type: 'photo_required',
-      is_mandatory: true,
-      order_index: 3,
-      created_at: new Date().toISOString()
-    }
-  ]
-  mockITPItems.push(...sampleItems)
-}
+// Mock data is initialized in mock-data.ts
