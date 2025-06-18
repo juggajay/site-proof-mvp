@@ -23,8 +23,8 @@ export default function LotDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const projectId = parseInt(params.projectId)
-  const lotId = parseInt(params.lotId)
+  const projectId = params.projectId
+  const lotId = params.lotId
 
   const loadLotData = useCallback(async () => {
     try {

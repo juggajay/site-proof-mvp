@@ -284,7 +284,7 @@ export async function getProjectsAction(): Promise<APIResponse<Project[]>> {
   }
 }
 
-export async function getProjectByIdAction(projectId: number): Promise<APIResponse<ProjectWithDetails>> {
+export async function getProjectByIdAction(projectId: number | string): Promise<APIResponse<ProjectWithDetails>> {
   try {
     await requireAuth()
     
@@ -412,7 +412,7 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
   }
 }
 
-export async function getLotByIdAction(lotId: number): Promise<APIResponse<LotWithDetails>> {
+export async function getLotByIdAction(lotId: number | string): Promise<APIResponse<LotWithDetails>> {
   try {
     await requireAuth()
     

@@ -21,7 +21,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const projectId = parseInt(params.projectId)
+  const projectId = params.projectId
 
   const loadProjectData = useCallback(async () => {
     try {
