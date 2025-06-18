@@ -54,7 +54,7 @@ export interface Session {
 
 // New Site Proof types
 export interface Project {
-  id: number;
+  id: number | string;
   name: string;
   project_number?: string;
   description?: string;
@@ -71,7 +71,7 @@ export interface Project {
 
 export interface ProjectMember {
   id: number;
-  project_id: number;
+  project_id: number | string;
   user_id: number;
   role: 'manager' | 'inspector' | 'viewer';
   added_by: number;
@@ -79,7 +79,7 @@ export interface ProjectMember {
 }
 
 export interface ITPTemplate {
-  id: number;
+  id: number | string;
   name: string;
   description?: string;
   category?: string;
@@ -92,8 +92,8 @@ export interface ITPTemplate {
 }
 
 export interface ITPItem {
-  id: number;
-  itp_template_id: number;
+  id: number | string;
+  itp_template_id: number | string;
   item_number?: string;
   description: string;
   specification_reference?: string;
@@ -106,12 +106,12 @@ export interface ITPItem {
 }
 
 export interface Lot {
-  id: number;
-  project_id: number;
+  id: number | string;
+  project_id: number | string;
   lot_number: string;
   description?: string;
   location_description?: string;
-  itp_template_id?: number;
+  itp_template_id?: number | string;
   status: 'pending' | 'in_progress' | 'completed' | 'approved' | 'rejected';
   start_date?: string;
   target_completion_date?: string;
@@ -348,7 +348,7 @@ export interface LotFilters {
   project_id?: number;
   status?: Lot['status'];
   assigned_inspector_id?: number;
-  itp_template_id?: number;
+  itp_template_id?: number | string;
   search?: string;
 }
 
