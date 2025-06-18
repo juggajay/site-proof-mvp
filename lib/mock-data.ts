@@ -100,6 +100,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
         itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-13T04:22:54.706365Z',
         updated_at: '2025-06-13T04:22:54.706365Z'
       },
@@ -110,6 +111,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'c43e47b6-6870-47ce-8ceb-6bcd73602c83',
         itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-13T07:57:24.265438Z',
         updated_at: '2025-06-13T07:57:24.265438Z'
       },
@@ -120,6 +122,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
         itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-11T13:30:03.601300Z',
         updated_at: '2025-06-11T13:30:03.601300Z'
       },
@@ -130,6 +133,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
         itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-13T05:43:35.806823Z',
         updated_at: '2025-06-13T05:43:35.806823Z'
       },
@@ -140,6 +144,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
         itp_template_id: 'de9df5cf-60de-4e5a-874a-26577bd396b5',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-13T05:27:06.229475Z',
         updated_at: '2025-06-13T05:27:06.229475Z'
       },
@@ -150,6 +155,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
         itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         status: 'completed',
+        created_by: 1,
         created_at: '2025-06-11T13:30:03.601300Z',
         updated_at: '2025-06-11T13:30:03.601300Z'
       },
@@ -160,6 +166,7 @@ if (!globalThis.mockDatabase) {
         project_id: 'e262b3bc-2f16-4056-847a-fc26285d01b0',
         itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-11T13:30:03.601300Z',
         updated_at: '2025-06-11T13:30:03.601300Z'
       },
@@ -170,6 +177,7 @@ if (!globalThis.mockDatabase) {
         project_id: '53b104fe-9d29-4aad-9df1-bef68f5d1d82',
         itp_template_id: '920c39b7-9f4e-485d-aac2-f2ccbaa34404',
         status: 'in_progress',
+        created_by: 1,
         created_at: '2025-06-15T01:40:16.852564Z',
         updated_at: '2025-06-15T01:40:16.852564Z'
       }
