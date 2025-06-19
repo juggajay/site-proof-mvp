@@ -23,15 +23,32 @@ declare global {
 // Initialize global mock database if it doesn't exist
 if (!globalThis.mockDatabase) {
   globalThis.mockDatabase = {
-    users: [],
+    users: [
+      {
+        id: 1,
+        email: 'admin@siteproof.com',
+        password_hash: '$2a$10$dummy.hash.for.testing',
+        email_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        email: 'manager@siteproof.com',
+        password_hash: '$2a$10$dummy.hash.for.testing',
+        email_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ],
     profiles: [
       {
         id: 1,
         user_id: 1,
         first_name: 'John',
-        last_name: 'Doe',
+        last_name: 'Anderson',
         avatar_url: undefined,
-        phone: undefined,
+        phone: '+1-555-0123',
         timezone: 'UTC',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -39,10 +56,10 @@ if (!globalThis.mockDatabase) {
       {
         id: 2,
         user_id: 2,
-        first_name: 'Jane',
-        last_name: 'Smith',
+        first_name: 'Sarah',
+        last_name: 'Mitchell',
         avatar_url: undefined,
-        phone: undefined,
+        phone: '+1-555-0124',
         timezone: 'UTC',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

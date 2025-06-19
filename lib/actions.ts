@@ -455,7 +455,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
 
     console.log('getLotByIdAction: Found lot:', lot.lot_number)
     const project = mockProjects.find(p => compareIds(p.id, lot.project_id))!
-    const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id)) : undefined
+    const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id!)) : undefined
     const itpItems = itpTemplate ? mockITPItems.filter(i => compareIds(i.itp_template_id, itpTemplate.id)) : []
     const conformanceRecords = mockConformanceRecords.filter(c => compareIds(c.lot_id, lotId))
     
@@ -610,6 +610,193 @@ export async function getDashboardStatsAction(): Promise<APIResponse<ProjectStat
     return { success: true, data: stats }
   } catch (error) {
     return { success: false, error: 'Failed to fetch dashboard stats' }
+  }
+}
+
+// ==================== REPORT GENERATION ACTIONS ====================
+
+export async function generateInspectionSummaryReportAction(
+  projectId?: string, 
+  dateRange?: string
+): Promise<APIResponse<any>> {
+  try {
+    await requireAuth()
+    
+    // Filter data based on parameters
+    let filteredLots = mockLots
+    if (projectId && projectId !== 'all') {
+      filteredLots = mockLots.filter(l => compareIds(l.project_id, projectId))
+    }
+    
+    const now = new Date()
+    const daysBack = dateRange === 'all' ? null : parseInt(dateRange || '30')
+    
+    if (daysBack) {
+      const cutoffDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000))
+      filteredLots = filteredLots.filter(l => new Date(l.created_at) >= cutoffDate)
+    }
+    
+    // Generate summary data
+    const totalInspections = mockConformanceRecords.filter(r => 
+      filteredLots.some(l => compareIds(l.id, r.lot_id))
+    ).length
+    
+    const passedInspections = mockConformanceRecords.filter(r => 
+      r.result_pass_fail === 'PASS' && filteredLots.some(l => compareIds(l.id, r.lot_id))
+    ).length
+    
+    const failedInspections = mockConformanceRecords.filter(r => 
+      r.result_pass_fail === 'FAIL' && filteredLots.some(l => compareIds(l.id, r.lot_id))
+    ).length
+    
+    const reportData = {
+      generated_at: now.toISOString(),
+      date_range: dateRange,
+      project_filter: projectId,
+      summary: {
+        total_lots: filteredLots.length,
+        total_inspections: totalInspections,
+        passed_inspections: passedInspections,
+        failed_inspections: failedInspections,
+        pass_rate: totalInspections > 0 ? Math.round((passedInspections / totalInspections) * 100) : 0
+      },
+      lots: filteredLots.map(lot => {
+        const project = mockProjects.find(p => compareIds(p.id, lot.project_id))
+        const lotRecords = mockConformanceRecords.filter(r => compareIds(r.lot_id, lot.id))
+        const lotPassed = lotRecords.filter(r => r.result_pass_fail === 'PASS').length
+        const lotFailed = lotRecords.filter(r => r.result_pass_fail === 'FAIL').length
+        
+        return {
+          lot_number: lot.lot_number,
+          project_name: project?.name || 'Unknown Project',
+          status: lot.status,
+          total_inspections: lotRecords.length,
+          passed: lotPassed,
+          failed: lotFailed,
+          completion_rate: lotRecords.length > 0 ? Math.round(((lotPassed + lotFailed) / lotRecords.length) * 100) : 0
+        }
+      })
+    }
+    
+    return { success: true, data: reportData, message: 'Inspection summary report generated successfully' }
+  } catch (error) {
+    return { success: false, error: 'Failed to generate inspection summary report' }
+  }
+}
+
+export async function generateNonConformanceReportAction(
+  projectId?: string, 
+  dateRange?: string
+): Promise<APIResponse<any>> {
+  try {
+    await requireAuth()
+    
+    // Filter conformance records for non-conformances
+    let nonConformances = mockConformanceRecords.filter(r => r.is_non_conformance || r.result_pass_fail === 'FAIL')
+    
+    if (projectId && projectId !== 'all') {
+      const projectLots = mockLots.filter(l => compareIds(l.project_id, projectId))
+      nonConformances = nonConformances.filter(r => 
+        projectLots.some(l => compareIds(l.id, r.lot_id))
+      )
+    }
+    
+    const now = new Date()
+    const daysBack = dateRange === 'all' ? null : parseInt(dateRange || '30')
+    
+    if (daysBack) {
+      const cutoffDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000))
+      nonConformances = nonConformances.filter(r => new Date(r.created_at) >= cutoffDate)
+    }
+    
+    const reportData = {
+      generated_at: now.toISOString(),
+      date_range: dateRange,
+      project_filter: projectId,
+      summary: {
+        total_non_conformances: nonConformances.length,
+        open_issues: nonConformances.filter(r => !r.corrective_action || r.corrective_action.trim() === '').length,
+        resolved_issues: nonConformances.filter(r => r.corrective_action && r.corrective_action.trim() !== '').length
+      },
+      non_conformances: nonConformances.map(record => {
+        const lot = mockLots.find(l => compareIds(l.id, record.lot_id))
+        const project = lot ? mockProjects.find(p => compareIds(p.id, lot.project_id)) : null
+        const itpItem = mockITPItems.find(i => compareIds(i.id, record.itp_item_id))
+        
+        return {
+          project_name: project?.name || 'Unknown Project',
+          lot_number: lot?.lot_number || 'Unknown Lot',
+          inspection_item: itpItem?.description || 'Unknown Item',
+          issue_date: record.created_at,
+          result: record.result_pass_fail,
+          comments: record.comments || '',
+          corrective_action: record.corrective_action || 'Pending',
+          status: record.corrective_action ? 'Resolved' : 'Open'
+        }
+      })
+    }
+    
+    return { success: true, data: reportData, message: 'Non-conformance report generated successfully' }
+  } catch (error) {
+    return { success: false, error: 'Failed to generate non-conformance report' }
+  }
+}
+
+export async function generateProjectProgressReportAction(
+  projectId?: string, 
+  dateRange?: string
+): Promise<APIResponse<any>> {
+  try {
+    await requireAuth()
+    
+    let filteredProjects = mockProjects
+    if (projectId && projectId !== 'all') {
+      filteredProjects = mockProjects.filter(p => compareIds(p.id, projectId))
+    }
+    
+    const reportData = {
+      generated_at: new Date().toISOString(),
+      date_range: dateRange,
+      project_filter: projectId,
+      projects: filteredProjects.map(project => {
+        const projectLots = mockLots.filter(l => compareIds(l.project_id, project.id))
+        const completedLots = projectLots.filter(l => l.status === 'completed').length
+        const inProgressLots = projectLots.filter(l => l.status === 'in_progress').length
+        const pendingLots = projectLots.filter(l => l.status === 'pending').length
+        
+        const totalInspections = mockConformanceRecords.filter(r => 
+          projectLots.some(l => compareIds(l.id, r.lot_id))
+        ).length
+        
+        const passedInspections = mockConformanceRecords.filter(r => 
+          r.result_pass_fail === 'PASS' && projectLots.some(l => compareIds(l.id, r.lot_id))
+        ).length
+        
+        return {
+          project_name: project.name,
+          project_number: project.project_number,
+          status: project.status,
+          location: project.location,
+          created_date: project.created_at,
+          lots: {
+            total: projectLots.length,
+            completed: completedLots,
+            in_progress: inProgressLots,
+            pending: pendingLots,
+            completion_rate: projectLots.length > 0 ? Math.round((completedLots / projectLots.length) * 100) : 0
+          },
+          quality: {
+            total_inspections: totalInspections,
+            passed_inspections: passedInspections,
+            pass_rate: totalInspections > 0 ? Math.round((passedInspections / totalInspections) * 100) : 0
+          }
+        }
+      })
+    }
+    
+    return { success: true, data: reportData, message: 'Project progress report generated successfully' }
+  } catch (error) {
+    return { success: false, error: 'Failed to generate project progress report' }
   }
 }
 

@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { getProjectsAction, getDashboardStatsAction } from '@/lib/actions'
+import { 
+  getProjectsAction, 
+  getDashboardStatsAction,
+  generateInspectionSummaryReportAction,
+  generateNonConformanceReportAction,
+  generateProjectProgressReportAction
+} from '@/lib/actions'
 import { Project, ProjectStats } from '@/types/database'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Download, Filter, Calendar, BarChart3, PieChart, TrendingUp } from 'lucide-react'
@@ -42,10 +48,37 @@ export default function ReportsPage() {
     }
   }
 
-  const generateReport = (reportType: string) => {
-    // This would typically trigger PDF generation
-    console.log(`Generating ${reportType} report for project: ${selectedProject}, date range: ${dateRange} days`)
-    alert(`${reportType} report generation would be implemented here`)
+  const generateReport = async (reportType: string) => {
+    try {
+      console.log(`Generating ${reportType} report for project: ${selectedProject}, date range: ${dateRange} days`)
+      
+      let result;
+      switch (reportType) {
+        case 'Inspection Summary':
+          result = await generateInspectionSummaryReportAction(selectedProject, dateRange)
+          break
+        case 'Non-Conformance':
+          result = await generateNonConformanceReportAction(selectedProject, dateRange)
+          break
+        case 'Project Progress':
+          result = await generateProjectProgressReportAction(selectedProject, dateRange)
+          break
+        default:
+          alert(`${reportType} report generation would be implemented here`)
+          return
+      }
+      
+      if (result.success) {
+        // In a real app, this would download a PDF or open a new tab with the report
+        console.log('Report data:', result.data)
+        alert(`${reportType} report generated successfully!\n\nCheck the browser console for detailed report data.\n\nIn a production app, this would download as a PDF file.`)
+      } else {
+        alert(`Failed to generate ${reportType} report: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Report generation error:', error)
+      alert(`Error generating ${reportType} report. Please try again.`)
+    }
   }
 
   if (loading || isLoading) {
