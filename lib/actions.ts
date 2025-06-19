@@ -280,16 +280,19 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
     }
 
     // Create project using database abstraction layer
-    const result = await createProject({
+    const projectData = {
       name,
       project_number: projectNumber || undefined,
       description: description || undefined,
       location: location || undefined,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
-      status: 'active'
+      status: 'active' as const
       // Note: organization_id, created_by, project_manager_id removed for Supabase compatibility
-    })
+    }
+    
+    console.log('🚀 createProjectAction: Calling createProject with data:', JSON.stringify(projectData, null, 2))
+    const result = await createProject(projectData)
     
     if (result.success) {
       console.log('=== PROJECT CREATION SUCCESS ===')

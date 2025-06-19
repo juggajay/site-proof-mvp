@@ -7,18 +7,26 @@ import { getCurrentDatabaseState, setDatabaseState } from './mock-fallback'
 export async function createProject(projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<APIResponse<Project>> {
   if (isSupabaseEnabled) {
     console.log('📊 Creating project in Supabase...')
+    console.log('📊 Input projectData:', JSON.stringify(projectData, null, 2))
     try {
       // Remove fields that don't exist in the Supabase schema
       const { created_by, project_manager_id, organization_id, ...supabaseData } = projectData
       
+      console.log('📊 Filtered supabaseData:', JSON.stringify(supabaseData, null, 2))
+      console.log('📊 Removed fields:', { created_by, project_manager_id, organization_id })
+      
+      const insertData = {
+        ...supabaseData,
+        // Only include fields that exist in your schema
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      console.log('📊 Final insert data:', JSON.stringify(insertData, null, 2))
+      
       const { data, error } = await supabase!
         .from('projects')
-        .insert([{
-          ...supabaseData,
-          // Only include fields that exist in your schema
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([insertData])
         .select()
         .single()
 
