@@ -79,14 +79,47 @@ export async function getProjectById(projectId: string | number): Promise<APIRes
   if (isSupabaseEnabled) {
     console.error('📊 Fetching project from Supabase:', projectId, typeof projectId)
     try {
-      // First try to get just the project without joins to test basic query
-      const { data: project, error: projectError } = await supabase!
+      // Try multiple query approaches to handle different ID types
+      console.error('📊 Trying Supabase query with ID:', projectId, 'type:', typeof projectId)
+      
+      // First try with string casting
+      let { data: project, error: projectError } = await supabase!
         .from('projects')
         .select('*')
-        .eq('id', projectId)
+        .eq('id', String(projectId))
         .single()
       
-      console.error('📊 Basic project query result:', { project: !!project, error: projectError })
+      console.error('📊 String query result:', { project: !!project, error: projectError?.message })
+      
+      // If that fails, try without casting
+      if (projectError) {
+        console.error('📊 Trying without string casting...')
+        const result2 = await supabase!
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single()
+        
+        project = result2.data
+        projectError = result2.error
+        console.error('📊 Direct query result:', { project: !!project, error: projectError?.message })
+      }
+      
+      // If still failing, try getting all projects and filtering
+      if (projectError) {
+        console.error('📊 Trying to get all projects and filter...')
+        const result3 = await supabase!
+          .from('projects')
+          .select('*')
+        
+        console.error('📊 All projects query result:', { count: result3.data?.length, error: result3.error?.message })
+        
+        if (result3.data) {
+          project = result3.data.find(p => String(p.id) === String(projectId))
+          projectError = project ? null : { message: 'Project not found in results' }
+          console.error('📊 Filter result:', { found: !!project, searchId: projectId, availableIds: result3.data.map(p => p.id) })
+        }
+      }
       
       console.error('📊 Supabase project query result:', { project: !!project, error: projectError })
 
