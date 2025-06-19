@@ -116,7 +116,17 @@ export async function getProjectById(projectId: string | number): Promise<APIRes
         
         if (result3.data) {
           project = result3.data.find(p => String(p.id) === String(projectId))
-          projectError = project ? null : { message: 'Project not found in results' }
+          if (!project) {
+            projectError = { 
+              message: 'Project not found in results', 
+              details: '', 
+              hint: '', 
+              code: '404', 
+              name: 'NotFoundError' 
+            } as any
+          } else {
+            projectError = null
+          }
           console.error('📊 Filter result:', { found: !!project, searchId: projectId, availableIds: result3.data.map(p => p.id) })
         }
       }
