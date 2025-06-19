@@ -8,10 +8,14 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
   if (isSupabaseEnabled) {
     console.log('📊 Creating project in Supabase...')
     try {
+      // Remove fields that don't exist in the Supabase schema
+      const { created_by, project_manager_id, organization_id, ...supabaseData } = projectData
+      
       const { data, error } = await supabase!
         .from('projects')
         .insert([{
-          ...projectData,
+          ...supabaseData,
+          // Only include fields that exist in your schema
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
