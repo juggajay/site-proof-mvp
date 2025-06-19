@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'crypto'
 import { 
   User, Profile, Organization, Project, Lot, ITPTemplate, ITPItem, 
   ConformanceRecord, Attachment, InspectionReport, NonConformance,
@@ -239,10 +240,9 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
       return { success: false, error: 'Project name is required' }
     }
 
-    // Generate new numeric ID
-    const numericIds = mockProjects.map(p => typeof p.id === 'number' ? p.id : 0)
+    // Generate new string UUID for consistency with existing projects
     const newProject: Project = {
-      id: Math.max(0, ...numericIds) + 1,
+      id: randomUUID(),
       name,
       project_number: projectNumber || undefined,
       description: description || undefined,
@@ -258,6 +258,7 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
     }
 
     mockProjects.push(newProject)
+    console.log('createProjectAction: Created new project with ID:', newProject.id, 'type:', typeof newProject.id)
     revalidatePath('/dashboard')
     
     return { success: true, data: newProject, message: 'Project created successfully' }
