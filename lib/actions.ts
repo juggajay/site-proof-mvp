@@ -23,6 +23,7 @@ import {
 
 // Import database abstraction layer
 import { createProject, getProjects, getProjectById } from './database'
+import { isSupabaseEnabled } from './supabase'
 
 // JWT helpers
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -231,7 +232,10 @@ export async function debugDatabaseAction(): Promise<APIResponse<any>> {
     const user = await requireAuth()
     console.error('🚨 Debug action auth successful for:', user.email)
     
-    const projects = globalThis.mockDatabase?.projects || []
+    // Use the same database layer as other actions
+    const projectsResult = await getProjects()
+    const projects = projectsResult.success ? projectsResult.data! : []
+    
     console.error('🚨 Debug action - projects in database:', projects.length)
     console.error('🚨 Debug action - project IDs:', projects.map(p => ({ id: p.id, name: p.name })))
     
@@ -240,7 +244,8 @@ export async function debugDatabaseAction(): Promise<APIResponse<any>> {
       data: { 
         projectCount: projects.length,
         projects: projects.map(p => ({ id: p.id, name: p.name })),
-        authUser: user.email
+        authUser: user.email,
+        usingSupabase: isSupabaseEnabled
       } 
     }
   } catch (error) {

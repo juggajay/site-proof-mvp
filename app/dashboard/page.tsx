@@ -309,7 +309,7 @@ export default function DashboardPage() {
                           project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {project.status.replace('_', ' ')}
+                          {project.status?.replace('_', ' ') || 'Unknown'}
                         </span>
                       </div>
                       {project.project_number && (
