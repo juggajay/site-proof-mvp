@@ -77,19 +77,21 @@ export async function getProjects(): Promise<APIResponse<Project[]>> {
 
 export async function getProjectById(projectId: string | number): Promise<APIResponse<ProjectWithDetails>> {
   if (isSupabaseEnabled) {
-    console.log('📊 Fetching project from Supabase:', projectId)
+    console.error('📊 Fetching project from Supabase:', projectId, typeof projectId)
     try {
       // Get project with organization data
       const { data: project, error: projectError } = await supabase!
         .from('projects')
         .select(`
           *,
-          organization:organizations(*),
-          created_by_user:profiles!projects_created_by_fkey(*),
+          organizations!projects_organization_id_fkey(*),
+          profiles!projects_created_by_fkey(*),
           project_manager:profiles!projects_project_manager_id_fkey(*)
         `)
         .eq('id', projectId)
         .single()
+      
+      console.error('📊 Supabase project query result:', { project: !!project, error: projectError })
 
       if (projectError) {
         console.error('Supabase project error:', projectError)
@@ -109,6 +111,9 @@ export async function getProjectById(projectId: string | number): Promise<APIRes
 
       const projectWithDetails: ProjectWithDetails = {
         ...project,
+        organization: project.organizations,
+        created_by_user: project.profiles,
+        project_manager: project.project_manager,
         lots: lots || [],
         members: [] // TODO: implement if needed
       }
