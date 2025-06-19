@@ -21,7 +21,9 @@ declare global {
 }
 
 // Initialize global mock database if it doesn't exist
+console.log('mock-data.ts: Checking if globalThis.mockDatabase exists:', !!globalThis.mockDatabase)
 if (!globalThis.mockDatabase) {
+  console.log('mock-data.ts: Creating new mockDatabase instance')
   globalThis.mockDatabase = {
     users: [
       {
@@ -229,6 +231,8 @@ if (!globalThis.mockDatabase) {
     reports: [],
     nonConformances: []
   }
+} else {
+  console.log('mock-data.ts: Using existing mockDatabase instance with', globalThis.mockDatabase.projects.length, 'projects')
 }
 
 // Export references to the global database

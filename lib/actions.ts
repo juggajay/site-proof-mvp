@@ -303,7 +303,9 @@ export async function getProjectByIdAction(projectId: number | string): Promise<
   try {
     await requireAuth()
     
+    console.log('=== getProjectByIdAction DEBUG START ===')
     console.log('getProjectByIdAction: Looking for project with ID:', projectId, 'type:', typeof projectId)
+    console.log('getProjectByIdAction: mockProjects array length:', mockProjects.length)
     console.log('getProjectByIdAction: Available projects:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
     
     // Test each comparison manually for debugging
