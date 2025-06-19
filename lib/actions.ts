@@ -287,10 +287,8 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
       location: location || undefined,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
-      status: 'active',
-      organization_id: 1, // Default organization
-      created_by: user.id,
-      project_manager_id: user.id
+      status: 'active'
+      // Note: organization_id, created_by, project_manager_id removed for Supabase compatibility
     })
     
     if (result.success) {
