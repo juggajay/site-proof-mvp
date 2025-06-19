@@ -284,17 +284,33 @@ export async function getProjectsAction(): Promise<APIResponse<Project[]>> {
   }
 }
 
+// Helper function to normalize IDs for comparison
+function normalizeId(id: number | string): string {
+  return String(id)
+}
+
+// Helper function to compareIds regardless of type
+function compareIds(id1: number | string, id2: number | string): boolean {
+  return normalizeId(id1) === normalizeId(id2)
+}
+
 export async function getProjectByIdAction(projectId: number | string): Promise<APIResponse<ProjectWithDetails>> {
   try {
     await requireAuth()
     
-    const project = mockProjects.find(p => p.id === projectId)
+    console.log('getProjectByIdAction: Looking for project with ID:', projectId, 'type:', typeof projectId)
+    console.log('getProjectByIdAction: Available projects:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
+    
+    const project = mockProjects.find(p => compareIds(p.id, projectId))
     if (!project) {
+      console.log('getProjectByIdAction: Project not found for ID:', projectId)
       return { success: false, error: 'Project not found' }
     }
 
+    console.log('getProjectByIdAction: Found project:', project.name)
     const organization = mockOrganizations.find(o => o.id === project.organization_id)!
-    const lots = mockLots.filter(l => l.project_id === projectId)
+    const lots = mockLots.filter(l => compareIds(l.project_id, projectId))
+    console.log('getProjectByIdAction: Found lots:', lots.length)
 
     const projectWithDetails: ProjectWithDetails = {
       ...project,
@@ -358,7 +374,7 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
     }
 
     // Check if lot number already exists in project
-    const existingLot = mockLots.find(l => l.project_id === projectId && l.lot_number === lotNumber)
+    const existingLot = mockLots.find(l => compareIds(l.project_id, projectId) && l.lot_number === lotNumber)
     if (existingLot) {
       return { success: false, error: 'Lot number already exists in this project' }
     }
@@ -391,15 +407,22 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
   try {
     await requireAuth()
     
-    const lotIndex = mockLots.findIndex(l => l.id === lotId)
+    console.log('assignITPToLotAction: Assigning template', itpTemplateId, 'to lot', lotId)
+    
+    const lotIndex = mockLots.findIndex(l => compareIds(l.id, lotId))
     if (lotIndex === -1) {
+      console.log('assignITPToLotAction: Lot not found for ID:', lotId)
       return { success: false, error: 'Lot not found' }
     }
 
-    const itpTemplate = mockITPTemplates.find(t => t.id === itpTemplateId)
+    const itpTemplate = mockITPTemplates.find(t => compareIds(t.id, itpTemplateId))
     if (!itpTemplate) {
+      console.log('assignITPToLotAction: ITP template not found for ID:', itpTemplateId)
+      console.log('assignITPToLotAction: Available templates:', mockITPTemplates.map(t => ({ id: t.id, name: t.name })))
       return { success: false, error: 'ITP template not found' }
     }
+    
+    console.log('assignITPToLotAction: Successfully found lot and template')
 
     mockLots[lotIndex] = {
       ...mockLots[lotIndex],
@@ -408,7 +431,9 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       updated_at: new Date().toISOString()
     }
 
-    revalidatePath(`/project/${mockLots[lotIndex].project_id}`)
+    const updatedLot = mockLots[lotIndex]
+    console.log('assignITPToLotAction: Successfully assigned ITP template to lot')
+    revalidatePath(`/project/${updatedLot.project_id}`)
     return { success: true, data: mockLots[lotIndex], message: 'ITP assigned successfully' }
   } catch (error) {
     return { success: false, error: 'Failed to assign ITP' }
@@ -419,15 +444,24 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
   try {
     await requireAuth()
     
-    const lot = mockLots.find(l => l.id === lotId)
+    console.log('getLotByIdAction: Looking for lot with ID:', lotId, 'type:', typeof lotId)
+    console.log('getLotByIdAction: Available lots:', mockLots.map(l => ({ id: l.id, type: typeof l.id, lot_number: l.lot_number })))
+    
+    const lot = mockLots.find(l => compareIds(l.id, lotId))
     if (!lot) {
+      console.log('getLotByIdAction: Lot not found for ID:', lotId)
       return { success: false, error: 'Lot not found' }
     }
 
-    const project = mockProjects.find(p => p.id === lot.project_id)!
-    const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => t.id === lot.itp_template_id) : undefined
-    const itpItems = itpTemplate ? mockITPItems.filter(i => i.itp_template_id === itpTemplate.id) : []
-    const conformanceRecords = mockConformanceRecords.filter(c => c.lot_id === lotId)
+    console.log('getLotByIdAction: Found lot:', lot.lot_number)
+    const project = mockProjects.find(p => compareIds(p.id, lot.project_id))!
+    const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id)) : undefined
+    const itpItems = itpTemplate ? mockITPItems.filter(i => compareIds(i.itp_template_id, itpTemplate.id)) : []
+    const conformanceRecords = mockConformanceRecords.filter(c => compareIds(c.lot_id, lotId))
+    
+    console.log('getLotByIdAction: Found ITP template:', itpTemplate?.name || 'None')
+    console.log('getLotByIdAction: Found ITP items:', itpItems.length)
+    console.log('getLotByIdAction: Found conformance records:', conformanceRecords.length)
 
     const lotWithDetails: LotWithDetails = {
       ...lot,
@@ -511,8 +545,10 @@ export async function saveConformanceRecordAction(
   try {
     const user = await requireAuth()
     
+    console.log('saveConformanceRecordAction: Saving record for lot', lotId, 'item', itpItemId)
+    
     const existingIndex = mockConformanceRecords.findIndex(
-      r => r.lot_id === lotId && r.itp_item_id === itpItemId
+      r => compareIds(r.lot_id, lotId) && compareIds(r.itp_item_id, itpItemId)
     )
 
     const recordData: ConformanceRecord = {
@@ -544,10 +580,11 @@ export async function saveConformanceRecordAction(
   }
 }
 
-export async function getConformanceRecordsAction(lotId: number): Promise<APIResponse<ConformanceRecord[]>> {
+export async function getConformanceRecordsAction(lotId: number | string): Promise<APIResponse<ConformanceRecord[]>> {
   try {
     await requireAuth()
-    const records = mockConformanceRecords.filter(r => r.lot_id === lotId)
+    const records = mockConformanceRecords.filter(r => compareIds(r.lot_id, lotId))
+    console.log('getConformanceRecordsAction: Found', records.length, 'records for lot', lotId)
     return { success: true, data: records }
   } catch (error) {
     return { success: false, error: 'Failed to fetch conformance records' }

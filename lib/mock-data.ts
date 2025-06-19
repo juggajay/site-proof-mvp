@@ -24,7 +24,30 @@ declare global {
 if (!globalThis.mockDatabase) {
   globalThis.mockDatabase = {
     users: [],
-    profiles: [],
+    profiles: [
+      {
+        id: 1,
+        user_id: 1,
+        first_name: 'John',
+        last_name: 'Doe',
+        avatar_url: undefined,
+        phone: undefined,
+        timezone: 'UTC',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        user_id: 2,
+        first_name: 'Jane',
+        last_name: 'Smith',
+        avatar_url: undefined,
+        phone: undefined,
+        timezone: 'UTC',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ],
     organizations: [
       {
         id: 1,
@@ -204,8 +227,15 @@ export const mockAttachments = globalThis.mockDatabase.attachments
 export const mockReports = globalThis.mockDatabase.reports
 export const mockNonConformances = globalThis.mockDatabase.nonConformances
 
-// Initialize default ITP templates
-if (mockITPTemplates.length === 0) {
+// Initialize default ITP templates and ensure they're loaded
+function initializeITPData() {
+  console.log('Initializing ITP templates and items...')
+  console.log('Current ITP templates count:', mockITPTemplates.length)
+  console.log('Current ITP items count:', mockITPItems.length)
+  
+  // Clear existing data first to avoid duplicates  
+  mockITPTemplates.length = 0
+  mockITPItems.length = 0
   // ITP Templates based on Supabase data
   const itpTemplates: ITPTemplate[] = [
     {
@@ -293,6 +323,8 @@ if (mockITPTemplates.length === 0) {
       updated_at: new Date().toISOString()
     }
   ]
+  
+  console.log('Adding', itpTemplates.length, 'ITP templates...')
   mockITPTemplates.push(...itpTemplates)
 
   // ITP Items from Supabase data
@@ -419,8 +451,70 @@ if (mockITPTemplates.length === 0) {
     }
   ]
   
-  // Add remaining items (showing first 10, but all 41 would be included)
+  // Add more comprehensive remaining items for better template coverage
   const remainingItems: ITPItem[] = [
+    // Rolling Operations ITP items
+    {
+      id: 'rolling-1',
+      itp_template_id: '0fe09989-58f8-450d-aa85-2d387d99d2be',
+      item_number: '1',
+      description: 'Compaction equipment calibrated and approved?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: 'rolling-2',
+      itp_template_id: '0fe09989-58f8-450d-aa85-2d387d99d2be',
+      item_number: '2',
+      description: 'Rolling pattern and frequency as per specification?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 2,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    // Material Placement ITP items (expand existing one)
+    {
+      id: 'material-1',
+      itp_template_id: '90eaae06-b84f-4bb5-aa49-fd549e9ac2cb',
+      item_number: '1',
+      description: 'Material delivery certificates received?',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'As specified',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: 'material-2',
+      itp_template_id: '90eaae06-b84f-4bb5-aa49-fd549e9ac2cb',
+      item_number: '2',
+      description: 'Material moisture content (%)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '6-8%',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 2,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
+    {
+      id: 'material-3',
+      itp_template_id: '90eaae06-b84f-4bb5-aa49-fd549e9ac2cb',
+      item_number: '3',
+      description: 'Layer thickness measurement (mm)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '150mm ±tolerance',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 3,
+      created_at: '2025-06-14T01:44:05.645591Z'
+    },
     {
       id: '481edd2b-62f2-482c-b348-d30529a894ca',
       itp_template_id: '90eaae06-b84f-4bb5-aa49-fd549e9ac2cb',
@@ -495,5 +589,19 @@ if (mockITPTemplates.length === 0) {
     }
   ]
   
+  console.log('Adding', supabaseItems.length + remainingItems.length, 'ITP items...')
   mockITPItems.push(...supabaseItems, ...remainingItems)
+  
+  console.log('ITP data initialization complete!')
+  console.log('Final ITP templates count:', mockITPTemplates.length)
+  console.log('Final ITP items count:', mockITPItems.length)
+  
+  // Log template-item relationships
+  mockITPTemplates.forEach(template => {
+    const itemCount = mockITPItems.filter(item => String(item.itp_template_id) === String(template.id)).length
+    console.log(`Template "${template.name}" has ${itemCount} items`)
+  })
 }
+
+// Always initialize ITP data
+initializeITPData()
