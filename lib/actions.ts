@@ -259,6 +259,8 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
 
     mockProjects.push(newProject)
     console.log('createProjectAction: Created new project with ID:', newProject.id, 'type:', typeof newProject.id)
+    console.log('createProjectAction: Total projects after creation:', mockProjects.length)
+    console.log('createProjectAction: All project IDs:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
     revalidatePath('/dashboard')
     
     return { success: true, data: newProject, message: 'Project created successfully' }
@@ -279,6 +281,8 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
 export async function getProjectsAction(): Promise<APIResponse<Project[]>> {
   try {
     await requireAuth()
+    console.log('getProjectsAction: Total projects available:', mockProjects.length)
+    console.log('getProjectsAction: Project IDs:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
     return { success: true, data: mockProjects }
   } catch (error) {
     return { success: false, error: 'Failed to fetch projects' }
@@ -302,9 +306,17 @@ export async function getProjectByIdAction(projectId: number | string): Promise<
     console.log('getProjectByIdAction: Looking for project with ID:', projectId, 'type:', typeof projectId)
     console.log('getProjectByIdAction: Available projects:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
     
+    // Test each comparison manually for debugging
+    console.log('getProjectByIdAction: Testing ID comparisons:')
+    mockProjects.forEach(p => {
+      const matches = compareIds(p.id, projectId)
+      console.log(`  Project ID ${p.id} (${typeof p.id}) vs search ${projectId} (${typeof projectId}) = ${matches}`)
+    })
+    
     const project = mockProjects.find(p => compareIds(p.id, projectId))
     if (!project) {
       console.log('getProjectByIdAction: Project not found for ID:', projectId)
+      console.log('getProjectByIdAction: compareIds function test:', compareIds('test', 'test'), compareIds(1, '1'))
       return { success: false, error: 'Project not found' }
     }
 

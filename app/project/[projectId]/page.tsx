@@ -25,10 +25,14 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
   const loadProjectData = useCallback(async () => {
     try {
+      console.log('loadProjectData: Attempting to load project with ID:', projectId, 'type:', typeof projectId)
       const result = await getProjectByIdAction(projectId)
+      console.log('loadProjectData: getProjectByIdAction result:', result)
       if (result.success) {
+        console.log('loadProjectData: Project loaded successfully:', result.data?.name)
         setProject(result.data!)
       } else {
+        console.log('loadProjectData: Failed to load project:', result.error)
         setError(result.error || 'Failed to load project')
       }
     } catch (error) {
