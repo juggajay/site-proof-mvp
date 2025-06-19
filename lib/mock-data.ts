@@ -18,11 +18,25 @@ declare global {
     reports: InspectionReport[]
     nonConformances: NonConformance[]
   } | undefined
+  var mockDatabaseInitialized: boolean | undefined
 }
 
 // Initialize global mock database if it doesn't exist
+console.log('=== MOCK DATA INITIALIZATION ===')
 console.log('mock-data.ts: Checking if globalThis.mockDatabase exists:', !!globalThis.mockDatabase)
-if (!globalThis.mockDatabase) {
+console.log('mock-data.ts: Checking if globalThis.mockDatabaseInitialized exists:', !!globalThis.mockDatabaseInitialized)
+console.log('mock-data.ts: Current timestamp:', new Date().toISOString())
+
+// For serverless environments like Vercel, we need to handle data persistence differently
+// Check if we're in a serverless environment
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+
+if (isServerless) {
+  console.log('mock-data.ts: Running in serverless environment - using fresh database each time')
+  // In serverless, always start fresh but try to preserve created projects in a different way
+}
+
+if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
   console.log('mock-data.ts: Creating new mockDatabase instance')
   globalThis.mockDatabase = {
     users: [
@@ -231,8 +245,11 @@ if (!globalThis.mockDatabase) {
     reports: [],
     nonConformances: []
   }
+  globalThis.mockDatabaseInitialized = true
+  console.log('mock-data.ts: Database initialized with', globalThis.mockDatabase.projects.length, 'default projects')
 } else {
   console.log('mock-data.ts: Using existing mockDatabase instance with', globalThis.mockDatabase.projects.length, 'projects')
+  console.log('mock-data.ts: Existing project IDs:', globalThis.mockDatabase.projects.map(p => ({ id: p.id, name: p.name })))
 }
 
 // Export references to the global database

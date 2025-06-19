@@ -21,6 +21,9 @@ import {
   mockReports, mockNonConformances
 } from './mock-data'
 
+// Import persistent storage for serverless environments
+import { getCurrentDatabaseState, setDatabaseState } from './persistent-storage'
+
 // JWT helpers
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
@@ -208,11 +211,42 @@ export async function getCurrentUser() {
 }
 
 export async function requireAuth() {
+  console.error('requireAuth: Starting authentication check...')
   const user = await getCurrentUser()
+  console.error('requireAuth: getCurrentUser result:', !!user, user ? user.email : 'no user')
   if (!user) {
+    console.error('requireAuth: Authentication failed - throwing error')
     throw new Error('Authentication required')
   }
+  console.error('requireAuth: Authentication successful for:', user.email)
   return user
+}
+
+// ==================== DEBUG ACTIONS ====================
+
+export async function debugDatabaseAction(): Promise<APIResponse<any>> {
+  console.error('🚨 debugDatabaseAction CALLED')
+  try {
+    console.error('🚨 About to call requireAuth in debug action...')
+    const user = await requireAuth()
+    console.error('🚨 Debug action auth successful for:', user.email)
+    
+    const projects = globalThis.mockDatabase?.projects || []
+    console.error('🚨 Debug action - projects in database:', projects.length)
+    console.error('🚨 Debug action - project IDs:', projects.map(p => ({ id: p.id, name: p.name })))
+    
+    return { 
+      success: true, 
+      data: { 
+        projectCount: projects.length,
+        projects: projects.map(p => ({ id: p.id, name: p.name })),
+        authUser: user.email
+      } 
+    }
+  } catch (error) {
+    console.error('🚨 Debug action error:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
 }
 
 // ==================== PROJECT ACTIONS ====================
@@ -257,10 +291,20 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
       updated_at: new Date().toISOString()
     }
 
-    mockProjects.push(newProject)
+    // Use persistent storage for serverless environments
+    console.log('createProjectAction: Loading current database state...')
+    const currentState = await getCurrentDatabaseState()
+    
+    // Add the new project
+    currentState.projects.push(newProject)
+    
+    // Save the updated state
+    await setDatabaseState(currentState)
+    
+    console.log('=== PROJECT CREATION SUCCESS ===')
     console.log('createProjectAction: Created new project with ID:', newProject.id, 'type:', typeof newProject.id)
-    console.log('createProjectAction: Total projects after creation:', mockProjects.length)
-    console.log('createProjectAction: All project IDs:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
+    console.log('createProjectAction: Total projects after creation:', currentState.projects.length)
+    console.log('createProjectAction: All project IDs:', currentState.projects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
     revalidatePath('/dashboard')
     
     return { success: true, data: newProject, message: 'Project created successfully' }
@@ -280,10 +324,17 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
 
 export async function getProjectsAction(): Promise<APIResponse<Project[]>> {
   try {
+    console.error('🚨 getProjectsAction: Starting...')
     await requireAuth()
-    console.log('getProjectsAction: Total projects available:', mockProjects.length)
-    console.log('getProjectsAction: Project IDs:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
-    return { success: true, data: mockProjects }
+    console.error('🚨 getProjectsAction: Auth successful')
+    
+    // Use persistent storage
+    const currentState = await getCurrentDatabaseState()
+    const currentProjects = currentState.projects
+    
+    console.error('🚨 getProjectsAction: Total projects available:', currentProjects.length)
+    console.error('🚨 getProjectsAction: Project IDs:', currentProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
+    return { success: true, data: currentProjects }
   } catch (error) {
     return { success: false, error: 'Failed to fetch projects' }
   }
@@ -300,44 +351,66 @@ function compareIds(id1: number | string, id2: number | string): boolean {
 }
 
 export async function getProjectByIdAction(projectId: number | string): Promise<APIResponse<ProjectWithDetails>> {
+  console.error('🚨 getProjectByIdAction CALLED with projectId:', projectId)
   try {
+    console.error('🚨 About to call requireAuth...')
     await requireAuth()
+    console.error('🚨 requireAuth completed successfully')
     
-    console.log('=== getProjectByIdAction DEBUG START ===')
-    console.log('getProjectByIdAction: Looking for project with ID:', projectId, 'type:', typeof projectId)
-    console.log('getProjectByIdAction: mockProjects array length:', mockProjects.length)
-    console.log('getProjectByIdAction: Available projects:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
+    console.error('=== getProjectByIdAction DEBUG START ===')
+    console.error('getProjectByIdAction: Looking for project with ID:', projectId, 'type:', typeof projectId)
+    console.error('getProjectByIdAction: mockProjects array length:', mockProjects.length)
+    console.error('getProjectByIdAction: Available projects:', mockProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
+    console.error('getProjectByIdAction: globalThis.mockDatabase exists:', !!globalThis.mockDatabase)
+    console.error('getProjectByIdAction: globalThis.mockDatabase.projects length:', globalThis.mockDatabase?.projects.length)
+    console.error('getProjectByIdAction: mockProjects === globalThis.mockDatabase.projects:', mockProjects === globalThis.mockDatabase?.projects)
+    
+    // Use persistent storage to get current projects
+    const currentState = await getCurrentDatabaseState()
+    const currentProjects = currentState.projects
+    console.error('getProjectByIdAction: Persistent storage projects length:', currentProjects.length)
+    console.error('getProjectByIdAction: Persistent storage projects:', currentProjects.map(p => ({ id: p.id, type: typeof p.id, name: p.name })))
     
     // Test each comparison manually for debugging
-    console.log('getProjectByIdAction: Testing ID comparisons:')
-    mockProjects.forEach(p => {
+    console.error('getProjectByIdAction: Testing ID comparisons with direct access:')
+    currentProjects.forEach(p => {
       const matches = compareIds(p.id, projectId)
-      console.log(`  Project ID ${p.id} (${typeof p.id}) vs search ${projectId} (${typeof projectId}) = ${matches}`)
+      console.error(`  Project ID ${p.id} (${typeof p.id}) vs search ${projectId} (${typeof projectId}) = ${matches}`)
     })
     
-    const project = mockProjects.find(p => compareIds(p.id, projectId))
+    const project = currentProjects.find(p => compareIds(p.id, projectId))
     if (!project) {
-      console.log('getProjectByIdAction: Project not found for ID:', projectId)
-      console.log('getProjectByIdAction: compareIds function test:', compareIds('test', 'test'), compareIds(1, '1'))
+      console.error('getProjectByIdAction: Project not found for ID:', projectId)
+      console.error('getProjectByIdAction: compareIds function test:', compareIds('test', 'test'), compareIds(1, '1'))
       return { success: false, error: 'Project not found' }
     }
 
     console.log('getProjectByIdAction: Found project:', project.name)
-    const organization = mockOrganizations.find(o => o.id === project.organization_id)!
-    const lots = mockLots.filter(l => compareIds(l.project_id, projectId))
+    
+    // Get related data from persistent storage
+    const organization = currentState.organizations.find(o => o.id === project.organization_id)!
+    const lots = currentState.lots.filter(l => compareIds(l.project_id, projectId))
     console.log('getProjectByIdAction: Found lots:', lots.length)
 
     const projectWithDetails: ProjectWithDetails = {
       ...project,
       organization,
-      created_by_user: mockProfiles.find(p => p.user_id === project.created_by)!,
-      project_manager: mockProfiles.find(p => p.user_id === project.project_manager_id)!,
+      created_by_user: currentState.profiles.find(p => p.user_id === project.created_by)!,
+      project_manager: currentState.profiles.find(p => p.user_id === project.project_manager_id)!,
       members: [],
       lots
     }
 
     return { success: true, data: projectWithDetails }
   } catch (error) {
+    console.error('🚨 getProjectByIdAction CAUGHT ERROR:', error)
+    console.error('🚨 Error message:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('🚨 Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    
+    if (error instanceof Error && error.message === 'Authentication required') {
+      return { success: false, error: 'Authentication required' }
+    }
+    
     return { success: false, error: 'Failed to fetch project' }
   }
 }

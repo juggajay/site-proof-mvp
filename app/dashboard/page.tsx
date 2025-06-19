@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { getProjectsAction, getDashboardStatsAction } from '@/lib/actions'
+import { getProjectsAction, getDashboardStatsAction, debugDatabaseAction } from '@/lib/actions'
 import { Project, ProjectStats } from '@/types/database'
 import Link from 'next/link'
 import { Plus, FolderOpen, BarChart3, Users, ClipboardList, AlertTriangle } from 'lucide-react'
@@ -26,6 +26,18 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       console.log('Loading dashboard data...')
+      
+      // Add debug call to see server-side state
+      console.log('🔍 CALLING DEBUG ACTION FROM loadDashboardData...')
+      console.log('🔍 debugDatabaseAction function exists:', typeof debugDatabaseAction)
+      try {
+        const debugResult = await debugDatabaseAction()
+        console.log('🔍 DEBUG RESULT:', JSON.stringify(debugResult, null, 2))
+      } catch (debugError) {
+        console.error('🔍 DEBUG ERROR:', debugError)
+        console.error('🔍 DEBUG ERROR TYPE:', typeof debugError)
+        console.error('🔍 DEBUG ERROR MESSAGE:', debugError.message)
+      }
       
       // Try Server Actions first, then fallback to API routes
       let projectsResult = await getProjectsAction()
@@ -60,6 +72,19 @@ export default function DashboardPage() {
       if (projectsResult.success) {
         setProjects(projectsResult.data || [])
         console.log('Projects set:', projectsResult.data?.length || 0)
+        
+        // Very basic debug - show project info in console
+        if (projectsResult.data && projectsResult.data.length > 0) {
+          const lastProject = projectsResult.data[projectsResult.data.length - 1]
+          console.log('SIMPLE DEBUG - Last project ID:', lastProject.id)
+          console.log('SIMPLE DEBUG - Last project name:', lastProject.name)
+          console.log('SIMPLE DEBUG - ID type:', typeof lastProject.id)
+          
+          // Show all project IDs
+          projectsResult.data.forEach((p, index) => {
+            console.log(`SIMPLE DEBUG - Project ${index}:`, p.id, p.name, typeof p.id)
+          })
+        }
       }
 
       if (statsResult.success) {
@@ -81,6 +106,16 @@ export default function DashboardPage() {
   const handleSimpleProjectCreated = () => {
     setIsSimpleModalOpen(false)
     loadDashboardData()
+  }
+
+  const handleDebugDatabase = async () => {
+    console.log('🔍 DASHBOARD DEBUG: Calling debugDatabaseAction...')
+    try {
+      const result = await debugDatabaseAction()
+      console.log('🔍 DASHBOARD DEBUG: Result:', JSON.stringify(result, null, 2))
+    } catch (error) {
+      console.error('🔍 DASHBOARD DEBUG: Error:', error)
+    }
   }
 
   if (loading || isLoading) {
@@ -116,19 +151,30 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center space-x-2 lg:space-x-4 flex-wrap gap-2">
               <button
-                onClick={() => {
+                onClick={async () => {
                   console.log('=== MANUAL REFRESH TRIGGERED ===')
+                  await handleDebugDatabase()
                   loadDashboardData()
                 }}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 lg:px-4 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors"
               >
-                🔄 Refresh
+                🔄 Refresh+Debug
               </button>
               <button
-                onClick={() => setIsSimpleModalOpen(true)}
+                onClick={async () => {
+                  console.log('🧪 TEST BUTTON: Calling debug action...')
+                  await handleDebugDatabase()
+                  setIsSimpleModalOpen(true)
+                }}
                 className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 lg:px-4 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors"
               >
-                🧪 Test
+                🧪 Test+Debug
+              </button>
+              <button
+                onClick={handleDebugDatabase}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 lg:px-4 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors"
+              >
+                🔍 Debug
               </button>
               <button
                 onClick={() => setIsCreateModalOpen(true)}

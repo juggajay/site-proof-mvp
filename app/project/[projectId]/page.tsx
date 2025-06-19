@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { getProjectByIdAction, getLotByIdAction } from '@/lib/actions'
+import { getProjectByIdAction, getLotByIdAction, debugDatabaseAction } from '@/lib/actions'
 import { ProjectWithDetails, Lot } from '@/types/database'
 import Link from 'next/link'
 import { ArrowLeft, Plus, MapPin, Calendar, User, Building, Settings, FileText, AlertCircle } from 'lucide-react'
@@ -28,11 +28,14 @@ export default function ProjectDetailPage({ params }: PageProps) {
       console.log('loadProjectData: Attempting to load project with ID:', projectId, 'type:', typeof projectId)
       const result = await getProjectByIdAction(projectId)
       console.log('loadProjectData: getProjectByIdAction result:', result)
+      console.log('loadProjectData: Full result object:', JSON.stringify(result, null, 2))
+      console.log('loadProjectData: Calling server action with exact params:', { projectId, type: typeof projectId })
       if (result.success) {
         console.log('loadProjectData: Project loaded successfully:', result.data?.name)
         setProject(result.data!)
       } else {
         console.log('loadProjectData: Failed to load project:', result.error)
+        console.log('loadProjectData: Result success flag:', result.success)
         setError(result.error || 'Failed to load project')
       }
     } catch (error) {
@@ -52,6 +55,16 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const handleLotCreated = () => {
     setIsCreateLotModalOpen(false)
     loadProjectData()
+  }
+
+  const handleDebugDatabase = async () => {
+    console.log('🔍 DEBUG: Calling debugDatabaseAction...')
+    try {
+      const result = await debugDatabaseAction()
+      console.log('🔍 DEBUG: Result:', JSON.stringify(result, null, 2))
+    } catch (error) {
+      console.error('🔍 DEBUG: Error:', error)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -92,10 +105,18 @@ export default function ProjectDetailPage({ params }: PageProps) {
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
           <p className="text-gray-600">{error}</p>
-          <Link href="/dashboard" className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-700">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
+          <div className="mt-4 space-x-4">
+            <button
+              onClick={handleDebugDatabase}
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              🔍 Debug Database
+            </button>
+            <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -106,10 +127,18 @@ export default function ProjectDetailPage({ params }: PageProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Project not found</p>
-          <Link href="/dashboard" className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-700">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Link>
+          <div className="mt-4 space-x-4">
+            <button
+              onClick={handleDebugDatabase}
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              🔍 Debug Database
+            </button>
+            <Link href="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     )
