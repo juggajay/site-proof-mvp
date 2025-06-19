@@ -36,7 +36,7 @@ export default function DashboardPage() {
       } catch (debugError) {
         console.error('🔍 DEBUG ERROR:', debugError)
         console.error('🔍 DEBUG ERROR TYPE:', typeof debugError)
-        console.error('🔍 DEBUG ERROR MESSAGE:', debugError.message)
+        console.error('🔍 DEBUG ERROR MESSAGE:', debugError instanceof Error ? debugError.message : String(debugError))
       }
       
       // Try Server Actions first, then fallback to API routes
