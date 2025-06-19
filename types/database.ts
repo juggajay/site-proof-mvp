@@ -62,8 +62,8 @@ export interface Project {
   start_date?: string;
   end_date?: string;
   status: 'active' | 'completed' | 'on_hold' | 'cancelled';
-  organization_id: number;
-  created_by: number;
+  organization_id?: number; // Optional for Supabase compatibility
+  created_by?: number; // Optional for Supabase compatibility
   project_manager_id?: number;
   created_at: string;
   updated_at: string;
