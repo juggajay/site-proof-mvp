@@ -360,3 +360,154 @@ export interface ConformanceFilters {
   date_from?: string;
   date_to?: string;
 }
+
+// Site Diary and Daily Report types
+export interface DailyReport {
+  id: number;
+  lot_id: number | string;
+  report_date: string; // YYYY-MM-DD format
+  weather_condition?: string;
+  temperature_high?: number;
+  temperature_low?: number;
+  work_summary?: string;
+  issues_encountered?: string;
+  safety_notes?: string;
+  visitors?: string;
+  equipment_status?: string;
+  progress_notes?: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyEvent {
+  id: number;
+  lot_id: number | string;
+  event_date: string; // YYYY-MM-DD format
+  event_time?: string; // HH:MM format
+  event_type: 'note' | 'incident' | 'inspection' | 'delivery' | 'meeting' | 'other';
+  title: string;
+  description?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  assigned_to?: number;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyLabour {
+  id: number;
+  lot_id: number | string;
+  work_date: string; // YYYY-MM-DD format
+  worker_name: string;
+  trade?: string;
+  hours_worked: number;
+  hourly_rate?: number;
+  overtime_hours?: number;
+  overtime_rate?: number;
+  task_description?: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyPlant {
+  id: number;
+  lot_id: number | string;
+  work_date: string; // YYYY-MM-DD format
+  equipment_type: string;
+  equipment_id?: string;
+  operator_name?: string;
+  hours_used: number;
+  hourly_rate?: number;
+  fuel_consumed?: number;
+  maintenance_notes?: string;
+  task_description?: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyMaterials {
+  id: number;
+  lot_id: number | string;
+  delivery_date: string; // YYYY-MM-DD format
+  material_type: string;
+  supplier?: string;
+  quantity: number;
+  unit_measure?: string;
+  unit_cost?: number;
+  total_cost?: number;
+  delivery_docket?: string;
+  quality_notes?: string;
+  received_by?: string;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Request types for creating site diary entries
+export interface CreateDailyReportRequest {
+  lot_id: number | string;
+  report_date: string;
+  weather_condition?: string;
+  temperature_high?: number;
+  temperature_low?: number;
+  work_summary?: string;
+  issues_encountered?: string;
+  safety_notes?: string;
+  visitors?: string;
+  equipment_status?: string;
+  progress_notes?: string;
+}
+
+export interface CreateDailyEventRequest {
+  lot_id: number | string;
+  event_date: string;
+  event_time?: string;
+  event_type: DailyEvent['event_type'];
+  title: string;
+  description?: string;
+  severity?: DailyEvent['severity'];
+  assigned_to?: number;
+}
+
+export interface CreateDailyLabourRequest {
+  lot_id: number | string;
+  work_date: string;
+  worker_name: string;
+  trade?: string;
+  hours_worked: number;
+  hourly_rate?: number;
+  overtime_hours?: number;
+  overtime_rate?: number;
+  task_description?: string;
+}
+
+export interface CreateDailyPlantRequest {
+  lot_id: number | string;
+  work_date: string;
+  equipment_type: string;
+  equipment_id?: string;
+  operator_name?: string;
+  hours_used: number;
+  hourly_rate?: number;
+  fuel_consumed?: number;
+  maintenance_notes?: string;
+  task_description?: string;
+}
+
+export interface CreateDailyMaterialsRequest {
+  lot_id: number | string;
+  delivery_date: string;
+  material_type: string;
+  supplier?: string;
+  quantity: number;
+  unit_measure?: string;
+  unit_cost?: number;
+  total_cost?: number;
+  delivery_docket?: string;
+  quality_notes?: string;
+  received_by?: string;
+}

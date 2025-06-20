@@ -1,6 +1,7 @@
 import { 
   User, Profile, Organization, Project, Lot, ITPTemplate, ITPItem, 
-  ConformanceRecord, Attachment, InspectionReport, NonConformance
+  ConformanceRecord, Attachment, InspectionReport, NonConformance,
+  DailyReport, DailyEvent, DailyLabour, DailyPlant, DailyMaterials
 } from '@/types/database'
 
 // Create a global singleton for mock data to ensure consistency across Server Actions and API routes
@@ -17,6 +18,11 @@ declare global {
     attachments: Attachment[]
     reports: InspectionReport[]
     nonConformances: NonConformance[]
+    dailyReports: DailyReport[]
+    dailyEvents: DailyEvent[]
+    dailyLabour: DailyLabour[]
+    dailyPlant: DailyPlant[]
+    dailyMaterials: DailyMaterials[]
   } | undefined
   var mockDatabaseInitialized: boolean | undefined
 }
@@ -243,7 +249,12 @@ if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
     conformanceRecords: [],
     attachments: [],
     reports: [],
-    nonConformances: []
+    nonConformances: [],
+    dailyReports: [],
+    dailyEvents: [],
+    dailyLabour: [],
+    dailyPlant: [],
+    dailyMaterials: []
   }
   globalThis.mockDatabaseInitialized = true
   console.log('mock-data.ts: Database initialized with', globalThis.mockDatabase.projects.length, 'default projects')
@@ -264,6 +275,11 @@ export const mockConformanceRecords = globalThis.mockDatabase.conformanceRecords
 export const mockAttachments = globalThis.mockDatabase.attachments
 export const mockReports = globalThis.mockDatabase.reports
 export const mockNonConformances = globalThis.mockDatabase.nonConformances
+export const mockDailyReports = globalThis.mockDatabase.dailyReports
+export const mockDailyEvents = globalThis.mockDatabase.dailyEvents
+export const mockDailyLabour = globalThis.mockDatabase.dailyLabour
+export const mockDailyPlant = globalThis.mockDatabase.dailyPlant
+export const mockDailyMaterials = globalThis.mockDatabase.dailyMaterials
 
 // Initialize default ITP templates and ensure they're loaded
 function initializeITPData() {

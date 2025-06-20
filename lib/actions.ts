@@ -11,14 +11,18 @@ import {
   ConformanceRecord, Attachment, InspectionReport, NonConformance,
   ProjectWithDetails, LotWithDetails, ITPTemplateWithItems,
   CreateProjectRequest, CreateLotRequest, CreateITPTemplateRequest,
-  UpdateConformanceRequest, APIResponse, ProjectStats, InspectionSummary
+  UpdateConformanceRequest, APIResponse, ProjectStats, InspectionSummary,
+  DailyReport, DailyEvent, DailyLabour, DailyPlant, DailyMaterials,
+  CreateDailyReportRequest, CreateDailyEventRequest, CreateDailyLabourRequest,
+  CreateDailyPlantRequest, CreateDailyMaterialsRequest
 } from '@/types/database'
 
 // Import shared mock database storage
 import { 
   mockUsers, mockProfiles, mockOrganizations, mockProjects, mockLots,
   mockITPTemplates, mockITPItems, mockConformanceRecords, mockAttachments,
-  mockReports, mockNonConformances
+  mockReports, mockNonConformances, mockDailyReports, mockDailyEvents,
+  mockDailyLabour, mockDailyPlant, mockDailyMaterials
 } from './mock-data'
 
 // Import database abstraction layer
@@ -126,9 +130,27 @@ export async function signupAction(formData: FormData): Promise<APIResponse> {
     const passwordHash = await bcrypt.hash(password, 12)
     const newUser = await createUserInDb(email, passwordHash)
 
-    if (firstName || lastName) {
-      await createProfileInDb(newUser.id, firstName, lastName)
+    // Always create profile (even with empty names)
+    await createProfileInDb(newUser.id, firstName, lastName)
+
+    // Create organization for new user
+    const orgSlug = `org-${newUser.id}-${Date.now()}`
+    const orgName = email.split('@')[0] + "'s Organization"
+    
+    const newOrg: Organization = {
+      id: mockOrganizations.length + 1,
+      name: orgName,
+      slug: orgSlug,
+      description: 'Default organization',
+      created_by: newUser.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
+    mockOrganizations.push(newOrg)
+
+    // Link user to organization as owner
+    // Note: In mock data, we don't have a user_organizations table, 
+    // but in real implementation this would be tracked
 
     const token = generateToken(newUser.id)
     cookies().set('auth-token', token, {
@@ -846,6 +868,202 @@ export async function generateProjectProgressReportAction(
     return { success: true, data: reportData, message: 'Project progress report generated successfully' }
   } catch (error) {
     return { success: false, error: 'Failed to generate project progress report' }
+  }
+}
+
+// ==================== SITE DIARY ACTIONS ====================
+
+export async function saveDailyReportAction(data: CreateDailyReportRequest): Promise<APIResponse<DailyReport>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('saveDailyReportAction: Saving daily report for lot', data.lot_id)
+    
+    // Check if report already exists for this lot and date
+    const existingIndex = mockDailyReports.findIndex(
+      r => compareIds(r.lot_id, data.lot_id) && r.report_date === data.report_date
+    )
+
+    const reportData: DailyReport = {
+      id: existingIndex >= 0 ? mockDailyReports[existingIndex].id : mockDailyReports.length + 1,
+      ...data,
+      created_by: user.id,
+      created_at: existingIndex >= 0 ? mockDailyReports[existingIndex].created_at : new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    if (existingIndex >= 0) {
+      mockDailyReports[existingIndex] = reportData
+    } else {
+      mockDailyReports.push(reportData)
+    }
+    
+    revalidatePath(`/project/${data.lot_id}`)
+    
+    return { success: true, data: reportData, message: 'Daily report saved successfully' }
+  } catch (error) {
+    console.error('Save daily report error:', error)
+    return { success: false, error: 'Failed to save daily report' }
+  }
+}
+
+export async function createDailyEventAction(data: CreateDailyEventRequest): Promise<APIResponse<DailyEvent>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('createDailyEventAction: Creating daily event for lot', data.lot_id)
+    
+    const eventData: DailyEvent = {
+      id: mockDailyEvents.length + 1,
+      ...data,
+      severity: data.severity || 'low',
+      status: 'open',
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    mockDailyEvents.push(eventData)
+    revalidatePath(`/project/${data.lot_id}`)
+    
+    return { success: true, data: eventData, message: 'Event created successfully' }
+  } catch (error) {
+    console.error('Create daily event error:', error)
+    return { success: false, error: 'Failed to create event' }
+  }
+}
+
+export async function createDailyLabourAction(data: CreateDailyLabourRequest): Promise<APIResponse<DailyLabour>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('createDailyLabourAction: Creating daily labour record for lot', data.lot_id)
+    
+    const labourData: DailyLabour = {
+      id: mockDailyLabour.length + 1,
+      ...data,
+      overtime_hours: data.overtime_hours || 0,
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    mockDailyLabour.push(labourData)
+    revalidatePath(`/project/${data.lot_id}`)
+    
+    return { success: true, data: labourData, message: 'Labour record created successfully' }
+  } catch (error) {
+    console.error('Create daily labour error:', error)
+    return { success: false, error: 'Failed to create labour record' }
+  }
+}
+
+export async function createDailyPlantAction(data: CreateDailyPlantRequest): Promise<APIResponse<DailyPlant>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('createDailyPlantAction: Creating daily plant record for lot', data.lot_id)
+    
+    const plantData: DailyPlant = {
+      id: mockDailyPlant.length + 1,
+      ...data,
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    mockDailyPlant.push(plantData)
+    revalidatePath(`/project/${data.lot_id}`)
+    
+    return { success: true, data: plantData, message: 'Plant record created successfully' }
+  } catch (error) {
+    console.error('Create daily plant error:', error)
+    return { success: false, error: 'Failed to create plant record' }
+  }
+}
+
+export async function createDailyMaterialsAction(data: CreateDailyMaterialsRequest): Promise<APIResponse<DailyMaterials>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('createDailyMaterialsAction: Creating daily materials record for lot', data.lot_id)
+    
+    const materialsData: DailyMaterials = {
+      id: mockDailyMaterials.length + 1,
+      ...data,
+      total_cost: data.unit_cost && data.quantity ? data.unit_cost * data.quantity : data.total_cost,
+      created_by: user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    mockDailyMaterials.push(materialsData)
+    revalidatePath(`/project/${data.lot_id}`)
+    
+    return { success: true, data: materialsData, message: 'Materials record created successfully' }
+  } catch (error) {
+    console.error('Create daily materials error:', error)
+    return { success: false, error: 'Failed to create materials record' }
+  }
+}
+
+export async function getDailyReportsByLotAction(lotId: number | string): Promise<APIResponse<DailyReport[]>> {
+  try {
+    await requireAuth()
+    
+    const reports = mockDailyReports.filter(r => compareIds(r.lot_id, lotId))
+    return { success: true, data: reports }
+  } catch (error) {
+    console.error('Get daily reports error:', error)
+    return { success: false, error: 'Failed to fetch daily reports' }
+  }
+}
+
+export async function getDailyEventsByLotAction(lotId: number | string): Promise<APIResponse<DailyEvent[]>> {
+  try {
+    await requireAuth()
+    
+    const events = mockDailyEvents.filter(e => compareIds(e.lot_id, lotId))
+    return { success: true, data: events }
+  } catch (error) {
+    console.error('Get daily events error:', error)
+    return { success: false, error: 'Failed to fetch daily events' }
+  }
+}
+
+export async function getDailyLabourByLotAction(lotId: number | string): Promise<APIResponse<DailyLabour[]>> {
+  try {
+    await requireAuth()
+    
+    const labour = mockDailyLabour.filter(l => compareIds(l.lot_id, lotId))
+    return { success: true, data: labour }
+  } catch (error) {
+    console.error('Get daily labour error:', error)
+    return { success: false, error: 'Failed to fetch daily labour records' }
+  }
+}
+
+export async function getDailyPlantByLotAction(lotId: number | string): Promise<APIResponse<DailyPlant[]>> {
+  try {
+    await requireAuth()
+    
+    const plant = mockDailyPlant.filter(p => compareIds(p.lot_id, lotId))
+    return { success: true, data: plant }
+  } catch (error) {
+    console.error('Get daily plant error:', error)
+    return { success: false, error: 'Failed to fetch daily plant records' }
+  }
+}
+
+export async function getDailyMaterialsByLotAction(lotId: number | string): Promise<APIResponse<DailyMaterials[]>> {
+  try {
+    await requireAuth()
+    
+    const materials = mockDailyMaterials.filter(m => compareIds(m.lot_id, lotId))
+    return { success: true, data: materials }
+  } catch (error) {
+    console.error('Get daily materials error:', error)
+    return { success: false, error: 'Failed to fetch daily materials records' }
   }
 }
 

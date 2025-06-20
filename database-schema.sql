@@ -289,6 +289,163 @@ CREATE TRIGGER conformance_records_updated_at BEFORE UPDATE ON conformance_recor
 CREATE TRIGGER non_conformances_updated_at BEFORE UPDATE ON non_conformances 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Function to handle new user creation
+-- This trigger automatically creates a profile and organization for new users
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+    org_id INTEGER;
+    org_slug VARCHAR(100);
+BEGIN
+    -- Create a profile for the new user
+    INSERT INTO profiles (user_id, timezone)
+    VALUES (NEW.id, 'UTC');
+    
+    -- Generate a unique organization slug
+    org_slug := 'org-' || NEW.id || '-' || EXTRACT(EPOCH FROM NOW())::INTEGER;
+    
+    -- Create a default organization for the user
+    INSERT INTO organizations (name, slug, created_by)
+    VALUES (
+        SPLIT_PART(NEW.email, '@', 1) || '''s Organization',
+        org_slug,
+        NEW.id
+    )
+    RETURNING id INTO org_id;
+    
+    -- Link the user to their organization as owner
+    INSERT INTO user_organizations (user_id, organization_id, role, status)
+    VALUES (NEW.id, org_id, 'owner', 'active');
+    
+    RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log the error but don't prevent user creation
+        RAISE WARNING 'Error in handle_new_user trigger: %', SQLERRM;
+        RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create the trigger on user insert
+DROP TRIGGER IF EXISTS on_auth_user_created ON users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON users
+    FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Site Diary and Daily Report tables
+CREATE TABLE daily_reports (
+    id SERIAL PRIMARY KEY,
+    lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+    report_date DATE NOT NULL,
+    weather_condition VARCHAR(50), -- 'sunny', 'cloudy', 'rainy', 'windy', etc.
+    temperature_high INTEGER,
+    temperature_low INTEGER,
+    work_summary TEXT,
+    issues_encountered TEXT,
+    safety_notes TEXT,
+    visitors TEXT,
+    equipment_status TEXT,
+    progress_notes TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(lot_id, report_date)
+);
+
+-- Daily events/notes
+CREATE TABLE daily_events (
+    id SERIAL PRIMARY KEY,
+    lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+    event_date DATE NOT NULL,
+    event_time TIME,
+    event_type VARCHAR(50) DEFAULT 'note', -- 'note', 'incident', 'inspection', 'delivery', etc.
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    severity VARCHAR(20) DEFAULT 'low', -- 'low', 'medium', 'high', 'critical'
+    status VARCHAR(20) DEFAULT 'open', -- 'open', 'in_progress', 'resolved', 'closed'
+    assigned_to INTEGER REFERENCES users(id),
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Daily labour records
+CREATE TABLE daily_labour (
+    id SERIAL PRIMARY KEY,
+    lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+    work_date DATE NOT NULL,
+    worker_name VARCHAR(100) NOT NULL,
+    trade VARCHAR(50), -- 'electrician', 'plumber', 'carpenter', 'laborer', etc.
+    hours_worked DECIMAL(4,2) NOT NULL,
+    hourly_rate DECIMAL(8,2),
+    overtime_hours DECIMAL(4,2) DEFAULT 0,
+    overtime_rate DECIMAL(8,2),
+    task_description TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Daily plant/equipment records
+CREATE TABLE daily_plant (
+    id SERIAL PRIMARY KEY,
+    lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+    work_date DATE NOT NULL,
+    equipment_type VARCHAR(100) NOT NULL, -- 'excavator', 'concrete_mixer', 'crane', etc.
+    equipment_id VARCHAR(50), -- equipment number or identifier
+    operator_name VARCHAR(100),
+    hours_used DECIMAL(4,2) NOT NULL,
+    hourly_rate DECIMAL(8,2),
+    fuel_consumed DECIMAL(6,2),
+    maintenance_notes TEXT,
+    task_description TEXT,
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Daily materials records
+CREATE TABLE daily_materials (
+    id SERIAL PRIMARY KEY,
+    lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+    delivery_date DATE NOT NULL,
+    material_type VARCHAR(100) NOT NULL, -- 'concrete', 'steel', 'aggregate', etc.
+    supplier VARCHAR(100),
+    quantity DECIMAL(10,3) NOT NULL,
+    unit_measure VARCHAR(20), -- 'm3', 'tonnes', 'pieces', etc.
+    unit_cost DECIMAL(8,2),
+    total_cost DECIMAL(10,2),
+    delivery_docket VARCHAR(50),
+    quality_notes TEXT,
+    received_by VARCHAR(100),
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for site diary tables
+CREATE INDEX idx_daily_reports_lot_date ON daily_reports(lot_id, report_date);
+CREATE INDEX idx_daily_events_lot_date ON daily_events(lot_id, event_date);
+CREATE INDEX idx_daily_labour_lot_date ON daily_labour(lot_id, work_date);
+CREATE INDEX idx_daily_plant_lot_date ON daily_plant(lot_id, work_date);
+CREATE INDEX idx_daily_materials_lot_date ON daily_materials(lot_id, delivery_date);
+
+-- Update triggers for site diary tables
+CREATE TRIGGER daily_reports_updated_at BEFORE UPDATE ON daily_reports 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER daily_events_updated_at BEFORE UPDATE ON daily_events 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER daily_labour_updated_at BEFORE UPDATE ON daily_labour 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER daily_plant_updated_at BEFORE UPDATE ON daily_plant 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER daily_materials_updated_at BEFORE UPDATE ON daily_materials 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Sample ITP template data
 INSERT INTO itp_templates (name, description, category, organization_id, created_by) VALUES
 ('Concrete Foundation ITP', 'Inspection Test Plan for concrete foundation work', 'structural', 1, 1),

@@ -1,5 +1,8 @@
 // Simplified mock data fallback for when Supabase is not configured
-import { Project, Lot, ITPTemplate, ITPItem, ConformanceRecord, Attachment, InspectionReport, NonConformance, Profile, Organization } from '@/types/database'
+import { 
+  Project, Lot, ITPTemplate, ITPItem, ConformanceRecord, Attachment, InspectionReport, NonConformance, 
+  Profile, Organization, DailyReport, DailyEvent, DailyLabour, DailyPlant, DailyMaterials 
+} from '@/types/database'
 
 interface DatabaseState {
   users: any[]
@@ -13,6 +16,11 @@ interface DatabaseState {
   attachments: Attachment[]
   reports: InspectionReport[]
   nonConformances: NonConformance[]
+  dailyReports: DailyReport[]
+  dailyEvents: DailyEvent[]
+  dailyLabour: DailyLabour[]
+  dailyPlant: DailyPlant[]
+  dailyMaterials: DailyMaterials[]
 }
 
 // Simple in-memory storage with better serverless handling
@@ -88,6 +96,11 @@ function getDefaultDatabaseState(): DatabaseState {
     conformanceRecords: [],
     attachments: [],
     reports: [],
-    nonConformances: []
+    nonConformances: [],
+    dailyReports: [],
+    dailyEvents: [],
+    dailyLabour: [],
+    dailyPlant: [],
+    dailyMaterials: []
   }
 }
