@@ -5,9 +5,10 @@ import { useAuth } from '@/contexts/auth-context'
 import { getLotByIdAction, getITPTemplatesAction, assignITPToLotAction, saveConformanceRecordAction } from '@/lib/actions'
 import { LotWithDetails, ITPTemplate, ConformanceRecord, UpdateConformanceRequest } from '@/types/database'
 import Link from 'next/link'
-import { ArrowLeft, ClipboardList, FileText, CheckCircle2, XCircle, AlertTriangle, Settings, MapPin } from 'lucide-react'
+import { ArrowLeft, ClipboardList, FileText, CheckCircle2, XCircle, AlertTriangle, Settings, MapPin, BookOpen, Calendar } from 'lucide-react'
 import { AssignITPModal } from '@/components/modals/assign-itp-modal'
 import { InspectionChecklistForm } from '@/components/forms/inspection-checklist-form'
+import { SiteDiaryTab } from '@/components/site-diary/site-diary-tab'
 
 interface PageProps {
   params: {
@@ -22,6 +23,7 @@ export default function LotDetailPage({ params }: PageProps) {
   const [isAssignITPModalOpen, setIsAssignITPModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'inspections' | 'site-diary'>('inspections')
 
   const projectId = params.projectId
   const lotId = params.lotId
@@ -244,8 +246,44 @@ export default function LotDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* ITP Template Assignment */}
-        {!lot.itp_template ? (
+        {/* Tab Navigation */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex">
+              <button
+                onClick={() => setActiveTab('inspections')}
+                className={`py-2 px-6 border-b-2 font-medium text-sm focus:outline-none ${
+                  activeTab === 'inspections'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center">
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  Inspections
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('site-diary')}
+                className={`py-2 px-6 border-b-2 font-medium text-sm focus:outline-none ${
+                  activeTab === 'site-diary'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Site Diary
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'inspections' ? (
+          /* ITP Template Assignment */
+          !lot.itp_template ? (
           <div className="bg-white shadow rounded-lg mb-8">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-medium text-gray-900">ITP Template Assignment</h3>
@@ -291,6 +329,9 @@ export default function LotDetailPage({ params }: PageProps) {
               onInspectionSaved={handleInspectionSaved}
             />
           </div>
+        ) : (
+          /* Site Diary Tab */
+          <SiteDiaryTab lotId={lotId} />
         )}
       </div>
 
