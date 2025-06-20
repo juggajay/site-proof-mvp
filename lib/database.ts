@@ -24,6 +24,27 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
       
       console.log('📊 Final insert data:', JSON.stringify(insertData, null, 2))
       
+      // Try using RPC or raw SQL to bypass schema cache issues
+      console.log('📊 Attempting Supabase insert...')
+      
+      // First, let's try a simple select to test the connection and see available columns
+      const { data: testData, error: testError } = await supabase!
+        .from('projects')
+        .select('*')
+        .limit(1)
+      
+      console.log('📊 Test query result:', { testData, testError })
+      
+      if (testData && testData.length > 0) {
+        console.log('📊 Available columns in projects table:', Object.keys(testData[0]))
+      }
+      
+      if (testError) {
+        console.error('📊 Test query failed:', testError)
+        return { success: false, error: `Database connection test failed: ${testError.message}` }
+      }
+      
+      // Now try the insert
       const { data, error } = await supabase!
         .from('projects')
         .insert([insertData])
