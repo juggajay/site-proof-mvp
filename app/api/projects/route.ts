@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/actions'
-import { mockProjects } from '@/lib/mock-data'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   console.log('=== API GET PROJECTS ROUTE CALLED ===')
@@ -17,12 +17,38 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
-    console.log('API Route: Returning projects:', mockProjects.length, mockProjects)
-    
-    return NextResponse.json({ 
-      success: true, 
-      data: mockProjects
-    })
+    // Use Supabase to fetch projects
+    if (supabase) {
+      console.log('API Route: Fetching projects from Supabase...')
+      const { data: projects, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return NextResponse.json({ 
+          success: false, 
+          error: error.message 
+        }, { status: 500 })
+      }
+      
+      console.log('API Route: Returning Supabase projects:', projects?.length || 0)
+      return NextResponse.json({ 
+        success: true, 
+        data: projects || [],
+        source: 'supabase'
+      })
+    } else {
+      // Fallback if Supabase is not configured
+      const { mockProjects } = await import('@/lib/mock-data')
+      console.log('API Route: Supabase not configured, using mock data')
+      return NextResponse.json({ 
+        success: true, 
+        data: mockProjects,
+        source: 'mock'
+      })
+    }
     
   } catch (error) {
     console.error('API Route error:', error)

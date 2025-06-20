@@ -27,7 +27,7 @@ import {
 
 // Import database abstraction layer
 import { createProject, getProjects, getProjectById } from './database'
-import { isSupabaseEnabled } from './supabase'
+import { isSupabaseEnabled, supabase } from './supabase'
 
 // JWT helpers
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -444,30 +444,70 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
       return { success: false, error: 'Project ID and lot number are required' }
     }
 
-    // Check if lot number already exists in project
-    const existingLot = mockLots.find(l => compareIds(l.project_id, projectId) && l.lot_number === lotNumber)
-    if (existingLot) {
-      return { success: false, error: 'Lot number already exists in this project' }
-    }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating lot in Supabase...')
+      
+      // Check if lot number already exists
+      const { data: existingLot } = await supabase
+        .from('lots')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('lot_number', lotNumber)
+        .single()
+      
+      if (existingLot) {
+        return { success: false, error: 'Lot number already exists in this project' }
+      }
+      
+      const { data: newLot, error } = await supabase
+        .from('lots')
+        .insert({
+          project_id: projectId,
+          lot_number: lotNumber,
+          description: description || null,
+          location_description: locationDescription || null,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Lot created in Supabase:', newLot)
+      revalidatePath(`/project/${projectId}`)
+      return { success: true, data: newLot, message: 'Lot created successfully' }
+    } else {
+      console.log('📝 Creating lot in mock data...')
+      // Check if lot number already exists in project
+      const existingLot = mockLots.find(l => compareIds(l.project_id, projectId) && l.lot_number === lotNumber)
+      if (existingLot) {
+        return { success: false, error: 'Lot number already exists in this project' }
+      }
 
-    // Generate new numeric ID for lot
-    const numericLotIds = mockLots.map(l => typeof l.id === 'number' ? l.id : 0)
-    const newLot: Lot = {
-      id: Math.max(0, ...numericLotIds) + 1,
-      project_id: projectId,
-      lot_number: lotNumber,
-      description: description || undefined,
-      location_description: locationDescription || undefined,
-      status: 'pending',
-      created_by: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+      // Generate new numeric ID for lot
+      const numericLotIds = mockLots.map(l => typeof l.id === 'number' ? l.id : 0)
+      const newLot: Lot = {
+        id: Math.max(0, ...numericLotIds) + 1,
+        project_id: projectId,
+        lot_number: lotNumber,
+        description: description || undefined,
+        location_description: locationDescription || undefined,
+        status: 'pending',
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-    mockLots.push(newLot)
-    revalidatePath(`/project/${projectId}`)
-    
-    return { success: true, data: newLot, message: 'Lot created successfully' }
+      mockLots.push(newLot)
+      revalidatePath(`/project/${projectId}`)
+      
+      return { success: true, data: newLot, message: 'Lot created successfully' }
+    }
   } catch (error) {
     console.error('Create lot error:', error)
     return { success: false, error: 'Failed to create lot' }
@@ -557,7 +597,26 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
 export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]>> {
   try {
     await requireAuth()
-    return { success: true, data: mockITPTemplates }
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching ITP templates from Supabase...')
+      const { data, error } = await supabase
+        .from('itp_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched ITP templates from Supabase:', data?.length || 0)
+      return { success: true, data: data || [] }
+    } else {
+      console.log('📝 Fetching ITP templates from mock data...')
+      return { success: true, data: mockITPTemplates }
+    }
   } catch (error) {
     return { success: false, error: 'Failed to fetch ITP templates' }
   }
@@ -567,26 +626,52 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
   try {
     await requireAuth()
     
-    const template = mockITPTemplates.find(t => compareIds(t.id, templateId))
-    if (!template) {
-      return { success: false, error: 'ITP template not found' }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching ITP template with items from Supabase...')
+      const { data: template, error: templateError } = await supabase
+        .from('itp_templates')
+        .select(`
+          *,
+          organization:organizations(*),
+          itp_items(*)
+        `)
+        .eq('id', templateId)
+        .single()
+      
+      if (templateError) {
+        console.error('Supabase error:', templateError)
+        return { success: false, error: templateError.message }
+      }
+      
+      if (!template) {
+        return { success: false, error: 'ITP template not found' }
+      }
+      
+      console.log('✅ Fetched ITP template from Supabase')
+      return { success: true, data: template as ITPTemplateWithItems }
+    } else {
+      console.log('📝 Fetching ITP template from mock data...')
+      const template = mockITPTemplates.find(t => compareIds(t.id, templateId))
+      if (!template) {
+        return { success: false, error: 'ITP template not found' }
+      }
+      
+      const items = mockITPItems.filter(item => compareIds(item.itp_template_id, templateId))
+      
+      // Get the organization for this template
+      const organization = mockOrganizations.find(o => o.id === template.organization_id)
+      if (!organization) {
+        return { success: false, error: 'Organization not found for this template' }
+      }
+      
+      const templateWithItems: ITPTemplateWithItems = {
+        ...template,
+        itp_items: items,
+        organization
+      }
+      
+      return { success: true, data: templateWithItems }
     }
-    
-    const items = mockITPItems.filter(item => compareIds(item.itp_template_id, templateId))
-    
-    // Get the organization for this template
-    const organization = mockOrganizations.find(o => o.id === template.organization_id)
-    if (!organization) {
-      return { success: false, error: 'Organization not found for this template' }
-    }
-    
-    const templateWithItems: ITPTemplateWithItems = {
-      ...template,
-      itp_items: items,
-      organization
-    }
-    
-    return { success: true, data: templateWithItems }
   } catch (error) {
     console.error('Get ITP template with items error:', error)
     return { success: false, error: 'Failed to fetch ITP template with items' }
@@ -648,34 +733,98 @@ export async function saveConformanceRecordAction(
     
     console.log('saveConformanceRecordAction: Saving record for lot', lotId, 'item', itpItemId)
     
-    const existingIndex = mockConformanceRecords.findIndex(
-      r => compareIds(r.lot_id, lotId) && compareIds(r.itp_item_id, itpItemId)
-    )
-
-    const recordData: ConformanceRecord = {
-      id: existingIndex >= 0 ? mockConformanceRecords[existingIndex].id : mockConformanceRecords.length + 1,
-      lot_id: lotId,
-      itp_item_id: itpItemId,
-      result_pass_fail: data.result_pass_fail,
-      result_numeric: data.result_numeric,
-      result_text: data.result_text,
-      comments: data.comments,
-      is_non_conformance: data.result_pass_fail === 'FAIL',
-      corrective_action: data.corrective_action,
-      inspector_id: user.id,
-      inspection_date: new Date().toISOString(),
-      created_at: existingIndex >= 0 ? mockConformanceRecords[existingIndex].created_at : new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    if (existingIndex >= 0) {
-      mockConformanceRecords[existingIndex] = recordData
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Saving conformance record in Supabase...')
+      
+      // Check if record exists
+      const { data: existing } = await supabase
+        .from('conformance_records')
+        .select('id')
+        .eq('lot_id', lotId)
+        .eq('itp_item_id', itpItemId)
+        .single()
+      
+      const recordData = {
+        lot_id: lotId,
+        itp_item_id: itpItemId,
+        result_pass_fail: data.result_pass_fail,
+        result_numeric: data.result_numeric || null,
+        result_text: data.result_text || null,
+        comments: data.comments || null,
+        is_non_conformance: data.result_pass_fail === 'FAIL',
+        corrective_action: data.corrective_action || null,
+        inspector_id: user.id,
+        inspection_date: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      let result;
+      if (existing) {
+        // Update existing record
+        const { data: updated, error } = await supabase
+          .from('conformance_records')
+          .update(recordData)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        
+        if (error) {
+          console.error('Supabase error:', error)
+          return { success: false, error: error.message }
+        }
+        result = updated
+      } else {
+        // Insert new record
+        const { data: inserted, error } = await supabase
+          .from('conformance_records')
+          .insert({
+            ...recordData,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+        
+        if (error) {
+          console.error('Supabase error:', error)
+          return { success: false, error: error.message }
+        }
+        result = inserted
+      }
+      
+      console.log('✅ Conformance record saved in Supabase')
+      revalidatePath(`/project/*/lot/${lotId}`)
+      return { success: true, data: result, message: 'Inspection saved successfully' }
     } else {
-      mockConformanceRecords.push(recordData)
-    }
+      console.log('📝 Saving conformance record in mock data...')
+      const existingIndex = mockConformanceRecords.findIndex(
+        r => compareIds(r.lot_id, lotId) && compareIds(r.itp_item_id, itpItemId)
+      )
 
-    revalidatePath(`/project/*/lot/${lotId}`)
-    return { success: true, data: recordData, message: 'Inspection saved successfully' }
+      const recordData: ConformanceRecord = {
+        id: existingIndex >= 0 ? mockConformanceRecords[existingIndex].id : mockConformanceRecords.length + 1,
+        lot_id: lotId,
+        itp_item_id: itpItemId,
+        result_pass_fail: data.result_pass_fail,
+        result_numeric: data.result_numeric,
+        result_text: data.result_text,
+        comments: data.comments,
+        is_non_conformance: data.result_pass_fail === 'FAIL',
+        corrective_action: data.corrective_action,
+        inspector_id: user.id,
+        inspection_date: new Date().toISOString(),
+        created_at: existingIndex >= 0 ? mockConformanceRecords[existingIndex].created_at : new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      if (existingIndex >= 0) {
+        mockConformanceRecords[existingIndex] = recordData
+      } else {
+        mockConformanceRecords.push(recordData)
+      }
+
+      revalidatePath(`/project/*/lot/${lotId}`)
+      return { success: true, data: recordData, message: 'Inspection saved successfully' }
+    }
   } catch (error) {
     return { success: false, error: 'Failed to save inspection' }
   }
@@ -684,9 +833,28 @@ export async function saveConformanceRecordAction(
 export async function getConformanceRecordsAction(lotId: number | string): Promise<APIResponse<ConformanceRecord[]>> {
   try {
     await requireAuth()
-    const records = mockConformanceRecords.filter(r => compareIds(r.lot_id, lotId))
-    console.log('getConformanceRecordsAction: Found', records.length, 'records for lot', lotId)
-    return { success: true, data: records }
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching conformance records from Supabase...')
+      const { data: records, error } = await supabase
+        .from('conformance_records')
+        .select('*')
+        .eq('lot_id', lotId)
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched conformance records from Supabase:', records?.length || 0)
+      return { success: true, data: records || [] }
+    } else {
+      console.log('📝 Fetching conformance records from mock data...')
+      const records = mockConformanceRecords.filter(r => compareIds(r.lot_id, lotId))
+      console.log('getConformanceRecordsAction: Found', records.length, 'records for lot', lotId)
+      return { success: true, data: records }
+    }
   } catch (error) {
     return { success: false, error: 'Failed to fetch conformance records' }
   }
@@ -943,20 +1111,52 @@ export async function createDailyEventAction(data: CreateDailyEventRequest): Pro
     
     console.log('createDailyEventAction: Creating daily event for lot', data.lot_id)
     
-    const eventData: DailyEvent = {
-      id: mockDailyEvents.length + 1,
-      ...data,
-      severity: data.severity || 'low',
-      status: 'open',
-      created_by: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating daily event in Supabase...')
+      
+      const { data: newEvent, error } = await supabase
+        .from('daily_events')
+        .insert({
+          lot_id: data.lot_id,
+          event_date: data.event_date,
+          event_time: data.event_time || null,
+          event_type: data.event_type,
+          title: data.title,
+          description: data.description || null,
+          severity: data.severity || 'low',
+          status: 'open',
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Daily event created in Supabase:', newEvent)
+      revalidatePath(`/project/${data.lot_id}`)
+      return { success: true, data: newEvent, message: 'Event created successfully' }
+    } else {
+      console.log('📝 Creating daily event in mock data...')
+      const eventData: DailyEvent = {
+        id: mockDailyEvents.length + 1,
+        ...data,
+        severity: data.severity || 'low',
+        status: 'open',
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-    mockDailyEvents.push(eventData)
-    revalidatePath(`/project/${data.lot_id}`)
-    
-    return { success: true, data: eventData, message: 'Event created successfully' }
+      mockDailyEvents.push(eventData)
+      revalidatePath(`/project/${data.lot_id}`)
+      
+      return { success: true, data: eventData, message: 'Event created successfully' }
+    }
   } catch (error) {
     console.error('Create daily event error:', error)
     return { success: false, error: 'Failed to create event' }
@@ -969,19 +1169,52 @@ export async function createDailyLabourAction(data: CreateDailyLabourRequest): P
     
     console.log('createDailyLabourAction: Creating daily labour record for lot', data.lot_id)
     
-    const labourData: DailyLabour = {
-      id: mockDailyLabour.length + 1,
-      ...data,
-      overtime_hours: data.overtime_hours || 0,
-      created_by: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating daily labour in Supabase...')
+      
+      const { data: newLabour, error } = await supabase
+        .from('daily_labour')
+        .insert({
+          lot_id: data.lot_id,
+          work_date: data.work_date,
+          worker_name: data.worker_name,
+          trade: data.trade || null,
+          hours_worked: data.hours_worked,
+          hourly_rate: data.hourly_rate || null,
+          overtime_hours: data.overtime_hours || 0,
+          overtime_rate: data.overtime_rate || null,
+          task_description: data.task_description || null,
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Daily labour created in Supabase:', newLabour)
+      revalidatePath(`/project/${data.lot_id}`)
+      return { success: true, data: newLabour, message: 'Labour record created successfully' }
+    } else {
+      console.log('📝 Creating daily labour in mock data...')
+      const labourData: DailyLabour = {
+        id: mockDailyLabour.length + 1,
+        ...data,
+        overtime_hours: data.overtime_hours || 0,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-    mockDailyLabour.push(labourData)
-    revalidatePath(`/project/${data.lot_id}`)
-    
-    return { success: true, data: labourData, message: 'Labour record created successfully' }
+      mockDailyLabour.push(labourData)
+      revalidatePath(`/project/${data.lot_id}`)
+      
+      return { success: true, data: labourData, message: 'Labour record created successfully' }
+    }
   } catch (error) {
     console.error('Create daily labour error:', error)
     return { success: false, error: 'Failed to create labour record' }
@@ -994,18 +1227,52 @@ export async function createDailyPlantAction(data: CreateDailyPlantRequest): Pro
     
     console.log('createDailyPlantAction: Creating daily plant record for lot', data.lot_id)
     
-    const plantData: DailyPlant = {
-      id: mockDailyPlant.length + 1,
-      ...data,
-      created_by: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating daily plant in Supabase...')
+      
+      const { data: newPlant, error } = await supabase
+        .from('daily_plant')
+        .insert({
+          lot_id: data.lot_id,
+          work_date: data.work_date,
+          equipment_type: data.equipment_type,
+          equipment_id: data.equipment_id || null,
+          operator_name: data.operator_name || null,
+          hours_used: data.hours_used,
+          hourly_rate: data.hourly_rate || null,
+          fuel_consumed: data.fuel_consumed || null,
+          maintenance_notes: data.maintenance_notes || null,
+          task_description: data.task_description || null,
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Daily plant created in Supabase:', newPlant)
+      revalidatePath(`/project/${data.lot_id}`)
+      return { success: true, data: newPlant, message: 'Plant record created successfully' }
+    } else {
+      console.log('📝 Creating daily plant in mock data...')
+      const plantData: DailyPlant = {
+        id: mockDailyPlant.length + 1,
+        ...data,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-    mockDailyPlant.push(plantData)
-    revalidatePath(`/project/${data.lot_id}`)
-    
-    return { success: true, data: plantData, message: 'Plant record created successfully' }
+      mockDailyPlant.push(plantData)
+      revalidatePath(`/project/${data.lot_id}`)
+      
+      return { success: true, data: plantData, message: 'Plant record created successfully' }
+    }
   } catch (error) {
     console.error('Create daily plant error:', error)
     return { success: false, error: 'Failed to create plant record' }
@@ -1018,19 +1285,54 @@ export async function createDailyMaterialsAction(data: CreateDailyMaterialsReque
     
     console.log('createDailyMaterialsAction: Creating daily materials record for lot', data.lot_id)
     
-    const materialsData: DailyMaterials = {
-      id: mockDailyMaterials.length + 1,
-      ...data,
-      total_cost: data.unit_cost && data.quantity ? data.unit_cost * data.quantity : data.total_cost,
-      created_by: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating daily materials in Supabase...')
+      
+      const { data: newMaterials, error } = await supabase
+        .from('daily_materials')
+        .insert({
+          lot_id: data.lot_id,
+          delivery_date: data.delivery_date,
+          material_type: data.material_type,
+          supplier: data.supplier || null,
+          quantity: data.quantity,
+          unit_measure: data.unit_measure || null,
+          unit_cost: data.unit_cost || null,
+          total_cost: data.total_cost || (data.unit_cost && data.quantity ? data.unit_cost * data.quantity : null),
+          delivery_docket: data.delivery_docket || null,
+          quality_notes: data.quality_notes || null,
+          received_by: data.received_by || null,
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Daily materials created in Supabase:', newMaterials)
+      revalidatePath(`/project/${data.lot_id}`)
+      return { success: true, data: newMaterials, message: 'Materials record created successfully' }
+    } else {
+      console.log('📝 Creating daily materials in mock data...')
+      const materialsData: DailyMaterials = {
+        id: mockDailyMaterials.length + 1,
+        ...data,
+        total_cost: data.total_cost || (data.unit_cost && data.quantity ? data.unit_cost * data.quantity : 0),
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-    mockDailyMaterials.push(materialsData)
-    revalidatePath(`/project/${data.lot_id}`)
-    
-    return { success: true, data: materialsData, message: 'Materials record created successfully' }
+      mockDailyMaterials.push(materialsData)
+      revalidatePath(`/project/${data.lot_id}`)
+      
+      return { success: true, data: materialsData, message: 'Materials record created successfully' }
+    }
   } catch (error) {
     console.error('Create daily materials error:', error)
     return { success: false, error: 'Failed to create materials record' }
@@ -1053,8 +1355,30 @@ export async function getDailyEventsByLotAction(lotId: number | string): Promise
   try {
     await requireAuth()
     
-    const events = mockDailyEvents.filter(e => compareIds(e.lot_id, lotId))
-    return { success: true, data: events }
+    console.log('getDailyEventsByLotAction: Fetching daily events for lot', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily events from Supabase...')
+      
+      const { data: events, error } = await supabase
+        .from('daily_events')
+        .select('*')
+        .eq('lot_id', lotId)
+        .order('event_date', { ascending: false })
+        .order('event_time', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily events from Supabase:', events?.length || 0)
+      return { success: true, data: events || [] }
+    } else {
+      console.log('📝 Fetching daily events from mock data...')
+      const events = mockDailyEvents.filter(e => compareIds(e.lot_id, lotId))
+      return { success: true, data: events }
+    }
   } catch (error) {
     console.error('Get daily events error:', error)
     return { success: false, error: 'Failed to fetch daily events' }
@@ -1065,8 +1389,29 @@ export async function getDailyLabourByLotAction(lotId: number | string): Promise
   try {
     await requireAuth()
     
-    const labour = mockDailyLabour.filter(l => compareIds(l.lot_id, lotId))
-    return { success: true, data: labour }
+    console.log('getDailyLabourByLotAction: Fetching daily labour for lot', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily labour from Supabase...')
+      
+      const { data: labour, error } = await supabase
+        .from('daily_labour')
+        .select('*')
+        .eq('lot_id', lotId)
+        .order('work_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily labour from Supabase:', labour?.length || 0)
+      return { success: true, data: labour || [] }
+    } else {
+      console.log('📝 Fetching daily labour from mock data...')
+      const labour = mockDailyLabour.filter(l => compareIds(l.lot_id, lotId))
+      return { success: true, data: labour }
+    }
   } catch (error) {
     console.error('Get daily labour error:', error)
     return { success: false, error: 'Failed to fetch daily labour records' }
@@ -1077,8 +1422,29 @@ export async function getDailyPlantByLotAction(lotId: number | string): Promise<
   try {
     await requireAuth()
     
-    const plant = mockDailyPlant.filter(p => compareIds(p.lot_id, lotId))
-    return { success: true, data: plant }
+    console.log('getDailyPlantByLotAction: Fetching daily plant for lot', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily plant from Supabase...')
+      
+      const { data: plant, error } = await supabase
+        .from('daily_plant')
+        .select('*')
+        .eq('lot_id', lotId)
+        .order('usage_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily plant from Supabase:', plant?.length || 0)
+      return { success: true, data: plant || [] }
+    } else {
+      console.log('📝 Fetching daily plant from mock data...')
+      const plant = mockDailyPlant.filter(p => compareIds(p.lot_id, lotId))
+      return { success: true, data: plant }
+    }
   } catch (error) {
     console.error('Get daily plant error:', error)
     return { success: false, error: 'Failed to fetch daily plant records' }
@@ -1089,8 +1455,29 @@ export async function getDailyMaterialsByLotAction(lotId: number | string): Prom
   try {
     await requireAuth()
     
-    const materials = mockDailyMaterials.filter(m => compareIds(m.lot_id, lotId))
-    return { success: true, data: materials }
+    console.log('getDailyMaterialsByLotAction: Fetching daily materials for lot', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily materials from Supabase...')
+      
+      const { data: materials, error } = await supabase
+        .from('daily_materials')
+        .select('*')
+        .eq('lot_id', lotId)
+        .order('delivery_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily materials from Supabase:', materials?.length || 0)
+      return { success: true, data: materials || [] }
+    } else {
+      console.log('📝 Fetching daily materials from mock data...')
+      const materials = mockDailyMaterials.filter(m => compareIds(m.lot_id, lotId))
+      return { success: true, data: materials }
+    }
   } catch (error) {
     console.error('Get daily materials error:', error)
     return { success: false, error: 'Failed to fetch daily materials records' }
