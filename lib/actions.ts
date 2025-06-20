@@ -574,9 +574,16 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
     
     const items = mockITPItems.filter(item => compareIds(item.itp_template_id, templateId))
     
+    // Get the organization for this template
+    const organization = mockOrganizations.find(o => o.id === template.organization_id)
+    if (!organization) {
+      return { success: false, error: 'Organization not found for this template' }
+    }
+    
     const templateWithItems: ITPTemplateWithItems = {
       ...template,
-      itp_items: items
+      itp_items: items,
+      organization
     }
     
     return { success: true, data: templateWithItems }
