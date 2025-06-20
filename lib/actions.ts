@@ -563,6 +563,29 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
   }
 }
 
+export async function getITPTemplateWithItemsAction(templateId: number | string): Promise<APIResponse<ITPTemplateWithItems>> {
+  try {
+    await requireAuth()
+    
+    const template = mockITPTemplates.find(t => compareIds(t.id, templateId))
+    if (!template) {
+      return { success: false, error: 'ITP template not found' }
+    }
+    
+    const items = mockITPItems.filter(item => compareIds(item.itp_template_id, templateId))
+    
+    const templateWithItems: ITPTemplateWithItems = {
+      ...template,
+      itp_items: items
+    }
+    
+    return { success: true, data: templateWithItems }
+  } catch (error) {
+    console.error('Get ITP template with items error:', error)
+    return { success: false, error: 'Failed to fetch ITP template with items' }
+  }
+}
+
 export async function createITPTemplateAction(data: CreateITPTemplateRequest): Promise<APIResponse<ITPTemplate>> {
   try {
     const user = await requireAuth()
