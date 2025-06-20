@@ -316,7 +316,7 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {record.hours_worked}h
-                    {record.overtime_hours > 0 && (
+                    {(record.overtime_hours || 0) > 0 && (
                       <span className="text-orange-600 ml-1">
                         +{record.overtime_hours}h OT
                       </span>

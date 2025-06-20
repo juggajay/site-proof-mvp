@@ -1097,6 +1097,20 @@ export async function getDailyMaterialsByLotAction(lotId: number | string): Prom
   }
 }
 
+export async function getDailyReportByDateAction(lotId: number | string, date: string): Promise<APIResponse<DailyReport | null>> {
+  try {
+    await requireAuth()
+    
+    const report = mockDailyReports.find(r => 
+      compareIds(r.lot_id, lotId) && r.report_date === date
+    )
+    return { success: true, data: report || null }
+  } catch (error) {
+    console.error('Get daily report by date error:', error)
+    return { success: false, error: 'Failed to fetch daily report' }
+  }
+}
+
 // ==================== FORM ACTION WRAPPERS ====================
 
 export async function handleSignup(formData: FormData) {

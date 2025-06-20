@@ -282,55 +282,53 @@ export default function LotDetailPage({ params }: PageProps) {
 
         {/* Tab Content */}
         {activeTab === 'inspections' ? (
-          /* ITP Template Assignment */
           !lot.itp_template ? (
-          <div className="bg-white shadow rounded-lg mb-8">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">ITP Template Assignment</h3>
-            </div>
-            <div className="text-center py-12">
-              <ClipboardList className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-sm font-medium text-gray-900">No ITP Template Assigned</h3>
-              <p className="mt-2 text-sm text-gray-500">
-                Assign an Inspection Test Plan (ITP) template to begin quality inspections for this lot.
-              </p>
-              <div className="mt-6">
-                <button
-                  onClick={() => setIsAssignITPModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  Assign ITP Template
-                </button>
+            <div className="bg-white shadow rounded-lg mb-8">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">ITP Template Assignment</h3>
               </div>
-            </div>
-          </div>
-        ) : (
-          /* Inspection Checklist */
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Quality Inspection Checklist</h3>
-                  <p className="text-sm text-gray-500">{lot.itp_template.name}</p>
+              <div className="text-center py-12">
+                <ClipboardList className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-4 text-sm font-medium text-gray-900">No ITP Template Assigned</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Assign an Inspection Test Plan (ITP) template to begin quality inspections for this lot.
+                </p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setIsAssignITPModalOpen(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Assign ITP Template
+                  </button>
                 </div>
-                <button
-                  onClick={() => setIsAssignITPModalOpen(true)}
-                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  Change Template
-                </button>
               </div>
             </div>
-            
-            <InspectionChecklistForm
-              lot={lot}
-              onInspectionSaved={handleInspectionSaved}
-            />
-          </div>
+          ) : (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Quality Inspection Checklist</h3>
+                    <p className="text-sm text-gray-500">{lot.itp_template.name}</p>
+                  </div>
+                  <button
+                    onClick={() => setIsAssignITPModalOpen(true)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Change Template
+                  </button>
+                </div>
+              </div>
+              
+              <InspectionChecklistForm
+                lot={lot}
+                onInspectionSaved={handleInspectionSaved}
+              />
+            </div>
+          )
         ) : (
-          /* Site Diary Tab */
           <SiteDiaryTab lotId={lotId} />
         )}
       </div>

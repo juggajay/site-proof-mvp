@@ -37,11 +37,10 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
         lot_id: parseInt(lotId),
         event_date: format(date, 'yyyy-MM-dd'),
         event_time: formData.event_time || undefined,
-        event_type: formData.event_type || 'note',
+        event_type: (formData.event_type || 'note') as DailyEvent['event_type'],
         title: formData.title,
         description: formData.description || undefined,
-        severity: formData.severity || 'low',
-        status: formData.status || 'open',
+        severity: (formData.severity || 'low') as DailyEvent['severity'],
       }
 
       const result = await createDailyEventAction(eventData)
