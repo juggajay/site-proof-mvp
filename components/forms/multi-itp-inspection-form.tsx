@@ -18,6 +18,22 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   // For now, use the single template until we implement multiple templates
   const templates = lot.itp_template ? [lot.itp_template] : []
   
+  console.log('🎨 MultiITPInspectionForm - lot data:', {
+    lotId: lot.id,
+    hasTemplate: !!lot.itp_template,
+    templateName: lot.itp_template?.name,
+    templateItems: lot.itp_template?.itp_items,
+    itemsLength: lot.itp_template?.itp_items?.length
+  })
+  
+  console.log('📊 MultiITPInspectionForm - Initial data:', {
+    lotId: lot.id,
+    hasTemplate: !!lot.itp_template,
+    templateId: lot.itp_template?.id,
+    itpItemsCount: lot.itp_template?.itp_items?.length,
+    templatesCount: templates.length
+  })
+  
   // Set active template on mount
   if (!activeTemplateId && templates.length > 0) {
     setActiveTemplateId(templates[0].id)
@@ -81,6 +97,14 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
 
   // Single template - show without tabs
   if (templates.length === 1) {
+    console.log('🎨 Single template mode:', {
+      templateId: templates[0].id,
+      templateName: templates[0].name,
+      hasItems: !!templates[0].itp_items,
+      itemsLength: templates[0].itp_items?.length,
+      items: templates[0].itp_items
+    })
+    
     const stats = getTemplateStats(templates[0].id)
     const completionPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
 
@@ -111,16 +135,27 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
         </div>
         
         <div className="p-6">
-          <InteractiveInspectionForm
-            lot={{
+          {(() => {
+            const transformedLot = {
               ...lot,
               itp_template: templates[0],
               conformance_records: lot.conformance_records.filter(r => 
                 templates[0].itp_items.some(item => item.id === r.itp_item_id)
               )
-            }}
-            onInspectionSaved={onInspectionSaved}
-          />
+            }
+            console.log('🔄 Passing transformed lot to InteractiveInspectionForm:', {
+              lotId: transformedLot.id,
+              templateId: transformedLot.itp_template?.id,
+              itemsCount: transformedLot.itp_template?.itp_items?.length,
+              conformanceRecordsCount: transformedLot.conformance_records?.length
+            })
+            return (
+              <InteractiveInspectionForm
+                lot={transformedLot}
+                onInspectionSaved={onInspectionSaved}
+              />
+            )
+          })()}
         </div>
         
         <AssignITPModal

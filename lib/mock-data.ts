@@ -394,6 +394,18 @@ function initializeITPData() {
       created_by: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
+    },
+    {
+      id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      name: 'Asphalt Layer Quality Check',
+      description: 'Inspection Test Plan for asphalt layer placement and quality control',
+      category: 'paving',
+      version: '1.0',
+      is_active: true,
+      organization_id: 1,
+      created_by: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
   ]
   
@@ -659,6 +671,79 @@ function initializeITPData() {
       is_mandatory: true,
       order_index: 4,
       created_at: '2025-06-11T13:30:03.601300Z'
+    },
+    // Asphalt Layer Quality Check items
+    {
+      id: 'asphalt-1',
+      itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      item_number: '1',
+      description: 'Subbase surface approved for paving',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'PASS',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 1,
+      created_at: '2025-06-13T05:43:35.806823Z'
+    },
+    {
+      id: 'asphalt-2',
+      itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      item_number: '2',
+      description: 'Asphalt temperature at delivery (°C)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '140-160°C',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 2,
+      created_at: '2025-06-13T05:43:35.806823Z'
+    },
+    {
+      id: 'asphalt-3',
+      itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      item_number: '3',
+      description: 'Layer thickness (mm)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '50mm ±5mm',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 3,
+      created_at: '2025-06-13T05:43:35.806823Z'
+    },
+    {
+      id: 'asphalt-4',
+      itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      item_number: '4',
+      description: 'Compaction density test (%)',
+      inspection_method: 'NUMERIC',
+      acceptance_criteria: '≥95%',
+      item_type: 'numeric',
+      is_mandatory: true,
+      order_index: 4,
+      created_at: '2025-06-13T05:43:35.806823Z'
+    },
+    {
+      id: 'asphalt-5',
+      itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      item_number: '5',
+      description: 'Surface finish and levels conform to specification',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'PASS',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 5,
+      created_at: '2025-06-13T05:43:35.806823Z'
+    },
+    {
+      id: 'asphalt-6',
+      itp_template_id: '8b5c78e1-9fe5-4c25-bb10-278e11d28c27',
+      item_number: '6',
+      description: 'Joint construction as per specification',
+      inspection_method: 'PASS_FAIL',
+      acceptance_criteria: 'PASS',
+      item_type: 'pass_fail',
+      is_mandatory: true,
+      order_index: 6,
+      created_at: '2025-06-13T05:43:35.806823Z'
     }
   ]
   
@@ -672,8 +757,18 @@ function initializeITPData() {
   // Log template-item relationships
   mockITPTemplates.forEach(template => {
     const itemCount = mockITPItems.filter(item => String(item.itp_template_id) === String(template.id)).length
-    console.log(`Template "${template.name}" has ${itemCount} items`)
+    console.log(`Template "${template.name}" (ID: ${template.id}) has ${itemCount} items`)
   })
+  
+  // Specifically log Asphalt Layer Quality Check template
+  const asphaltTemplate = mockITPTemplates.find(t => t.name === 'Asphalt Layer Quality Check')
+  if (asphaltTemplate) {
+    console.log('✅ Asphalt Layer Quality Check template found with ID:', asphaltTemplate.id)
+    const asphaltItems = mockITPItems.filter(item => String(item.itp_template_id) === String(asphaltTemplate.id))
+    console.log('✅ Asphalt Layer Quality Check has', asphaltItems.length, 'items')
+  } else {
+    console.log('❌ Asphalt Layer Quality Check template NOT FOUND!')
+  }
 }
 
 // Always initialize ITP data

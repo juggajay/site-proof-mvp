@@ -15,7 +15,15 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
   const [expandedItems, setExpandedItems] = useState<Set<string | number>>(new Set())
   const [errors, setErrors] = useState<{[itemId: string]: string}>({})
 
+  console.log('🔍 InteractiveInspectionForm rendered with:', {
+    lotId: lot.id,
+    templateId: lot.itp_template?.id,
+    itemsCount: lot.itp_template?.itp_items?.length,
+    conformanceRecordsCount: lot.conformance_records?.length
+  })
+
   if (!lot.itp_template?.itp_items) {
+    console.warn('⚠️ No ITP template or items found')
     return null
   }
 
@@ -24,18 +32,28 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
   }
 
   const handleQuickPass = async (item: ITPItem) => {
+    console.log('🟢 handleQuickPass clicked for item:', item.id, item.description)
     await saveInspection(item, 'PASS')
   }
 
   const handleQuickFail = async (item: ITPItem) => {
+    console.log('🔴 handleQuickFail clicked for item:', item.id, item.description)
     await saveInspection(item, 'FAIL')
   }
 
   const handleQuickNA = async (item: ITPItem) => {
+    console.log('⚪ handleQuickNA clicked for item:', item.id, item.description)
     await saveInspection(item, 'N/A')
   }
 
   const saveInspection = async (item: ITPItem, result: 'PASS' | 'FAIL' | 'N/A', additionalData?: Partial<UpdateConformanceRequest>) => {
+    console.log('📝 saveInspection called with:', {
+      itemId: item.id,
+      lotId: lot.id,
+      result,
+      additionalData
+    })
+    
     setSavingItems(prev => new Set(prev).add(item.id))
     setErrors(prev => {
       const newErrors = { ...prev }
@@ -48,18 +66,29 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
         result_pass_fail: result,
         ...additionalData
       }
+      
+      console.log('📤 Calling saveConformanceRecordAction with:', {
+        lotId: lot.id,
+        itemId: item.id,
+        requestData
+      })
 
       const apiResult = await saveConformanceRecordAction(lot.id, item.id, requestData)
       
+      console.log('📥 saveConformanceRecordAction result:', apiResult)
+      
       if (apiResult.success) {
+        console.log('✅ Inspection saved successfully, calling onInspectionSaved')
         onInspectionSaved()
       } else {
+        console.error('❌ Failed to save inspection:', apiResult.error)
         setErrors(prev => ({
           ...prev,
           [String(item.id)]: apiResult.error || 'Failed to save inspection'
         }))
       }
     } catch (error) {
+      console.error('💥 Unexpected error in saveInspection:', error)
       setErrors(prev => ({
         ...prev,
         [String(item.id)]: 'An unexpected error occurred'
@@ -104,14 +133,30 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
     }
   }
 
+  console.log('🏗️ About to render items. Total items:', lot.itp_template.itp_items.length)
+  console.log('🏗️ Items array:', lot.itp_template.itp_items)
+  
   return (
     <div className="space-y-2">
-      {lot.itp_template.itp_items.map((item) => {
+      {lot.itp_template.itp_items.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No inspection items found in this template.</p>
+        </div>
+      ) : (
+        lot.itp_template.itp_items.map((item) => {
         const status = getItemStatus(item)
         const existingRecord = getExistingRecord(item.id)
         const isSaving = savingItems.has(item.id)
         const isExpanded = expandedItems.has(item.id)
         const error = errors[String(item.id)]
+        
+        console.log('🔧 Rendering item:', {
+          itemId: item.id,
+          description: item.description,
+          status,
+          isSaving,
+          hasExistingRecord: !!existingRecord
+        })
 
         return (
           <div 
@@ -154,7 +199,11 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
                       
                       <h4 
                         className="text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600"
-                        onClick={() => toggleExpanded(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          console.log('📃 Item description clicked:', item.id)
+                          toggleExpanded(item.id)
+                        }}
                       >
                         {item.description}
                       </h4>
@@ -167,26 +216,54 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
                     </div>
                     
                     {/* Quick Action Buttons */}
+                    {(() => {
+                      console.log('🎯 Button visibility check:', {
+                        itemId: item.id,
+                        status,
+                        isPending: status === 'pending',
+                        isSaving,
+                        shouldShowButtons: status === 'pending' && !isSaving
+                      })
+                      return null
+                    })()}
                     {status === 'pending' && !isSaving && (
                       <div className="flex items-center gap-2 ml-4">
                         <button
-                          onClick={() => handleQuickPass(item)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('✅ Pass button clicked for item:', item.id)
+                            handleQuickPass(item)
+                          }}
                           className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
                           title="Pass"
+                          type="button"
                         >
                           <CheckCircle2 className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleQuickFail(item)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('❌ Fail button clicked for item:', item.id)
+                            handleQuickFail(item)
+                          }}
                           className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                           title="Fail"
+                          type="button"
                         >
                           <XCircle className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={() => handleQuickNA(item)}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            console.log('⭕ N/A button clicked for item:', item.id)
+                            handleQuickNA(item)
+                          }}
                           className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Not Applicable"
+                          type="button"
                         >
                           <div className="h-5 w-5 border-2 border-current rounded-full flex items-center justify-center text-xs">
                             N/A
@@ -323,7 +400,8 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
             </div>
           </div>
         )
-      })}
+      })
+      )}
     </div>
   )
 }
