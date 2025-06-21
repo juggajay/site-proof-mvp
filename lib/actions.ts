@@ -972,6 +972,57 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         })
       }
       
+      // If no templates from junction table, check direct assignment (lots.itp_id)
+      if (itpTemplates.length === 0 && (lot.itp_id || lot.itp_template_id)) {
+        const directItpId = lot.itp_id || lot.itp_template_id
+        console.log('📊 No junction table templates found, checking direct assignment:', directItpId)
+        
+        // Fetch the directly assigned ITP template
+        const { data: directTemplate } = await supabase
+          .from('itp_templates')
+          .select('*')
+          .eq('id', directItpId)
+          .single()
+        
+        if (directTemplate) {
+          // Fetch items for this template
+          const { data: directItems } = await supabase
+            .from('itp_items')
+            .select('*')
+            .eq('itp_id', directItpId)
+            .order('sort_order')
+          
+          // Map items to expected format
+          const mappedItems = (directItems || []).map(item => ({
+            ...item,
+            item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
+                      item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
+                      item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
+            itp_template_id: item.itp_id, // Map itp_id to itp_template_id
+            order_index: item.sort_order, // Map sort_order to order_index
+            item_number: `${item.sort_order}`, // Use sort_order as item number
+            inspection_method: item.item_number // Store the type as inspection method
+          }))
+          
+          const formattedTemplate = {
+            id: directTemplate.id,
+            name: directTemplate.name,
+            description: directTemplate.description,
+            category: directTemplate.category || 'general',
+            version: '1.0',
+            is_active: true,
+            organization_id: directTemplate.organization_id,
+            created_by: 1, // Default user ID
+            created_at: directTemplate.created_at,
+            updated_at: directTemplate.updated_at,
+            itp_items: mappedItems
+          }
+          
+          itpTemplates.push(formattedTemplate)
+          console.log('✅ Added directly assigned template:', directTemplate.name)
+        }
+      }
+      
       // For backward compatibility, set the first template as itp_template
       const primaryTemplate = itpTemplates.length > 0 ? itpTemplates[0] : undefined
       
