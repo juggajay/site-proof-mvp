@@ -28,8 +28,13 @@ export default function LotDetailPage({ params }: PageProps) {
   const projectId = params.projectId
   const lotId = params.lotId
   
-  console.log('LotDetailPage: params received:', params)
-  console.log('LotDetailPage: lotId:', lotId, 'type:', typeof lotId)
+  console.log('🔍 LotDetailPage - Loading lot with params:', params)
+  console.log('🔍 LotDetailPage - lotId:', lotId, 'type:', typeof lotId)
+  
+  // Temporary alert to verify code is running
+  if (typeof window !== 'undefined') {
+    console.error('🚨 LotDetailPage mounted with lotId:', lotId)
+  }
 
   const loadLotData = useCallback(async () => {
     try {

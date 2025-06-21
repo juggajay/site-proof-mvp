@@ -666,7 +666,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
   try {
     await requireAuth()
     
-    console.log('getLotByIdAction: Looking for lot with ID:', lotId, 'Type:', typeof lotId)
+    console.error('🚨 SERVER: getLotByIdAction - Looking for lot with ID:', lotId, 'Type:', typeof lotId)
     
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Fetching lot from Supabase...')
