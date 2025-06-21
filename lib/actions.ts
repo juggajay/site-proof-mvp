@@ -442,8 +442,7 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
   try {
     const user = await requireAuth()
     
-    const projectIdStr = formData.get('projectId') as string
-    const projectId = isNaN(parseInt(projectIdStr)) ? projectIdStr : parseInt(projectIdStr)
+    const projectId = formData.get('projectId') as string
     const lotNumber = formData.get('lotNumber') as string
     const description = formData.get('description') as string
     const locationDescription = formData.get('locationDescription') as string
@@ -454,6 +453,8 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
 
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Creating lot in Supabase...')
+      console.log('📊 Project ID:', projectId, 'Type:', typeof projectId)
+      console.log('📊 Lot Number:', lotNumber)
       
       // Check if lot number already exists
       const { data: existingLot } = await supabase
