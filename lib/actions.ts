@@ -1099,28 +1099,31 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
         return { success: false, error: 'ITP not found' }
       }
       
-      // Then get the items (using itp_id column)
+      // Then get the template items
       const { data: items, error: itemsError } = await supabase
-        .from('itp_items')
+        .from('itp_template_items')
         .select('*')
-        .eq('itp_id', templateId)
+        .eq('template_id', templateId)
         .order('sort_order')
       
       if (itemsError) {
         console.error('Error fetching items:', itemsError)
       }
       
-      // Map database format to TypeScript interface
+      // Map template items to the expected format
       const mappedItems = (items || []).map(item => ({
-        ...item,
-        item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
-                  item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
-                  item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-        itp_template_id: item.itp_id, // Map itp_id to itp_template_id for interface compatibility
-        order_index: item.sort_order, // Map sort_order to order_index
-        item_number: `${item.sort_order}`, // Use sort_order as item number
-        inspection_method: item.item_number // Store the type as inspection method
-      })) as ITPItem[]
+        id: item.id,
+        template_id: item.template_id,
+        item_number: item.item_number || `${item.sort_order}`,
+        description: item.description,
+        specification_reference: item.specification_reference,
+        inspection_method: item.inspection_method,
+        acceptance_criteria: item.acceptance_criteria,
+        is_mandatory: item.is_mandatory,
+        sort_order: item.sort_order,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      })) as ITPTemplateItem[]
       
       // Map to ITPTemplateWithItems format
       const template: ITPTemplateWithItems = {
@@ -1134,7 +1137,7 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
         created_by: 1, // Default user ID
         created_at: itp.created_at,
         updated_at: itp.updated_at,
-        itp_items: mappedItems,
+        template_items: mappedItems,
         organization: {
           id: itp.organization_id,
           name: 'Default Organization',
