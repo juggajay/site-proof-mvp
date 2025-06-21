@@ -673,7 +673,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       console.log('📊 Lot ID to search:', lotId, 'Type:', typeof lotId)
       
       // First, let's check if the lot exists with a simple query
-      const { data: lotExists, error: checkError } = await supabase
+      let { data: lotExists, error: checkError } = await supabase
         .from('lots')
         .select('id, lot_number, project_id')
         .eq('id', lotId)
