@@ -1220,21 +1220,23 @@ export async function createITPTemplateAction(data: CreateITPTemplateRequest): P
         return { success: false, error: error.message }
       }
       
-      // Create ITP items if provided
-      if (data.itp_items && data.itp_items.length > 0) {
-        const itemsToInsert = data.itp_items.map((item, index) => ({
-          itp_template_id: newItp.id,
+      // Create template items if provided
+      if (data.template_items && data.template_items.length > 0) {
+        const itemsToInsert = data.template_items.map((item, index) => ({
+          template_id: newItp.id,
           item_number: item.item_number || `ITEM-${index + 1}`,
           description: item.description,
           specification_reference: item.specification_reference || null,
+          inspection_method: item.inspection_method || null,
           acceptance_criteria: item.acceptance_criteria || null,
-          sort_order: item.order_index || index + 1,
+          is_mandatory: item.is_mandatory ?? true,
+          sort_order: item.sort_order || index + 1,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }))
         
         const { error: itemsError } = await supabase
-          .from('itp_items')
+          .from('itp_template_items')
           .insert(itemsToInsert)
         
         if (itemsError) {
