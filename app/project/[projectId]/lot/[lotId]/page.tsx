@@ -20,6 +20,11 @@ interface PageProps {
 }
 
 export default function LotDetailPage({ params }: PageProps) {
+  // Immediate debug logging
+  console.error('🔴 LotDetailPage RENDERED')
+  console.error('🔴 Raw params:', params)
+  console.error('🔴 Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
+  
   const { user, loading } = useAuth()
   const [lot, setLot] = useState<LotWithDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -35,6 +40,12 @@ export default function LotDetailPage({ params }: PageProps) {
   // Temporary alert to verify code is running
   if (typeof window !== 'undefined') {
     console.error('🚨 LotDetailPage mounted with lotId:', lotId)
+    // Also add a visible alert for absolute confirmation
+    const debugDiv = document.createElement('div')
+    debugDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999'
+    debugDiv.textContent = `LotDetailPage loaded! lotId: ${lotId}, projectId: ${projectId}`
+    document.body.appendChild(debugDiv)
+    setTimeout(() => debugDiv.remove(), 5000)
   }
 
   const loadLotData = useCallback(async () => {
