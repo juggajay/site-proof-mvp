@@ -899,12 +899,15 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             .eq('id', directItpId)
             .single()
           
-          // Fetch items for this template
+          // Fetch items for this template (using itp_id column)
+          console.log('📊 Fetching items for ITP ID:', directItpId)
           const { data: directItems } = await supabase
             .from('itp_items')
             .select('*')
-            .eq('itp_template_id', directItpId)
+            .eq('itp_id', directItpId)
             .order('sort_order')
+          
+          console.log('✅ Found items:', directItems?.length || 0, 'items')
           
           // Map items to expected format
           const mappedItems = (directItems || []).map(item => ({
@@ -912,7 +915,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
                       item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
                       item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-            itp_template_id: item.itp_template_id, // Use correct field name
+            itp_template_id: item.itp_id, // Map itp_id to itp_template_id for interface compatibility
             order_index: item.sort_order, // Map sort_order to order_index
             item_number: `${item.sort_order}`, // Use sort_order as item number
             inspection_method: item.item_number // Store the type as inspection method
@@ -1094,11 +1097,11 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
         return { success: false, error: 'ITP not found' }
       }
       
-      // Then get the items
+      // Then get the items (using itp_id column)
       const { data: items, error: itemsError } = await supabase
         .from('itp_items')
         .select('*')
-        .eq('itp_template_id', templateId)
+        .eq('itp_id', templateId)
         .order('sort_order')
       
       if (itemsError) {
@@ -1111,7 +1114,7 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
         item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
                   item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
                   item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-        itp_template_id: item.itp_template_id, // Use correct field name
+        itp_template_id: item.itp_id, // Map itp_id to itp_template_id for interface compatibility
         order_index: item.sort_order, // Map sort_order to order_index
         item_number: `${item.sort_order}`, // Use sort_order as item number
         inspection_method: item.item_number // Store the type as inspection method
