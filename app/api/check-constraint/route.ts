@@ -8,20 +8,34 @@ export async function GET() {
   
   try {
     // First, let's check what the foreign key constraint actually is
-    const { data: constraintInfo, error: constraintError } = await supabase
-      .rpc('get_constraint_info', {
-        constraint_name: 'lots_itp_id_fkey'
-      })
-      .single()
-      .catch(() => ({ data: null, error: 'RPC not available' }))
+    let constraintInfo = null
+    let constraintError: any = null
+    try {
+      const result = await supabase
+        .rpc('get_constraint_info', {
+          constraint_name: 'lots_itp_id_fkey'
+        })
+        .single()
+      constraintInfo = result.data
+      constraintError = result.error || 'RPC not available'
+    } catch (e) {
+      constraintError = 'RPC not available'
+    }
     
     // Try a raw SQL query to get constraint details
-    const { data: rawConstraint, error: rawError } = await supabase
-      .from('information_schema.constraint_column_usage')
-      .select('*')
-      .eq('constraint_name', 'lots_itp_id_fkey')
-      .single()
-      .catch(() => ({ data: null, error: 'Cannot query information_schema' }))
+    let rawConstraint = null
+    let rawError: any = null
+    try {
+      const result = await supabase
+        .from('information_schema.constraint_column_usage')
+        .select('*')
+        .eq('constraint_name', 'lots_itp_id_fkey')
+        .single()
+      rawConstraint = result.data
+      rawError = result.error || 'Cannot query information_schema'
+    } catch (e) {
+      rawError = 'Cannot query information_schema'
+    }
     
     // Check if the lots table has itp_id column
     const { data: lotSample, error: lotError } = await supabase
