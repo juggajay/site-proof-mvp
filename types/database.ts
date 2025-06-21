@@ -85,24 +85,73 @@ export interface ITPTemplate {
   category?: string;
   version: string;
   is_active: boolean;
-  organization_id: number;
-  created_by: number;
+  organization_id: number | string;
+  created_by: number | string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ITP {
+  id: number | string;
+  name: string;
+  description?: string;
+  template_id?: number | string;
+  project_id?: number | string;
+  lot_id?: number | string;
+  status: 'draft' | 'active' | 'in progress' | 'completed' | 'archived';
+  category?: string;
+  complexity?: 'Low' | 'Medium' | 'High';
+  estimated_duration?: string;
+  required_certifications?: string[];
+  organization_id: number | string;
+  created_by?: number | string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ITPTemplateItem {
+  id: number | string;
+  template_id: number | string;
+  item_number?: string;
+  description: string;
+  acceptance_criteria?: string;
+  inspection_method?: string;
+  is_mandatory: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface ITPItem {
   id: number | string;
-  itp_template_id: number | string;
+  itp_id: number | string; // Changed from itp_template_id to match new schema
+  template_item_id?: number | string; // Reference to template item
   item_number?: string;
   description: string;
   specification_reference?: string;
-  inspection_method?: 'visual' | 'measurement' | 'test' | 'document_review' | 'PASS_FAIL' | 'NUMERIC' | 'TEXT_INPUT';
+  inspection_method?: string;
   acceptance_criteria?: string;
-  item_type: 'pass_fail' | 'numeric' | 'text' | 'text_input' | 'photo_required';
   is_mandatory: boolean;
-  order_index: number;
+  sort_order: number;
+  status: 'Pending' | 'Pass' | 'Fail' | 'N/A' | 'In Progress';
+  inspected_by?: number | string;
+  inspected_date?: string;
+  inspection_notes?: string;
   created_at: string;
+  updated_at?: string;
+}
+
+export interface ITPAssignment {
+  id: number | string;
+  itp_id: number | string;
+  assigned_to: number | string;
+  assigned_by: number | string;
+  role: 'Inspector' | 'Reviewer' | 'Approver' | 'Observer';
+  scheduled_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+  completed_date?: string;
 }
 
 export interface Lot {
@@ -221,6 +270,42 @@ export interface AuditLog {
   user_agent?: string;
 }
 
+// Views from database
+export interface VITPOverview {
+  id: number | string;
+  itp_name: string;
+  template_name?: string;
+  project_name?: string;
+  lot_name?: string;
+  status: string;
+  created_at: string;
+  total_items: number;
+  passed_items: number;
+  failed_items: number;
+  pending_items: number;
+  completion_percentage: number;
+}
+
+export interface VITPAssignments {
+  id: number | string;
+  itp_id: number | string;
+  assigned_to: number | string;
+  assigned_by: number | string;
+  itp_name: string;
+  itp_status: string;
+  project_name?: string;
+  lot_name?: string;
+  assigned_to_email?: string;
+  assigned_by_email?: string;
+  assignment_status: 'Completed' | 'Overdue' | 'Due Today' | 'Scheduled';
+  role: string;
+  scheduled_date?: string;
+  completed_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 // Extended types with relationships
 export interface ProjectWithDetails extends Project {
   organization: Organization;
@@ -242,8 +327,16 @@ export interface LotWithDetails extends Lot {
   })[];
 }
 
+export interface ITPWithDetails extends ITP {
+  template?: ITPTemplate;
+  project?: Project;
+  lot?: Lot;
+  items: ITPItem[];
+  assignments: ITPAssignment[];
+}
+
 export interface ITPTemplateWithItems extends ITPTemplate {
-  itp_items: ITPItem[];
+  template_items: ITPTemplateItem[];
   organization: Organization;
 }
 
@@ -279,18 +372,39 @@ export interface CreateITPTemplateRequest {
   name: string;
   description?: string;
   category?: string;
-  itp_items: CreateITPItemRequest[];
+  version?: string;
+  template_items?: CreateITPTemplateItemRequest[];
 }
 
-export interface CreateITPItemRequest {
+export interface CreateITPTemplateItemRequest {
   item_number?: string;
   description: string;
-  specification_reference?: string;
-  inspection_method?: string;
   acceptance_criteria?: string;
-  item_type: 'pass_fail' | 'numeric' | 'text' | 'text_input' | 'photo_required';
+  inspection_method?: string;
   is_mandatory?: boolean;
-  order_index?: number;
+  sort_order?: number;
+}
+
+export interface CreateITPFromTemplateRequest {
+  template_id: number | string;
+  project_id?: number | string;
+  lot_id?: number | string;
+  name?: string;
+}
+
+export interface CreateITPAssignmentRequest {
+  itp_id: number | string;
+  assigned_to: number | string;
+  role?: 'Inspector' | 'Reviewer' | 'Approver' | 'Observer';
+  scheduled_date?: string;
+  notes?: string;
+}
+
+export interface UpdateITPItemRequest {
+  status?: 'Pending' | 'Pass' | 'Fail' | 'N/A' | 'In Progress';
+  inspection_notes?: string;
+  inspected_by?: number | string;
+  inspected_date?: string;
 }
 
 export interface UpdateConformanceRequest {

@@ -14,7 +14,9 @@ import {
   UpdateConformanceRequest, APIResponse, ProjectStats, InspectionSummary,
   DailyReport, DailyEvent, DailyLabour, DailyPlant, DailyMaterials,
   CreateDailyReportRequest, CreateDailyEventRequest, CreateDailyLabourRequest,
-  CreateDailyPlantRequest, CreateDailyMaterialsRequest
+  CreateDailyPlantRequest, CreateDailyMaterialsRequest,
+  ITP, ITPWithDetails, ITPAssignment, CreateITPFromTemplateRequest,
+  CreateITPAssignmentRequest, UpdateITPItemRequest, VITPOverview
 } from '@/types/database'
 
 // Import shared mock database storage
@@ -2364,6 +2366,246 @@ export async function getDailyMaterialsByProjectAction(projectId: number | strin
   } catch (error) {
     console.error('Get daily materials by project error:', error)
     return { success: false, error: 'Failed to fetch daily materials records' }
+  }
+}
+
+// ==================== NEW ITP SCHEMA ACTIONS ====================
+
+export async function createITPFromTemplateAction(request: CreateITPFromTemplateRequest): Promise<APIResponse<ITP>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('createITPFromTemplateAction: Creating ITP from template', request)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating ITP from template in Supabase...')
+      
+      // Call the database function
+      const { data: itpId, error } = await supabase
+        .rpc('create_itp_from_template', {
+          p_template_id: request.template_id,
+          p_project_id: request.project_id || null,
+          p_lot_id: request.lot_id || null,
+          p_name: request.name || null,
+          p_created_by: user.id
+        })
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      // Fetch the created ITP
+      const { data: itp, error: fetchError } = await supabase
+        .from('itps')
+        .select('*')
+        .eq('id', itpId)
+        .single()
+      
+      if (fetchError || !itp) {
+        console.error('Error fetching created ITP:', fetchError)
+        return { success: false, error: 'Failed to fetch created ITP' }
+      }
+      
+      console.log('✅ ITP created successfully:', itp)
+      
+      if (request.lot_id) {
+        revalidatePath(`/project/${request.project_id}/lot/${request.lot_id}`)
+      }
+      
+      return { success: true, data: itp, message: 'ITP created successfully from template' }
+    } else {
+      // Mock implementation
+      return { success: false, error: 'Mock implementation not available for new ITP schema' }
+    }
+  } catch (error) {
+    console.error('Create ITP from template error:', error)
+    return { success: false, error: 'Failed to create ITP from template' }
+  }
+}
+
+export async function getITPByIdAction(itpId: number | string): Promise<APIResponse<ITPWithDetails>> {
+  try {
+    await requireAuth()
+    
+    console.log('getITPByIdAction: Fetching ITP', itpId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching ITP from Supabase...')
+      
+      const { data: itp, error } = await supabase
+        .from('itps')
+        .select(`
+          *,
+          template:itp_templates(*),
+          project:projects(*),
+          lot:lots(*),
+          items:itp_items(
+            *,
+            template_item:itp_template_items(*)
+          ),
+          assignments:itp_assignments(*)
+        `)
+        .eq('id', itpId)
+        .single()
+      
+      if (error || !itp) {
+        console.error('Database error:', error)
+        return { success: false, error: 'ITP not found' }
+      }
+      
+      console.log('✅ Fetched ITP from Supabase')
+      return { success: true, data: itp }
+    } else {
+      // Mock implementation
+      return { success: false, error: 'Mock implementation not available for new ITP schema' }
+    }
+  } catch (error) {
+    console.error('Get ITP by ID error:', error)
+    return { success: false, error: 'Failed to fetch ITP' }
+  }
+}
+
+export async function updateITPItemAction(
+  itpId: number | string, 
+  itemId: number | string, 
+  updates: UpdateITPItemRequest
+): Promise<APIResponse<ITPItem>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('updateITPItemAction: Updating item', itemId, 'in ITP', itpId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Updating ITP item in Supabase...')
+      
+      // Update the item
+      const updateData: any = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      }
+      
+      if (updates.status && !updates.inspected_by) {
+        updateData.inspected_by = user.id
+      }
+      
+      if (updates.status && !updates.inspected_date) {
+        updateData.inspected_date = new Date().toISOString()
+      }
+      
+      const { data: item, error } = await supabase
+        .from('itp_items')
+        .update(updateData)
+        .eq('id', itemId)
+        .eq('itp_id', itpId)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      // Trigger ITP status update
+      await supabase.rpc('update_itp_status', { p_itp_id: itpId })
+      
+      console.log('✅ ITP item updated successfully')
+      return { success: true, data: item, message: 'Item updated successfully' }
+    } else {
+      // Mock implementation
+      return { success: false, error: 'Mock implementation not available for new ITP schema' }
+    }
+  } catch (error) {
+    console.error('Update ITP item error:', error)
+    return { success: false, error: 'Failed to update ITP item' }
+  }
+}
+
+export async function getITPOverviewAction(filters?: {
+  project_id?: string;
+  lot_id?: string;
+  status?: string;
+}): Promise<APIResponse<VITPOverview[]>> {
+  try {
+    await requireAuth()
+    
+    console.log('getITPOverviewAction: Fetching ITP overview', filters)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching ITP overview from Supabase...')
+      
+      let query = supabase.from('v_itp_overview').select('*')
+      
+      if (filters?.project_id) {
+        query = query.eq('project_id', filters.project_id)
+      }
+      if (filters?.lot_id) {
+        query = query.eq('lot_id', filters.lot_id)
+      }
+      if (filters?.status) {
+        query = query.eq('status', filters.status)
+      }
+      
+      query = query.order('created_at', { ascending: false })
+      
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched ITP overview:', data?.length || 0, 'records')
+      return { success: true, data: data || [] }
+    } else {
+      // Mock implementation
+      return { success: false, error: 'Mock implementation not available for new ITP schema' }
+    }
+  } catch (error) {
+    console.error('Get ITP overview error:', error)
+    return { success: false, error: 'Failed to fetch ITP overview' }
+  }
+}
+
+export async function createITPAssignmentAction(
+  request: CreateITPAssignmentRequest
+): Promise<APIResponse<ITPAssignment>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('createITPAssignmentAction: Creating assignment', request)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating ITP assignment in Supabase...')
+      
+      const { data: assignment, error } = await supabase
+        .from('itp_assignments')
+        .insert({
+          itp_id: request.itp_id,
+          assigned_to: request.assigned_to,
+          assigned_by: user.id,
+          role: request.role || 'Inspector',
+          scheduled_date: request.scheduled_date,
+          notes: request.notes,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ ITP assignment created successfully')
+      return { success: true, data: assignment, message: 'Assignment created successfully' }
+    } else {
+      // Mock implementation
+      return { success: false, error: 'Mock implementation not available for new ITP schema' }
+    }
+  } catch (error) {
+    console.error('Create ITP assignment error:', error)
+    return { success: false, error: 'Failed to create ITP assignment' }
   }
 }
 
