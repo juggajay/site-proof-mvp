@@ -1,18 +1,17 @@
 'use client'
-// Version 2.0 - Removed date fields that don't exist in database
 
 import { useState } from 'react'
 import { createProjectAction } from '@/lib/actions'
 import { useAuth } from '@/contexts/auth-context'
 import { X } from 'lucide-react'
 
-interface CreateProjectModalProps {
+interface NewCreateProjectModalProps {
   isOpen: boolean
   onClose: () => void
   onProjectCreated: () => void
 }
 
-export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: CreateProjectModalProps) {
+export function NewCreateProjectModal({ isOpen, onClose, onProjectCreated }: NewCreateProjectModalProps) {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,66 +37,28 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
     setError(null)
 
     try {
-      console.log('Form submitted')
+      console.log('NEW FORM: Form submitted')
       const formData = new FormData(event.currentTarget)
       
-      // Debug form data - only log valid fields
-      const validFields = ['name', 'description', 'location']
-      formData.forEach((value, key) => {
-        if (validFields.includes(key)) {
-          console.log(key, value)
-        }
-      })
+      // Only log the fields we actually have
+      console.log('NEW FORM: name:', formData.get('name'))
+      console.log('NEW FORM: description:', formData.get('description'))
+      console.log('NEW FORM: location:', formData.get('location'))
       
-      console.log('Calling createProjectAction...')
+      console.log('NEW FORM: Calling createProjectAction...')
       const result = await createProjectAction(formData)
-      console.log('Server Action Result:', result)
+      console.log('NEW FORM: Server Action Result:', result)
 
       if (result.success) {
-        console.log('Project created successfully, calling onProjectCreated...')
+        console.log('NEW FORM: Project created successfully')
         onProjectCreated()
-        // Reset form
-        ;(event.target as HTMLFormElement).reset()
-        console.log('Form reset complete')
+        onClose()
       } else {
-        console.error('Server Action failed:', result.error)
-        
-        // Fallback to API route if server action fails with auth error
-        if (result.error?.includes('log in') || result.error?.includes('Authentication')) {
-          console.log('Trying API route fallback...')
-          try {
-            const apiResponse = await fetch('/api/projects/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                name: formData.get('name'),
-                description: formData.get('description'),
-                location: formData.get('location')
-              })
-            })
-
-            const apiResult = await apiResponse.json()
-            console.log('API Route Result:', apiResult)
-
-            if (apiResult.success) {
-              onProjectCreated()
-              // Reset form
-              ;(event.target as HTMLFormElement).reset()
-            } else {
-              setError(apiResult.error || 'Failed to create project via API')
-            }
-          } catch (apiError) {
-            console.error('API fallback also failed:', apiError)
-            setError(result.error || 'Failed to create project. Please try again.')
-          }
-        } else {
-          setError(result.error || 'Failed to create project. Please try again.')
-        }
+        console.error('NEW FORM: Server Action failed:', result.error)
+        setError(result.error || 'Failed to create project. Please try again.')
       }
     } catch (error) {
-      console.error('Exception in handleSubmit:', error)
+      console.error('NEW FORM: Exception in handleSubmit:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)
@@ -117,7 +78,7 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
           <form onSubmit={handleSubmit}>
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Create New Project</h3>
+                <h3 className="text-lg font-medium text-gray-900">Create New Project (v2)</h3>
                 <button
                   type="button"
                   onClick={onClose}
@@ -148,7 +109,6 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
                   />
                 </div>
 
-
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                     Description
@@ -174,7 +134,6 @@ export function CreateProjectModal({ isOpen, onClose, onProjectCreated }: Create
                     placeholder="Project location"
                   />
                 </div>
-
               </div>
             </div>
 

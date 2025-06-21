@@ -302,15 +302,14 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
     }
 
     // Create project using database abstraction layer
+    // Only include fields that exist in the projects table
     const projectData = {
       name,
-      project_number: projectNumber || undefined,
       description: description || undefined,
       location: location || undefined,
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
-      status: 'active' as const
-      // Note: organization_id, created_by, project_manager_id removed for Supabase compatibility
+      organization_id: '550e8400-e29b-41d4-a716-446655440001' // Default organization
+      // These fields don't exist in the projects table:
+      // project_number, start_date, end_date, status
     }
     
     console.log('🚀 createProjectAction: Calling createProject with data:', JSON.stringify(projectData, null, 2))
@@ -320,6 +319,15 @@ export async function createProjectAction(formData: FormData): Promise<APIRespon
       console.log('=== PROJECT CREATION SUCCESS ===')
       console.log('createProjectAction: Created new project with ID:', result.data!.id)
       revalidatePath('/dashboard')
+      revalidatePath('/projects')
+    } else {
+      console.error('=== PROJECT CREATION FAILED ===')
+      console.error('Error:', result.error)
+      
+      // Add more specific error messages
+      if (result.error?.includes('end_date') || result.error?.includes('schema cache')) {
+        result.error = 'Database schema issue detected. Please try again or contact support if the issue persists.'
+      }
     }
     
     return result
@@ -464,9 +472,8 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
         .insert({
           project_id: projectId,
           lot_number: lotNumber,
-          description: description || null,
-          location_description: locationDescription || null,
-          status: 'pending',
+          description: description || locationDescription || null,
+          status: 'IN_PROGRESS',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -520,32 +527,82 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
     
     console.log('assignITPToLotAction: Assigning template', itpTemplateId, 'to lot', lotId)
     
-    const lotIndex = mockLots.findIndex(l => compareIds(l.id, lotId))
-    if (lotIndex === -1) {
-      console.log('assignITPToLotAction: Lot not found for ID:', lotId)
-      return { success: false, error: 'Lot not found' }
-    }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Assigning ITP in Supabase...')
+      
+      // First check if lot exists
+      const { data: lot, error: lotError } = await supabase
+        .from('lots')
+        .select('*')
+        .eq('id', lotId)
+        .single()
+      
+      if (lotError || !lot) {
+        console.log('Lot not found:', lotError)
+        return { success: false, error: 'Lot not found' }
+      }
+      
+      // Check if ITP exists (using itps table, not itp_templates)
+      const { data: itp, error: itpError } = await supabase
+        .from('itps')
+        .select('*')
+        .eq('id', itpTemplateId)
+        .single()
+      
+      if (itpError || !itp) {
+        console.log('ITP not found:', itpError)
+        return { success: false, error: 'ITP not found' }
+      }
+      
+      // Update the lot with the ITP template
+      const { data: updatedLot, error: updateError } = await supabase
+        .from('lots')
+        .update({
+          itp_id: itpTemplateId,
+          status: 'IN_PROGRESS',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lotId)
+        .select()
+        .single()
+      
+      if (updateError) {
+        console.error('Supabase error:', updateError)
+        return { success: false, error: updateError.message }
+      }
+      
+      console.log('✅ ITP assigned in Supabase:', updatedLot)
+      revalidatePath(`/project/${lot.project_id}`)
+      return { success: true, data: updatedLot, message: 'ITP assigned successfully' }
+    } else {
+      console.log('📝 Assigning ITP in mock data...')
+      const lotIndex = mockLots.findIndex(l => compareIds(l.id, lotId))
+      if (lotIndex === -1) {
+        console.log('assignITPToLotAction: Lot not found for ID:', lotId)
+        return { success: false, error: 'Lot not found' }
+      }
 
-    const itpTemplate = mockITPTemplates.find(t => compareIds(t.id, itpTemplateId))
-    if (!itpTemplate) {
-      console.log('assignITPToLotAction: ITP template not found for ID:', itpTemplateId)
-      console.log('assignITPToLotAction: Available templates:', mockITPTemplates.map(t => ({ id: t.id, name: t.name })))
-      return { success: false, error: 'ITP template not found' }
-    }
-    
-    console.log('assignITPToLotAction: Successfully found lot and template')
+      const itpTemplate = mockITPTemplates.find(t => compareIds(t.id, itpTemplateId))
+      if (!itpTemplate) {
+        console.log('assignITPToLotAction: ITP template not found for ID:', itpTemplateId)
+        console.log('assignITPToLotAction: Available templates:', mockITPTemplates.map(t => ({ id: t.id, name: t.name })))
+        return { success: false, error: 'ITP template not found' }
+      }
+      
+      console.log('assignITPToLotAction: Successfully found lot and template')
 
-    mockLots[lotIndex] = {
-      ...mockLots[lotIndex],
-      itp_template_id: itpTemplateId,
-      status: 'in_progress',
-      updated_at: new Date().toISOString()
-    }
+      mockLots[lotIndex] = {
+        ...mockLots[lotIndex],
+        itp_template_id: itpTemplateId,
+        status: 'in_progress',
+        updated_at: new Date().toISOString()
+      }
 
-    const updatedLot = mockLots[lotIndex]
-    console.log('assignITPToLotAction: Successfully assigned ITP template to lot')
-    revalidatePath(`/project/${updatedLot.project_id}`)
-    return { success: true, data: mockLots[lotIndex], message: 'ITP assigned successfully' }
+      const updatedLot = mockLots[lotIndex]
+      console.log('assignITPToLotAction: Successfully assigned ITP template to lot')
+      revalidatePath(`/project/${updatedLot.project_id}`)
+      return { success: true, data: mockLots[lotIndex], message: 'ITP assigned successfully' }
+    }
   } catch (error) {
     return { success: false, error: 'Failed to assign ITP' }
   }
@@ -555,38 +612,99 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
   try {
     await requireAuth()
     
-    console.log('getLotByIdAction: Looking for lot with ID:', lotId, 'type:', typeof lotId)
-    console.log('getLotByIdAction: Available lots:', mockLots.map(l => ({ id: l.id, type: typeof l.id, lot_number: l.lot_number })))
+    console.log('getLotByIdAction: Looking for lot with ID:', lotId)
     
-    const lot = mockLots.find(l => compareIds(l.id, lotId))
-    if (!lot) {
-      console.log('getLotByIdAction: Lot not found for ID:', lotId)
-      return { success: false, error: 'Lot not found' }
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching lot from Supabase...')
+      
+      // Get lot with project and ITP details
+      const { data: lot, error: lotError } = await supabase
+        .from('lots')
+        .select(`
+          *,
+          project:projects(*),
+          itp:itps(*)
+        `)
+        .eq('id', lotId)
+        .single()
+      
+      if (lotError || !lot) {
+        console.error('Lot not found:', lotError)
+        return { success: false, error: 'Lot not found' }
+      }
+      
+      // Get ITP items if ITP is assigned
+      let itpItems = []
+      if (lot.itp_id) {
+        const { data: items } = await supabase
+          .from('itp_items')
+          .select('*')
+          .eq('itp_id', lot.itp_id)
+          .order('sort_order')
+        
+        itpItems = items || []
+      }
+      
+      // Get conformance records
+      const { data: conformanceRecords } = await supabase
+        .from('conformance_records')
+        .select('*')
+        .eq('lot_id', lotId)
+      
+      // Map to LotWithDetails format
+      const lotWithDetails: LotWithDetails = {
+        ...lot,
+        project: lot.project,
+        itp_template: lot.itp ? {
+          id: lot.itp.id,
+          name: lot.itp.name,
+          description: lot.itp.description,
+          category: lot.itp.category || 'general',
+          version: '1.0',
+          is_active: true,
+          organization_id: lot.itp.organization_id,
+          created_by: 1, // Default user ID
+          created_at: lot.itp.created_at,
+          updated_at: lot.itp.updated_at
+        } : undefined,
+        itp_items: itpItems,
+        conformance_records: conformanceRecords || []
+      }
+      
+      console.log('✅ Fetched lot from Supabase with', itpItems.length, 'ITP items')
+      return { success: true, data: lotWithDetails }
+    } else {
+      console.log('📝 Fetching lot from mock data...')
+      const lot = mockLots.find(l => compareIds(l.id, lotId))
+      if (!lot) {
+        console.log('getLotByIdAction: Lot not found for ID:', lotId)
+        return { success: false, error: 'Lot not found' }
+      }
+
+      console.log('getLotByIdAction: Found lot:', lot.lot_number)
+      const project = mockProjects.find(p => compareIds(p.id, lot.project_id))!
+      const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id!)) : undefined
+      const itpItems = itpTemplate ? mockITPItems.filter(i => compareIds(i.itp_template_id, itpTemplate.id)) : []
+      const conformanceRecords = mockConformanceRecords.filter(c => compareIds(c.lot_id, lotId))
+      
+      console.log('getLotByIdAction: Found ITP template:', itpTemplate?.name || 'None')
+      console.log('getLotByIdAction: Found ITP items:', itpItems.length)
+      console.log('getLotByIdAction: Found conformance records:', conformanceRecords.length)
+
+      const lotWithDetails: LotWithDetails = {
+        ...lot,
+        project,
+        itp_template: itpTemplate ? { ...itpTemplate, itp_items: itpItems } : undefined,
+        assigned_inspector: lot.assigned_inspector_id ? mockProfiles.find(p => p.user_id === lot.assigned_inspector_id) : undefined,
+        conformance_records: conformanceRecords.map(record => ({
+          ...record,
+          itp_item: itpItems.find(item => item.id === record.itp_item_id)!,
+          attachments: mockAttachments.filter(a => a.conformance_record_id === record.id)
+        }))
+      }
+
+      return { success: true, data: lotWithDetails }
     }
-
-    console.log('getLotByIdAction: Found lot:', lot.lot_number)
-    const project = mockProjects.find(p => compareIds(p.id, lot.project_id))!
-    const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id!)) : undefined
-    const itpItems = itpTemplate ? mockITPItems.filter(i => compareIds(i.itp_template_id, itpTemplate.id)) : []
-    const conformanceRecords = mockConformanceRecords.filter(c => compareIds(c.lot_id, lotId))
-    
-    console.log('getLotByIdAction: Found ITP template:', itpTemplate?.name || 'None')
-    console.log('getLotByIdAction: Found ITP items:', itpItems.length)
-    console.log('getLotByIdAction: Found conformance records:', conformanceRecords.length)
-
-    const lotWithDetails: LotWithDetails = {
-      ...lot,
-      project,
-      itp_template: itpTemplate ? { ...itpTemplate, itp_items: itpItems } : undefined,
-      assigned_inspector: lot.assigned_inspector_id ? mockProfiles.find(p => p.user_id === lot.assigned_inspector_id) : undefined,
-      conformance_records: conformanceRecords.map(record => ({
-        ...record,
-        itp_item: itpItems.find(item => item.id === record.itp_item_id)!,
-        attachments: mockAttachments.filter(a => a.conformance_record_id === record.id)
-      }))
-    }
-
-    return { success: true, data: lotWithDetails }
   } catch (error) {
     return { success: false, error: 'Failed to fetch lot details' }
   }
@@ -599,11 +717,10 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
     await requireAuth()
     
     if (isSupabaseEnabled && supabase) {
-      console.log('📊 Fetching ITP templates from Supabase...')
-      const { data, error } = await supabase
-        .from('itp_templates')
+      console.log('📊 Fetching ITPs from Supabase...')
+      const { data: itps, error } = await supabase
+        .from('itps')
         .select('*')
-        .eq('is_active', true)
         .order('name')
       
       if (error) {
@@ -611,8 +728,22 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
         return { success: false, error: error.message }
       }
       
-      console.log('✅ Fetched ITP templates from Supabase:', data?.length || 0)
-      return { success: true, data: data || [] }
+      // Map itps to match ITPTemplate interface
+      const templates = itps?.map(itp => ({
+        id: itp.id,
+        name: itp.name,
+        description: itp.description,
+        category: itp.category || 'general',
+        version: '1.0',
+        is_active: true,
+        organization_id: itp.organization_id,
+        created_by: 1, // Default user ID
+        created_at: itp.created_at,
+        updated_at: itp.updated_at
+      })) || []
+      
+      console.log('✅ Fetched ITPs from Supabase:', templates.length)
+      return { success: true, data: templates }
     } else {
       console.log('📝 Fetching ITP templates from mock data...')
       return { success: true, data: mockITPTemplates }
@@ -627,28 +758,56 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
     await requireAuth()
     
     if (isSupabaseEnabled && supabase) {
-      console.log('📊 Fetching ITP template with items from Supabase...')
-      const { data: template, error: templateError } = await supabase
-        .from('itp_templates')
-        .select(`
-          *,
-          organization:organizations(*),
-          itp_items(*)
-        `)
+      console.log('📊 Fetching ITP with items from Supabase...')
+      
+      // First get the ITP
+      const { data: itp, error: itpError } = await supabase
+        .from('itps')
+        .select('*')
         .eq('id', templateId)
         .single()
       
-      if (templateError) {
-        console.error('Supabase error:', templateError)
-        return { success: false, error: templateError.message }
+      if (itpError || !itp) {
+        console.error('Supabase error:', itpError)
+        return { success: false, error: 'ITP not found' }
       }
       
-      if (!template) {
-        return { success: false, error: 'ITP template not found' }
+      // Then get the items
+      const { data: items, error: itemsError } = await supabase
+        .from('itp_items')
+        .select('*')
+        .eq('itp_id', templateId)
+        .order('sort_order')
+      
+      if (itemsError) {
+        console.error('Error fetching items:', itemsError)
       }
       
-      console.log('✅ Fetched ITP template from Supabase')
-      return { success: true, data: template as ITPTemplateWithItems }
+      // Map to ITPTemplateWithItems format
+      const template: ITPTemplateWithItems = {
+        id: itp.id,
+        name: itp.name,
+        description: itp.description,
+        category: itp.category || 'general',
+        version: '1.0',
+        is_active: true,
+        organization_id: itp.organization_id,
+        created_by: 1, // Default user ID
+        created_at: itp.created_at,
+        updated_at: itp.updated_at,
+        itp_items: items || [],
+        organization: {
+          id: itp.organization_id,
+          name: 'Default Organization',
+          slug: 'default',
+          created_by: 1, // Default user ID
+          created_at: itp.created_at,
+          updated_at: itp.updated_at
+        }
+      }
+      
+      console.log('✅ Fetched ITP from Supabase with', items?.length || 0, 'items')
+      return { success: true, data: template }
     } else {
       console.log('📝 Fetching ITP template from mock data...')
       const template = mockITPTemplates.find(t => compareIds(t.id, templateId))
@@ -682,40 +841,104 @@ export async function createITPTemplateAction(data: CreateITPTemplateRequest): P
   try {
     const user = await requireAuth()
     
-    const newTemplate: ITPTemplate = {
-      id: mockITPTemplates.length + 1,
-      name: data.name,
-      description: data.description,
-      category: data.category,
-      version: '1.0',
-      is_active: true,
-      organization_id: 1,
-      created_by: user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    mockITPTemplates.push(newTemplate)
-
-    // Create ITP items
-    data.itp_items.forEach((itemData, index) => {
-      const newItem: ITPItem = {
-        id: mockITPItems.length + 1,
-        itp_template_id: newTemplate.id,
-        item_number: itemData.item_number,
-        description: itemData.description,
-        specification_reference: itemData.specification_reference,
-        inspection_method: itemData.inspection_method as any,
-        acceptance_criteria: itemData.acceptance_criteria,
-        item_type: itemData.item_type,
-        is_mandatory: itemData.is_mandatory ?? true,
-        order_index: itemData.order_index ?? index,
-        created_at: new Date().toISOString()
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Creating ITP template in Supabase...')
+      
+      // Insert into itps table (not itp_templates)
+      const { data: newItp, error } = await supabase
+        .from('itps')
+        .insert({
+          name: data.name,
+          description: data.description || null,
+          category: data.category || 'General',
+          organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
       }
-      mockITPItems.push(newItem)
-    })
+      
+      // Create ITP items if provided
+      if (data.itp_items && data.itp_items.length > 0) {
+        const itemsToInsert = data.itp_items.map((item, index) => ({
+          itp_id: newItp.id,
+          item_number: item.item_number || `ITEM-${index + 1}`,
+          description: item.description,
+          specification_reference: item.specification_reference || null,
+          acceptance_criteria: item.acceptance_criteria || null,
+          sort_order: item.order_index || index + 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }))
+        
+        const { error: itemsError } = await supabase
+          .from('itp_items')
+          .insert(itemsToInsert)
+        
+        if (itemsError) {
+          console.error('Failed to create ITP items:', itemsError)
+          // Don't fail the whole operation if items fail
+        }
+      }
+      
+      // Return as ITPTemplate format
+      const template: ITPTemplate = {
+        id: newItp.id,
+        name: newItp.name,
+        description: newItp.description,
+        category: newItp.category || 'general',
+        version: '1.0',
+        is_active: true,
+        organization_id: newItp.organization_id,
+        created_by: 1,
+        created_at: newItp.created_at,
+        updated_at: newItp.updated_at
+      }
+      
+      console.log('✅ Created ITP template in Supabase:', template.id)
+      return { success: true, data: template }
+    } else {
+      // Fallback to mock
+      const newTemplate: ITPTemplate = {
+        id: mockITPTemplates.length + 1,
+        name: data.name,
+        description: data.description,
+        category: data.category,
+        version: '1.0',
+        is_active: true,
+        organization_id: 1,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
 
-    return { success: true, data: newTemplate, message: 'ITP template created successfully' }
+      mockITPTemplates.push(newTemplate)
+
+      // Create ITP items
+      data.itp_items.forEach((itemData, index) => {
+        const newItem: ITPItem = {
+          id: mockITPItems.length + 1,
+          itp_template_id: newTemplate.id,
+          item_number: itemData.item_number,
+          description: itemData.description,
+          specification_reference: itemData.specification_reference,
+          inspection_method: itemData.inspection_method as any,
+          acceptance_criteria: itemData.acceptance_criteria,
+          item_type: itemData.item_type,
+          is_mandatory: itemData.is_mandatory ?? true,
+          order_index: itemData.order_index ?? index,
+          created_at: new Date().toISOString()
+        }
+        mockITPItems.push(newItem)
+      })
+
+      return { success: true, data: newTemplate, message: 'ITP template created successfully' }
+    }
   } catch (error) {
     return { success: false, error: 'Failed to create ITP template' }
   }
@@ -747,13 +970,9 @@ export async function saveConformanceRecordAction(
       const recordData = {
         lot_id: lotId,
         itp_item_id: itpItemId,
-        result_pass_fail: data.result_pass_fail,
-        result_numeric: data.result_numeric || null,
-        result_text: data.result_text || null,
-        comments: data.comments || null,
-        is_non_conformance: data.result_pass_fail === 'FAIL',
-        corrective_action: data.corrective_action || null,
-        inspector_id: user.id,
+        result: data.result_pass_fail || 'PASS',
+        notes: data.comments || data.result_text || null,
+        inspector_name: user.email || 'Inspector',
         inspection_date: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -792,8 +1011,26 @@ export async function saveConformanceRecordAction(
       }
       
       console.log('✅ Conformance record saved in Supabase')
+      
+      // Transform the result to match expected interface
+      const transformedResult = {
+        id: result.id,
+        lot_id: result.lot_id,
+        itp_item_id: result.itp_item_id,
+        result_pass_fail: result.result || 'PASS',
+        result_numeric: data.result_numeric,
+        result_text: result.notes,
+        comments: result.notes,
+        is_non_conformance: result.result === 'FAIL',
+        corrective_action: data.corrective_action,
+        inspector_id: 1,
+        inspection_date: result.inspection_date,
+        created_at: result.created_at,
+        updated_at: result.updated_at
+      }
+      
       revalidatePath(`/project/*/lot/${lotId}`)
-      return { success: true, data: result, message: 'Inspection saved successfully' }
+      return { success: true, data: transformedResult, message: 'Inspection saved successfully' }
     } else {
       console.log('📝 Saving conformance record in mock data...')
       const existingIndex = mockConformanceRecords.findIndex(
@@ -848,7 +1085,25 @@ export async function getConformanceRecordsAction(lotId: number | string): Promi
       }
       
       console.log('✅ Fetched conformance records from Supabase:', records?.length || 0)
-      return { success: true, data: records || [] }
+      
+      // Transform Supabase records to match expected interface
+      const transformedRecords = (records || []).map(record => ({
+        id: record.id,
+        lot_id: record.lot_id,
+        itp_item_id: record.itp_item_id,
+        result_pass_fail: record.result || 'PASS',
+        result_numeric: undefined,
+        result_text: record.notes,
+        comments: record.notes,
+        is_non_conformance: record.result === 'FAIL',
+        corrective_action: undefined,
+        inspector_id: 1,
+        inspection_date: record.inspection_date,
+        created_at: record.created_at,
+        updated_at: record.updated_at
+      }))
+      
+      return { success: true, data: transformedRecords }
     } else {
       console.log('📝 Fetching conformance records from mock data...')
       const records = mockConformanceRecords.filter(r => compareIds(r.lot_id, lotId))

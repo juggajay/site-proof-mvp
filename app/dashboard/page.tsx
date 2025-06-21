@@ -6,7 +6,7 @@ import { getProjectsAction, getDashboardStatsAction, debugDatabaseAction } from 
 import { Project, ProjectStats } from '@/types/database'
 import Link from 'next/link'
 import { Plus, FolderOpen, BarChart3, Users, ClipboardList, AlertTriangle } from 'lucide-react'
-import { CreateProjectModal } from '@/components/modals/create-project-modal'
+import { NewCreateProjectModal } from '@/components/modals/new-create-project-modal'
 import { SimpleCreateProjectModal } from '@/components/modals/simple-create-project-modal'
 
 export default function DashboardPage() {
@@ -370,7 +370,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Create Project Modal */}
-      <CreateProjectModal
+      <NewCreateProjectModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onProjectCreated={handleProjectCreated}

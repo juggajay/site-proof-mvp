@@ -4,25 +4,24 @@ import { getCurrentDatabaseState, setDatabaseState } from './mock-fallback'
 
 // Database abstraction layer that works with both Supabase and mock data
 
-export async function createProject(projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<APIResponse<Project>> {
+export async function createProject(projectData: { name: string; description?: string; location?: string; organization_id?: number | string; [key: string]: any }): Promise<APIResponse<Project>> {
   if (isSupabaseEnabled) {
     console.log('📊 Creating project in Supabase...')
     console.log('📊 Input projectData:', JSON.stringify(projectData, null, 2))
     try {
-      // Remove fields that don't exist in the Supabase schema
-      const { created_by, project_manager_id, organization_id, ...supabaseData } = projectData
-      
-      console.log('📊 Filtered supabaseData:', JSON.stringify(supabaseData, null, 2))
-      console.log('📊 Removed fields:', { created_by, project_manager_id, organization_id })
-      
+      // Only include fields that exist in the projects table:
+      // id, name, description, location, organization_id, created_at, updated_at
       const insertData = {
-        ...supabaseData,
-        // Only include fields that exist in your schema
+        name: projectData.name,
+        description: projectData.description || null,
+        location: projectData.location || null,
+        organization_id: projectData.organization_id || '550e8400-e29b-41d4-a716-446655440001', // Default org
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
       
       console.log('📊 Final insert data:', JSON.stringify(insertData, null, 2))
+      console.log('📊 Insert data keys:', Object.keys(insertData))
       
       // Try using RPC or raw SQL to bypass schema cache issues
       console.log('📊 Attempting Supabase insert...')
@@ -53,6 +52,31 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
 
       if (error) {
         console.error('Supabase error:', error)
+        
+        // If it's a schema cache error, try with explicit columns
+        if (error.message?.includes('schema cache') || error.message?.includes('end_date')) {
+          console.log('📊 Schema cache error detected, trying with explicit column selection...')
+          
+          const { data: retryData, error: retryError } = await supabase!
+            .from('projects')
+            .insert([{
+              name: insertData.name,
+              description: insertData.description,
+              location: insertData.location,
+              organization_id: insertData.organization_id
+            }])
+            .select('id, name, description, location, organization_id, created_at, updated_at')
+            .single()
+          
+          if (retryError) {
+            console.error('Retry also failed:', retryError)
+            return { success: false, error: retryError.message }
+          }
+          
+          console.log('✅ Retry successful!')
+          return { success: true, data: retryData as Project }
+        }
+        
         return { success: false, error: error.message }
       }
 
@@ -68,7 +92,13 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
     const state = await getCurrentDatabaseState()
     const newProject: Project = {
       id: crypto.randomUUID(),
-      ...projectData,
+      name: projectData.name,
+      project_number: `PRJ-${Date.now()}`,
+      description: projectData.description,
+      location: projectData.location,
+      status: 'active',
+      organization_id: typeof projectData.organization_id === 'string' ? 1 : (projectData.organization_id || 1),
+      created_by: 1, // Default user
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
