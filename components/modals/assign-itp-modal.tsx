@@ -105,13 +105,8 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
 
             <div className="mb-4">
               <p className="text-sm text-gray-600">
-                Select an Inspection Test Plan (ITP) template to assign to this lot. You can assign multiple ITP templates to the same lot.
+                Select an Inspection Test Plan (ITP) template to assign to this lot. {currentITPTemplateId && 'This will replace the currently assigned template.'}
               </p>
-              {assignedTemplateIds.length > 0 && (
-                <p className="text-sm text-gray-500 mt-2">
-                  {assignedTemplateIds.length} template{assignedTemplateIds.length > 1 ? 's' : ''} already assigned.
-                </p>
-              )}
             </div>
 
             {isLoadingTemplates ? (

@@ -17,7 +17,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
 
-  // Use multiple templates if available, fall back to single template for backward compatibility
+  // Get the assigned template (only single assignment supported)
   const templates = lot.itp_templates && lot.itp_templates.length > 0 
     ? lot.itp_templates 
     : (lot.itp_template ? [lot.itp_template] : [])
@@ -85,7 +85,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           <ClipboardList className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-sm font-medium text-gray-900">No ITP Templates Assigned</h3>
           <p className="mt-2 text-sm text-gray-500">
-            Assign ITP templates to begin quality inspections for this lot.
+            Assign an ITP template to begin quality inspections for this lot.
           </p>
           <div className="mt-6">
             <button

@@ -621,96 +621,22 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       
       console.log('Found ITP:', { id: itp.id, name: itp.name })
       
-      // Check if this ITP is already assigned
-      const { data: existingAssignment } = await supabase
-        .from('lot_itp_templates')
-        .select('*')
-        .eq('lot_id', lotId)
-        .eq('itp_template_id', itpTemplateId)
+      // Update the lot with the ITP ID (no junction table exists)
+      console.log('Updating lot with ITP assignment...')
+      const { data: updatedLot, error: updateError } = await supabase
+        .from('lots')
+        .update({
+          itp_id: itpTemplateId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lotId)
+        .select()
         .single()
       
-      if (existingAssignment) {
-        // Reactivate if it was deactivated
-        if (!existingAssignment.is_active) {
-          await supabase
-            .from('lot_itp_templates')
-            .update({
-              is_active: true,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingAssignment.id)
-        }
-        return { success: true, data: lot, message: 'ITP template already assigned' }
+      if (updateError) {
+        console.error('Failed to update lot:', updateError)
+        return { success: false, error: `Failed to assign ITP: ${updateError.message}` }
       }
-      
-      // Try to add entry to junction table, fallback to direct lot assignment
-      let newAssignment = null
-      let assignError = null
-      
-      try {
-        console.log('Attempting junction table assignment...')
-        const result = await supabase
-          .from('lot_itp_templates')
-          .insert({
-            lot_id: lotId,
-            itp_template_id: itpTemplateId,
-            assigned_by: user.id,
-            is_active: true,
-            assigned_at: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single()
-        
-        newAssignment = result.data
-        assignError = result.error
-        
-        if (assignError) {
-          console.log('Junction table assignment error:', assignError)
-        } else {
-          console.log('Junction table assignment successful')
-        }
-      } catch (e) {
-        console.log('Junction table assignment exception:', e)
-        assignError = e
-      }
-      
-      // If junction table fails, try direct lot assignment (legacy support)
-      if (assignError) {
-        console.log('Falling back to direct lot assignment')
-        
-        // First verify the ITP exists in itps table to avoid foreign key constraint errors
-        const { data: itpExists, error: itpCheckError } = await supabase
-          .from('itps')
-          .select('id')
-          .eq('id', itpTemplateId)
-          .single()
-        
-        if (itpCheckError || !itpExists) {
-          console.error('ITP does not exist in itps table for direct assignment:', itpTemplateId)
-          return { success: false, error: `ITP not found in itps table: ${itpTemplateId}` }
-        }
-        
-        const { data: updatedLot, error: lotUpdateError } = await supabase
-          .from('lots')
-          .update({
-            itp_id: itpTemplateId,  // Use correct field name for actual database schema
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', lotId)
-          .select()
-          .single()
-        
-        if (lotUpdateError) {
-          console.error('Both junction table and direct assignment failed:', lotUpdateError)
-          return { success: false, error: `Failed to assign ITP: ${lotUpdateError.message}` }
-        }
-        
-        newAssignment = updatedLot
-      }
-      
-      // This check is now handled above in the fallback logic
       
       // Update lot status if needed
       if (lot.status === 'pending') {
@@ -723,9 +649,9 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
           .eq('id', lotId)
       }
       
-      console.log('✅ ITP assigned in Supabase:', newAssignment)
+      console.log('✅ ITP assigned in Supabase:', updatedLot)
       revalidatePath(`/project/${lot.project_id}`)
-      return { success: true, data: lot, message: 'ITP assigned successfully' }
+      return { success: true, data: updatedLot, message: 'ITP assigned successfully' }
     } else {
       console.log('📝 Assigning ITP in mock data...')
       const lot = mockLots.find(l => compareIds(l.id, lotId))
@@ -950,63 +876,11 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         }
       }
       
-      // Get all assigned ITPs from junction table
-      const { data: lotItpTemplates } = await supabase
-        .from('lot_itp_templates')
-        .select('*')
-        .eq('lot_id', lotIdToUse)
-        .eq('is_active', true)
-      
-      // Fetch all ITP templates and their items
+      // Get directly assigned ITP template (lots.itp_id)
       let itpTemplates: any[] = []
-      if (lotItpTemplates && lotItpTemplates.length > 0) {
-        const itpTemplateIds = lotItpTemplates.map(lit => lit.itp_template_id)
-        
-        // Fetch all ITP templates
-        const { data: templates } = await supabase
-          .from('itp_templates')
-          .select('*')
-          .in('id', itpTemplateIds)
-        
-        // Fetch all ITP items for these templates
-        const { data: allItems } = await supabase
-          .from('itp_items')
-          .select('*')
-          .in('itp_template_id', itpTemplateIds)
-          .order('sort_order')
-        
-        // Group items by template
-        itpTemplates = (templates || []).map(template => {
-          const templateItems = (allItems || []).filter(item => item.itp_template_id === template.id)
-          const mappedItems = templateItems.map(item => ({
-            ...item,
-            item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
-                      item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
-                      item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-            itp_template_id: item.itp_template_id, // Use correct field name
-            order_index: item.sort_order, // Map sort_order to order_index
-            item_number: `${item.sort_order}`, // Use sort_order as item number
-            inspection_method: item.item_number // Store the type as inspection method
-          })) as ITPItem[]
-          
-          return {
-            id: template.id,
-            name: template.name,
-            description: template.description,
-            category: template.category || 'general',
-            version: '1.0',
-            is_active: true,
-            organization_id: template.organization_id,
-            created_by: 1, // Default user ID
-            created_at: template.created_at,
-            updated_at: template.updated_at,
-            itp_items: mappedItems
-          }
-        })
-      }
+      const lotItpTemplates: any[] = [] // Empty since no junction table exists
       
-      // If no templates from junction table, check direct assignment (lots.itp_id)
-      if (itpTemplates.length === 0 && lot.itp_id) {
+      if (lot.itp_id) {
         const directItpId = lot.itp_id
         console.log('📊 No junction table templates found, checking direct assignment:', directItpId)
         
