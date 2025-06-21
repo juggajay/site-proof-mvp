@@ -984,7 +984,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         const template = mockITPTemplates.find(t => compareIds(t.id, lit.itp_template_id))
         if (!template) return null
         
-        const items = mockITPItems.filter(i => compareIds(i.itp_template_id, template.id))
+        const items = mockITPItems.filter(i => compareIds((i as any).itp_template_id || i.template_item_id, template.id))
         return { ...template, itp_items: items }
       }).filter(Boolean)
       
@@ -994,7 +994,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         // Fall back to legacy single ITP assignment
         const template = mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id!))
         if (template) {
-          const items = mockITPItems.filter(i => compareIds(i.itp_template_id, template.id))
+          const items = mockITPItems.filter(i => compareIds((i as any).itp_template_id || i.template_item_id, template.id))
           primaryTemplate = { ...template, itp_items: items }
           itpTemplates.push(primaryTemplate)
         }
@@ -1154,7 +1154,7 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
         return { success: false, error: 'ITP template not found' }
       }
       
-      const items = mockITPItems.filter(item => compareIds(item.itp_template_id, templateId))
+      const items = mockITPItems.filter(item => compareIds((item as any).itp_template_id || item.template_item_id, templateId))
       
       // Get the organization for this template
       const organization = mockOrganizations.find(o => o.id === template.organization_id)
