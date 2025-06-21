@@ -1159,6 +1159,21 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
       
       const items = mockITPItems.filter(item => compareIds((item as any).itp_template_id || item.template_item_id, templateId))
       
+      // Convert ITPItems to ITPTemplateItems format for mock data
+      const templateItems = items.map(item => ({
+        id: item.id,
+        template_id: templateId,
+        item_number: item.item_number,
+        description: item.description,
+        specification_reference: item.specification_reference,
+        inspection_method: item.inspection_method,
+        acceptance_criteria: item.acceptance_criteria,
+        is_mandatory: item.is_mandatory,
+        sort_order: item.sort_order,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      })) as ITPTemplateItem[]
+      
       // Get the organization for this template
       const organization = mockOrganizations.find(o => o.id === template.organization_id)
       if (!organization) {
@@ -1167,7 +1182,7 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
       
       const templateWithItems: ITPTemplateWithItems = {
         ...template,
-        itp_items: items,
+        template_items: templateItems,
         organization
       }
       
