@@ -10,7 +10,6 @@ import { InspectionChecklistForm } from '@/components/forms/inspection-checklist
 import { InteractiveInspectionForm } from '@/components/forms/interactive-inspection-form'
 import { MultiITPInspectionForm } from '@/components/forms/multi-itp-inspection-form'
 import { SiteDiaryTab } from '@/components/site-diary/site-diary-tab'
-import { RouteDebug } from '@/components/debug/route-debug'
 
 interface PageProps {
   params: {
@@ -20,11 +19,6 @@ interface PageProps {
 }
 
 export default function LotDetailPage({ params }: PageProps) {
-  // Immediate debug logging
-  console.error('🔴 LotDetailPage RENDERED')
-  console.error('🔴 Raw params:', params)
-  console.error('🔴 Window location:', typeof window !== 'undefined' ? window.location.href : 'SSR')
-  
   const { user, loading } = useAuth()
   const [lot, setLot] = useState<LotWithDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -33,20 +27,6 @@ export default function LotDetailPage({ params }: PageProps) {
 
   const projectId = params.projectId
   const lotId = params.lotId
-  
-  console.log('🔍 LotDetailPage - Loading lot with params:', params)
-  console.log('🔍 LotDetailPage - lotId:', lotId, 'type:', typeof lotId)
-  
-  // Temporary alert to verify code is running
-  if (typeof window !== 'undefined') {
-    console.error('🚨 LotDetailPage mounted with lotId:', lotId)
-    // Also add a visible alert for absolute confirmation
-    const debugDiv = document.createElement('div')
-    debugDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999'
-    debugDiv.textContent = `LotDetailPage loaded! lotId: ${lotId}, projectId: ${projectId}`
-    document.body.appendChild(debugDiv)
-    setTimeout(() => debugDiv.remove(), 5000)
-  }
 
   const loadLotData = useCallback(async () => {
     try {
@@ -154,7 +134,6 @@ export default function LotDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <RouteDebug />
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
