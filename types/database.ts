@@ -111,7 +111,7 @@ export interface Lot {
   lot_number: string;
   description?: string;
   location_description?: string;
-  itp_template_id?: number | string;
+  itp_template_id?: number | string; // Legacy - to be deprecated
   status: 'pending' | 'in_progress' | 'completed' | 'approved' | 'rejected';
   start_date?: string;
   target_completion_date?: string;
@@ -120,6 +120,17 @@ export interface Lot {
   created_by: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface LotITPTemplate {
+  id: number | string;
+  lot_id: number | string;
+  itp_template_id: number | string;
+  assigned_at: string;
+  assigned_by: number;
+  is_active: boolean;
+  completion_percentage?: number;
+  completed_at?: string;
 }
 
 export interface ConformanceRecord {
@@ -218,7 +229,9 @@ export interface ProjectWithDetails extends Project {
 
 export interface LotWithDetails extends Lot {
   project: Project;
-  itp_template?: ITPTemplate & { itp_items: ITPItem[] };
+  itp_template?: ITPTemplate & { itp_items: ITPItem[] }; // Legacy - single template
+  itp_templates?: (ITPTemplate & { itp_items: ITPItem[] })[]; // New - multiple templates
+  lot_itp_templates?: LotITPTemplate[]; // Junction table records
   assigned_inspector?: Profile;
   conformance_records: (ConformanceRecord & { 
     itp_item: ITPItem;
