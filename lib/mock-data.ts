@@ -759,7 +759,7 @@ function initializeITPData() {
   
   // Log template-item relationships
   mockITPTemplates.forEach(template => {
-    const itemCount = mockITPItems.filter(item => String(item.itp_template_id) === String(template.id)).length
+    const itemCount = mockITPItems.filter(item => String(item.itp_id) === String(template.id)).length
     console.log(`Template "${template.name}" (ID: ${template.id}) has ${itemCount} items`)
   })
   
@@ -767,7 +767,7 @@ function initializeITPData() {
   const asphaltTemplate = mockITPTemplates.find(t => t.name === 'Asphalt Layer Quality Check')
   if (asphaltTemplate) {
     console.log('✅ Asphalt Layer Quality Check template found with ID:', asphaltTemplate.id)
-    const asphaltItems = mockITPItems.filter(item => String(item.itp_template_id) === String(asphaltTemplate.id))
+    const asphaltItems = mockITPItems.filter(item => String(item.itp_id) === String(asphaltTemplate.id))
     console.log('✅ Asphalt Layer Quality Check has', asphaltItems.length, 'items')
   } else {
     console.log('❌ Asphalt Layer Quality Check template NOT FOUND!')
