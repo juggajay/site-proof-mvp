@@ -52,13 +52,16 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
     setError(null)
 
     try {
+      console.log('Assigning ITP:', selectedTemplateId, 'to lot:', lotId)
       const result = await assignITPToLotAction(lotId, selectedTemplateId)
       if (result.success) {
         onITPAssigned()
       } else {
+        console.error('Failed to assign ITP:', result.error)
         setError(result.error || 'Failed to assign ITP template')
       }
     } catch (error) {
+      console.error('Unexpected error assigning ITP:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)
