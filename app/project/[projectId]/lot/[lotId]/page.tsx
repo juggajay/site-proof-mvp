@@ -27,10 +27,15 @@ export default function LotDetailPage({ params }: PageProps) {
 
   const projectId = params.projectId
   const lotId = params.lotId
+  
+  console.log('LotDetailPage: params received:', params)
+  console.log('LotDetailPage: lotId:', lotId, 'type:', typeof lotId)
 
   const loadLotData = useCallback(async () => {
     try {
+      console.log('LotDetailPage: Loading lot with ID:', lotId)
       const result = await getLotByIdAction(lotId)
+      console.log('LotDetailPage: getLotByIdAction result:', result)
       if (result.success) {
         setLot(result.data!)
       } else {

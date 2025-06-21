@@ -247,6 +247,59 @@ export async function requireAuth() {
 
 // ==================== DEBUG ACTIONS ====================
 
+export async function debugLotLookupAction(lotId: string): Promise<APIResponse<any>> {
+  console.error('🚨 debugLotLookupAction CALLED with lotId:', lotId)
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Test different query approaches
+      const results: any = {
+        lotId,
+        lotIdType: typeof lotId,
+        queries: []
+      }
+      
+      // Query 1: Direct query
+      const { data: q1, error: e1 } = await supabase
+        .from('lots')
+        .select('id, lot_number')
+        .eq('id', lotId)
+        .single()
+      results.queries.push({ method: 'direct', data: q1, error: e1?.message })
+      
+      // Query 2: String cast
+      const { data: q2, error: e2 } = await supabase
+        .from('lots')
+        .select('id, lot_number')
+        .eq('id', String(lotId))
+        .single()
+      results.queries.push({ method: 'string_cast', data: q2, error: e2?.message })
+      
+      // Query 3: Get all and filter
+      const { data: allLots, error: e3 } = await supabase
+        .from('lots')
+        .select('id, lot_number')
+        .limit(20)
+      
+      const manualFind = allLots?.find(l => String(l.id) === String(lotId))
+      results.queries.push({ 
+        method: 'manual_find', 
+        found: !!manualFind,
+        data: manualFind,
+        allLotIds: allLots?.map(l => ({ id: l.id, type: typeof l.id }))
+      })
+      
+      return { success: true, data: results }
+    } else {
+      return { success: false, error: 'Supabase not enabled' }
+    }
+  } catch (error) {
+    console.error('🚨 Debug lot lookup error:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
 export async function debugDatabaseAction(): Promise<APIResponse<any>> {
   console.error('🚨 debugDatabaseAction CALLED')
   try {
@@ -613,25 +666,108 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
   try {
     await requireAuth()
     
-    console.log('getLotByIdAction: Looking for lot with ID:', lotId)
+    console.log('getLotByIdAction: Looking for lot with ID:', lotId, 'Type:', typeof lotId)
     
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Fetching lot from Supabase...')
+      console.log('📊 Lot ID to search:', lotId, 'Type:', typeof lotId)
+      
+      // First, let's check if the lot exists with a simple query
+      const { data: lotExists, error: checkError } = await supabase
+        .from('lots')
+        .select('id, lot_number, project_id')
+        .eq('id', lotId)
+        .single()
+      
+      console.log('📊 Lot existence check:', { lotExists, checkError })
+      
+      if (checkError) {
+        console.log('📊 Initial query failed, trying alternative approaches...')
+        
+        // Try with explicit UUID casting
+        const { data: lotExists2, error: checkError2 } = await supabase
+          .from('lots')
+          .select('id, lot_number, project_id')
+          .eq('id', String(lotId))
+          .single()
+        
+        console.log('📊 String cast result:', { lotExists2, checkError2 })
+        
+        if (!checkError2 && lotExists2) {
+          // Success with string cast, continue with this approach
+          lotExists = lotExists2
+        } else {
+          // Let's get all lots to debug
+          const { data: allLots, error: allLotsError } = await supabase
+            .from('lots')
+            .select('id, lot_number, project_id')
+            .limit(10)
+          
+          console.log('📊 All lots for debugging:', allLots)
+          console.log('📊 Looking for ID:', lotId, 'in', allLots?.map(l => ({ id: l.id, type: typeof l.id })))
+          
+          // Try to find the lot manually
+          const foundLot = allLots?.find(l => String(l.id) === String(lotId))
+          if (foundLot) {
+            console.log('📊 Found lot manually:', foundLot)
+            lotExists = foundLot
+          } else {
+            return { success: false, error: `Lot not found. ID: ${lotId}` }
+          }
+        }
+      }
       
       // Get lot with project and ITP details
-      const { data: lot, error: lotError } = await supabase
+      // Use the same ID approach that worked in the existence check
+      const lotIdToUse = lotExists ? lotExists.id : String(lotId)
+      console.log('📊 Using lot ID for full query:', lotIdToUse, 'Type:', typeof lotIdToUse)
+      
+      let lot: any
+      const { data: lotData, error: lotError } = await supabase
         .from('lots')
         .select(`
           *,
           project:projects(*),
           itp:itp_templates(*)
         `)
-        .eq('id', lotId)
+        .eq('id', lotIdToUse)
         .single()
       
+      lot = lotData
+      
       if (lotError || !lot) {
-        console.error('Lot not found:', lotError)
-        return { success: false, error: 'Lot not found' }
+        console.error('Lot not found in full query:', lotError)
+        // Try without the joins as a fallback
+        const { data: simpleLot, error: simpleError } = await supabase
+          .from('lots')
+          .select('*')
+          .eq('id', lotIdToUse)
+          .single()
+        
+        if (simpleError || !simpleLot) {
+          console.error('Simple lot query also failed:', simpleError)
+          return { success: false, error: 'Lot not found' }
+        }
+        
+        // Manually fetch related data
+        console.log('📊 Fetching related data separately...')
+        const projectResult = simpleLot.project_id ? await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', simpleLot.project_id)
+          .single() : null
+        
+        const itpResult = simpleLot.itp_template_id ? await supabase
+          .from('itp_templates')
+          .select('*')
+          .eq('id', simpleLot.itp_template_id)
+          .single() : null
+        
+        lot = {
+          ...simpleLot,
+          project: projectResult?.data || null,
+          itp: itpResult?.data || null
+        }
       }
       
       // Get ITP items if ITP is assigned
