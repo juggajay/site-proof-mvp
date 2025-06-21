@@ -33,6 +33,7 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
   const [savingItems, setSavingItems] = useState<Set<string | number>>(new Set())
   const [statusMap, setStatusMap] = useState<Map<string | number, InspectionStatus>>(new Map())
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [isSavingAll, setIsSavingAll] = useState(false)
 
@@ -60,16 +61,19 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
     setStatusMap(map)
   }, [items, lot.conformance_records])
 
-  const handleQuickAction = async (item: ITPItem, result: 'PASS' | 'FAIL' | 'N/A') => {
+  const handleQuickAction = (item: ITPItem, result: 'PASS' | 'FAIL' | 'N/A') => {
     setStatusMap(prev => {
       const newMap = new Map(prev)
       newMap.set(item.id, {
         itemId: item.id,
-        status: result === 'PASS' ? 'passed' : result === 'FAIL' ? 'failed' : 'na'
+        status: result === 'PASS' ? 'passed' : result === 'FAIL' ? 'failed' : 'na',
+        comments: prev.get(item.id)?.comments || ''
       })
       return newMap
     })
     setHasChanges(true)
+    setError(null)
+    setSuccessMessage(null)
   }
 
   const saveAllChanges = async () => {
@@ -96,9 +100,16 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
 
       await Promise.all(promises)
       setHasChanges(false)
-      onInspectionSaved?.()
+      setSuccessMessage('All changes saved successfully!')
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000)
+      
+      // Don't call onInspectionSaved here as it will reload the page
+      // The UI will update from the current state
     } catch (error) {
       setError('Failed to save some inspections')
+      setTimeout(() => setError(null), 5000)
     } finally {
       setIsSavingAll(false)
     }
@@ -217,6 +228,16 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
                 </div>
               </div>
             )}
+            
+            {/* Success Message */}
+            {successMessage && (
+              <div className="m-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <p className="text-sm text-green-800">{successMessage}</p>
+                </div>
+              </div>
+            )}
 
             {/* Inspection Items */}
             <div className="p-4 space-y-3">
@@ -235,7 +256,7 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
                       ${status === 'na' ? 'border-gray-200 bg-gray-50' : ''}
                     `}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 pr-4">
                         <h4 className="text-sm font-medium text-gray-900">
                           {item.item_number}. {item.description}
@@ -248,61 +269,64 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
                       </div>
                       
                       {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => handleQuickAction(item, 'PASS')}
                           disabled={isSaving || isSavingAll}
                           className={`
-                            p-2 rounded-lg transition-colors
+                            px-6 py-3 rounded-lg transition-all font-semibold text-base
+                            flex items-center justify-center gap-2 min-w-[100px]
                             ${status === 'passed' 
-                              ? 'bg-green-600 text-white' 
-                              : 'text-green-600 hover:bg-green-100'
+                              ? 'bg-green-600 text-white hover:bg-green-700 shadow-md' 
+                              : 'bg-white text-green-700 hover:bg-green-50 border-2 border-green-500'
                             }
                             ${(isSaving || isSavingAll) ? 'opacity-50 cursor-not-allowed' : ''}
                           `}
-                          title="Pass"
                         >
                           <CheckCircle2 className="h-5 w-5" />
+                          PASS
                         </button>
                         
                         <button
                           onClick={() => handleQuickAction(item, 'FAIL')}
                           disabled={isSaving || isSavingAll}
                           className={`
-                            p-2 rounded-lg transition-colors
+                            px-6 py-3 rounded-lg transition-all font-semibold text-base
+                            flex items-center justify-center gap-2 min-w-[100px]
                             ${status === 'failed' 
-                              ? 'bg-red-600 text-white' 
-                              : 'text-red-600 hover:bg-red-100'
+                              ? 'bg-red-600 text-white hover:bg-red-700 shadow-md' 
+                              : 'bg-white text-red-700 hover:bg-red-50 border-2 border-red-500'
                             }
                             ${(isSaving || isSavingAll) ? 'opacity-50 cursor-not-allowed' : ''}
                           `}
-                          title="Fail"
                         >
                           <XCircle className="h-5 w-5" />
+                          FAIL
                         </button>
                         
                         <button
                           onClick={() => handleQuickAction(item, 'N/A')}
                           disabled={isSaving || isSavingAll}
                           className={`
-                            p-2 rounded-lg transition-colors
+                            px-6 py-3 rounded-lg transition-all font-semibold text-base
+                            flex items-center justify-center gap-2 min-w-[100px]
                             ${status === 'na' 
-                              ? 'bg-gray-600 text-white' 
-                              : 'text-gray-600 hover:bg-gray-100'
+                              ? 'bg-gray-600 text-white hover:bg-gray-700 shadow-md' 
+                              : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-500'
                             }
                             ${(isSaving || isSavingAll) ? 'opacity-50 cursor-not-allowed' : ''}
                           `}
-                          title="Not Applicable"
                         >
                           <MinusCircle className="h-5 w-5" />
+                          N/A
                         </button>
                         
                         {/* Photo button - visible on mobile */}
                         <button
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
-                          title="Add Photo"
+                          className="px-6 py-3 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-all font-semibold text-base flex items-center justify-center gap-2 min-w-[100px] shadow-md lg:hidden"
                         >
                           <Camera className="h-5 w-5" />
+                          PHOTO
                         </button>
                       </div>
                     </div>
@@ -318,14 +342,14 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
                   onClick={saveAllChanges}
                   disabled={isSavingAll}
                   className={`
-                    w-full flex items-center justify-center gap-2 px-6 py-3 
-                    bg-blue-600 text-white rounded-lg font-medium
-                    hover:bg-blue-700 transition-colors
+                    w-full flex items-center justify-center gap-3 px-8 py-4 
+                    bg-blue-600 text-white rounded-lg font-semibold text-lg
+                    hover:bg-blue-700 transition-all shadow-lg
                     ${isSavingAll ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                 >
-                  <Save className="h-5 w-5" />
-                  {isSavingAll ? 'Saving...' : 'Save All Changes'}
+                  <Save className="h-6 w-6" />
+                  {isSavingAll ? 'Saving Changes...' : 'SAVE ALL CHANGES'}
                 </button>
               </div>
             )}
