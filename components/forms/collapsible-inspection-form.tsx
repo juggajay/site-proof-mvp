@@ -30,6 +30,7 @@ interface InspectionStatus {
 }
 
 export function CollapsibleInspectionForm({ lot, onInspectionSaved }: CollapsibleInspectionFormProps) {
+  const [isMainSectionExpanded, setIsMainSectionExpanded] = useState(true)
   const [expandedSections, setExpandedSections] = useState<Set<string | number>>(new Set())
   const [savingItems, setSavingItems] = useState<Set<string | number>>(new Set())
   const [statusMap, setStatusMap] = useState<Map<string | number, InspectionStatus>>(new Map())
@@ -135,74 +136,131 @@ export function CollapsibleInspectionForm({ lot, onInspectionSaved }: Collapsibl
 
   return (
     <div className="space-y-4">
-      {/* Overall Progress Summary */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-medium text-gray-900">Inspection Progress</h3>
-          <span className="text-2xl font-bold text-gray-900">{completionPercentage}%</span>
-        </div>
-        
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
-          <div className="h-full flex">
-            {stats.passed > 0 && (
-              <div 
-                className="bg-green-500 h-full transition-all duration-300"
-                style={{ width: `${(stats.passed / stats.total) * 100}%` }}
-              />
-            )}
-            {stats.failed > 0 && (
-              <div 
-                className="bg-red-500 h-full transition-all duration-300"
-                style={{ width: `${(stats.failed / stats.total) * 100}%` }}
-              />
-            )}
-            {stats.na > 0 && (
-              <div 
-                className="bg-gray-400 h-full transition-all duration-300"
-                style={{ width: `${(stats.na / stats.total) * 100}%` }}
-              />
-            )}
+      {/* Main ITP Section - Collapsible */}
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+        {/* ITP Header - Always Visible */}
+        <div 
+          className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={() => setIsMainSectionExpanded(!isMainSectionExpanded)}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isMainSectionExpanded ? (
+                <ChevronDown className="h-6 w-6 text-gray-400" />
+              ) : (
+                <ChevronRight className="h-6 w-6 text-gray-400" />
+              )}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  {lot.itp_template?.name || 'Inspection Template'}
+                </h3>
+                {lot.itp_template?.description && (
+                  <p className="text-sm text-gray-500 mt-1">{lot.itp_template.description}</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Progress Summary - Always Visible */}
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <span className="text-2xl font-bold text-gray-900">{completionPercentage}%</span>
+                <p className="text-xs text-gray-500">Complete</p>
+              </div>
+              
+              {/* Mini Status Summary */}
+              <div className="flex items-center gap-2">
+                {stats.pending > 0 && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {stats.pending} Pending
+                  </span>
+                )}
+                {stats.failed > 0 && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    {stats.failed} Failed
+                  </span>
+                )}
+                {stats.completed === stats.total && stats.total > 0 && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Complete
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         
-        {/* Status Summary */}
-        <div className="grid grid-cols-4 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-500" />
-            <span className="text-gray-600">Pending:</span>
-            <span className="font-medium">{stats.pending}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <span className="text-gray-600">Passed:</span>
-            <span className="font-medium text-green-600">{stats.passed}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <XOctagon className="h-4 w-4 text-red-500" />
-            <span className="text-gray-600">Failed:</span>
-            <span className="font-medium text-red-600">{stats.failed}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MinusCircle className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-600">N/A:</span>
-            <span className="font-medium text-gray-600">{stats.na}</span>
-          </div>
-        </div>
-      </div>
+        {/* Collapsible Content */}
+        {isMainSectionExpanded && (
+          <div className="border-t border-gray-200">
+            {/* Detailed Progress Summary */}
+            <div className="p-4 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">Inspection Progress</h4>
+                <span className="text-sm text-gray-500">{stats.completed} of {stats.total} items completed</span>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
+                <div className="h-full flex">
+                  {stats.passed > 0 && (
+                    <div 
+                      className="bg-green-500 h-full transition-all duration-300"
+                      style={{ width: `${(stats.passed / stats.total) * 100}%` }}
+                    />
+                  )}
+                  {stats.failed > 0 && (
+                    <div 
+                      className="bg-red-500 h-full transition-all duration-300"
+                      style={{ width: `${(stats.failed / stats.total) * 100}%` }}
+                    />
+                  )}
+                  {stats.na > 0 && (
+                    <div 
+                      className="bg-gray-400 h-full transition-all duration-300"
+                      style={{ width: `${(stats.na / stats.total) * 100}%` }}
+                    />
+                  )}
+                </div>
+              </div>
+              
+              {/* Status Summary */}
+              <div className="grid grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  <span className="text-gray-600">Pending:</span>
+                  <span className="font-medium">{stats.pending}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-gray-600">Passed:</span>
+                  <span className="font-medium text-green-600">{stats.passed}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <XOctagon className="h-4 w-4 text-red-500" />
+                  <span className="text-gray-600">Failed:</span>
+                  <span className="font-medium text-red-600">{stats.failed}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MinusCircle className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600">N/A:</span>
+                  <span className="font-medium text-gray-600">{stats.na}</span>
+                </div>
+              </div>
+            </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        </div>
-      )}
+            {/* Error Display */}
+            {error && (
+              <div className="m-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              </div>
+            )}
 
-      {/* Inspection Items */}
-      <div className="space-y-3">
+            {/* Inspection Items */}
+            <div className="p-4 space-y-3">
         {items.map((item) => {
           const status = statusMap.get(item.id)?.status || 'pending'
           const isExpanded = expandedSections.has(item.id)
@@ -424,6 +482,9 @@ export function CollapsibleInspectionForm({ lot, onInspectionSaved }: Collapsibl
             </div>
           )
         })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
