@@ -102,7 +102,7 @@ export const mockITPTemplates: ITPTemplate[] = [
 export const mockITPItems: ITPItem[] = [
   {
     id: 1,
-    itp_template_id: 1,
+    itp_id: 1,
     item_number: '1.1',
     description: 'Excavation depth verification',
     specification_reference: 'Drawing A-101',
@@ -115,7 +115,7 @@ export const mockITPItems: ITPItem[] = [
   },
   {
     id: 2,
-    itp_template_id: 1,
+    itp_id: 1,
     item_number: '1.2',
     description: 'Base preparation quality',
     specification_reference: 'Spec Section 03-01',
@@ -128,7 +128,7 @@ export const mockITPItems: ITPItem[] = [
   },
   {
     id: 3,
-    itp_template_id: 1,
+    itp_id: 1,
     item_number: '1.3',
     description: 'Photo documentation',
     specification_reference: 'QA Requirements',
@@ -149,7 +149,7 @@ export const mockLots: Lot[] = [
     lot_number: 'LOT-001',
     description: 'Foundation work for Building A',
     location_description: 'Grid A1-A5',
-    itp_template_id: 1,
+    itp_id: 1,
     status: 'in_progress',
     start_date: '2024-01-15',
     target_completion_date: '2024-02-15',
@@ -164,7 +164,7 @@ export const mockLots: Lot[] = [
     lot_number: 'LOT-002',
     description: 'Foundation work for Building B',
     location_description: 'Grid B1-B5',
-    itp_template_id: 1,
+    itp_id: 1,
     status: 'pending',
     start_date: '2024-02-01',
     target_completion_date: '2024-03-01',

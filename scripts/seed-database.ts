@@ -203,44 +203,44 @@ async function seedDatabase() {
     console.log('\nCreating sample ITP items...')
     const concreteItpItems = [
       {
-        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        itp_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         item_number: '1',
         description: 'Check formwork dimensions and alignment',
         inspection_method: 'MEASUREMENT',
         acceptance_criteria: 'As per approved drawings ±10mm',
-        item_type: 'numeric',
         is_mandatory: true,
-        order_index: 1
+        sort_order: 1,
+        status: 'Pending'
       },
       {
-        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        itp_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         item_number: '2',
         description: 'Verify reinforcement placement and cover',
         inspection_method: 'VISUAL',
         acceptance_criteria: 'Cover: 40mm ±5mm, spacing as per drawings',
-        item_type: 'pass_fail',
         is_mandatory: true,
-        order_index: 2
+        sort_order: 2,
+        status: 'Pending'
       },
       {
-        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        itp_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         item_number: '3',
         description: 'Concrete slump test',
         inspection_method: 'TEST',
         acceptance_criteria: 'Slump: 100mm ±25mm',
-        item_type: 'numeric',
         is_mandatory: true,
-        order_index: 3
+        sort_order: 3,
+        status: 'Pending'
       },
       {
-        itp_template_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
+        itp_id: '6102a2f5-5aa2-40a2-8262-2c6e344e0176',
         item_number: '4',
         description: 'Surface finish inspection',
         inspection_method: 'VISUAL',
         acceptance_criteria: 'Smooth finish, no honeycomb or major defects',
-        item_type: 'pass_fail',
         is_mandatory: false,
-        order_index: 4
+        sort_order: 4,
+        status: 'Pending'
       }
     ]
 
