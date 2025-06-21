@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { LotWithDetails } from '@/types/database'
 import { ClipboardList, Plus, AlertCircle } from 'lucide-react'
 import { InteractiveInspectionForm } from './interactive-inspection-form'
+import { CollapsibleInspectionForm } from './collapsible-inspection-form'
 import { AssignITPModal } from '@/components/modals/assign-itp-modal'
 
 interface MultiITPInspectionFormProps {
@@ -150,7 +151,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
               conformanceRecordsCount: transformedLot.conformance_records?.length
             })
             return (
-              <InteractiveInspectionForm
+              <CollapsibleInspectionForm
                 lot={transformedLot}
                 onInspectionSaved={onInspectionSaved}
               />
@@ -230,7 +231,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
       {/* Active Template Content */}
       {activeTemplate && (
         <div className="p-6">
-          <InteractiveInspectionForm
+          <CollapsibleInspectionForm
             lot={{
               ...lot,
               itp_template: activeTemplate,
