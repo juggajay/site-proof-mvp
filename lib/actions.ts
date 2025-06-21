@@ -630,25 +630,54 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: true, data: lot, message: 'ITP template already assigned' }
       }
       
-      // Add entry to junction table
-      const { data: newAssignment, error: assignError } = await supabase
-        .from('lot_itp_templates')
-        .insert({
-          lot_id: lotId,
-          itp_template_id: itpTemplateId,
-          assigned_by: user.id,
-          is_active: true,
-          assigned_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single()
+      // Try to add entry to junction table, fallback to direct lot assignment
+      let newAssignment = null
+      let assignError = null
       
-      if (assignError) {
-        console.error('Supabase error:', assignError)
-        return { success: false, error: assignError.message }
+      try {
+        const result = await supabase
+          .from('lot_itp_templates')
+          .insert({
+            lot_id: lotId,
+            itp_template_id: itpTemplateId,
+            assigned_by: user.id,
+            is_active: true,
+            assigned_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+        
+        newAssignment = result.data
+        assignError = result.error
+      } catch (e) {
+        console.log('Junction table not available, using direct assignment')
+        assignError = e
       }
+      
+      // If junction table fails, try direct lot assignment (legacy support)
+      if (assignError) {
+        console.log('Falling back to direct lot assignment')
+        const { data: updatedLot, error: lotUpdateError } = await supabase
+          .from('lots')
+          .update({
+            itp_id: itpTemplateId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', lotId)
+          .select()
+          .single()
+        
+        if (lotUpdateError) {
+          console.error('Both junction table and direct assignment failed:', lotUpdateError)
+          return { success: false, error: `Failed to assign ITP: ${lotUpdateError.message}` }
+        }
+        
+        newAssignment = updatedLot
+      }
+      
+      // This check is now handled above in the fallback logic
       
       // Update lot status if needed
       if (lot.status === 'pending') {

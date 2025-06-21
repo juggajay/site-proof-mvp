@@ -55,11 +55,15 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
     try {
       console.log('Assigning ITP:', selectedTemplateId, 'to lot:', lotId)
       const result = await assignITPToLotAction(lotId, selectedTemplateId)
+      console.log('Assignment result:', result)
+      
       if (result.success) {
+        console.log('✅ ITP assigned successfully')
         onITPAssigned()
       } else {
-        console.error('Failed to assign ITP:', result.error)
-        setError(result.error || 'Failed to assign ITP template')
+        console.error('❌ Failed to assign ITP:', result.error)
+        const errorMessage = result.error || 'Failed to assign ITP template - unknown error'
+        setError(errorMessage)
       }
     } catch (error) {
       console.error('Unexpected error assigning ITP:', error)
