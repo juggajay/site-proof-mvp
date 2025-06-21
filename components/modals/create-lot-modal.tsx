@@ -23,19 +23,30 @@ export function CreateLotModal({ isOpen, onClose, onLotCreated, projectId }: Cre
     setError(null)
 
     try {
+      console.log('CREATE LOT: Form submitted')
       const formData = new FormData(event.currentTarget)
       formData.set('projectId', projectId.toString())
       
+      console.log('CREATE LOT: Project ID:', projectId)
+      console.log('CREATE LOT: Lot Number:', formData.get('lotNumber'))
+      console.log('CREATE LOT: Description:', formData.get('description'))
+      
+      console.log('CREATE LOT: Calling createLotAction...')
       const result = await createLotAction(formData)
+      console.log('CREATE LOT: Result:', result)
 
       if (result.success) {
-        onLotCreated()
-        // Reset form
+        console.log('CREATE LOT: Success! Lot created:', result.data)
+        // Reset form first
         ;(event.target as HTMLFormElement).reset()
+        // Then notify parent
+        onLotCreated()
       } else {
+        console.error('CREATE LOT: Failed:', result.error)
         setError(result.error || 'Failed to create lot')
       }
     } catch (error) {
+      console.error('CREATE LOT: Exception caught:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)

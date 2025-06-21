@@ -201,6 +201,19 @@ export async function getProjectById(projectId: string | number): Promise<APIRes
         return { success: false, error: 'Project not found' }
       }
 
+      // Fetch lots for this project
+      const { data: lots, error: lotsError } = await supabase!
+        .from('lots')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+      
+      if (lotsError) {
+        console.error('Error fetching lots:', lotsError)
+      }
+      
+      console.log('✅ Fetched lots for project:', lots?.length || 0)
+      
       // For now, create a basic response without complex joins
       const projectWithDetails: ProjectWithDetails = {
         ...project,
@@ -231,7 +244,7 @@ export async function getProjectById(projectId: string | number): Promise<APIRes
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         },
-        lots: [], // TODO: fetch separately
+        lots: lots || [],
         members: []
       }
 
