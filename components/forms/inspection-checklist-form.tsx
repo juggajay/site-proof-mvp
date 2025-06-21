@@ -224,7 +224,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                 {/* Inspection Input Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Pass/Fail Result */}
-                  {(item.item_type === 'pass_fail' || item.item_type === 'photo_required') && (
+                  {(item.item_number === 'PASS_FAIL' || item.item_number === 'PASS_FAIL') && (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Result *
@@ -251,7 +251,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                   )}
 
                   {/* Numeric Result */}
-                  {item.item_type === 'numeric' && (
+                  {item.item_number === 'NUMERIC' && (
                     <>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -293,7 +293,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                   )}
 
                   {/* Text Result */}
-                  {item.item_type === 'text' && (
+                  {item.item_number === 'TEXT_INPUT' && (
                     <div className="md:col-span-2">
                       <label className="block text-xs font-medium text-gray-700 mb-1">
                         Inspection Notes
@@ -340,7 +340,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                 )}
 
                 {/* Photo Upload Placeholder */}
-                {item.item_type === 'photo_required' && (
+                {item.item_number === 'PASS_FAIL' && (
                   <div className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-md">
                     <div className="text-center">
                       <Camera className="mx-auto h-8 w-8 text-gray-400" />

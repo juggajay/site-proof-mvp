@@ -333,7 +333,7 @@ export function InteractiveInspectionForm({ lot, onInspectionSaved }: Interactiv
                       </div>
                       
                       {/* Photo Upload for Photo Required Items */}
-                      {item.item_type === 'photo_required' && (
+                      {item.item_number === 'PASS_FAIL' && (
                         <div className="p-3 border-2 border-dashed border-gray-300 rounded-md">
                           <div className="text-center">
                             <Camera className="mx-auto h-8 w-8 text-gray-400" />
