@@ -608,11 +608,11 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: false, error: 'ITP not found' }
       }
       
-      // Update the lot with the ITP template
+      // Update the lot with the ITP template (using itp_id as that's the actual column name)
       const { data: updatedLot, error: updateError } = await supabase
         .from('lots')
         .update({
-          itp_template_id: itpTemplateId,
+          itp_id: itpTemplateId,
           status: 'IN_PROGRESS',
           updated_at: new Date().toISOString()
         })
@@ -757,10 +757,12 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           .eq('id', simpleLot.project_id)
           .single() : null
         
-        const itpResult = simpleLot.itp_template_id ? await supabase
+        // Check both itp_id and itp_template_id for compatibility
+        const itpId = simpleLot.itp_id || simpleLot.itp_template_id
+        const itpResult = itpId ? await supabase
           .from('itp_templates')
           .select('*')
-          .eq('id', simpleLot.itp_template_id)
+          .eq('id', itpId)
           .single() : null
         
         lot = {
@@ -770,13 +772,14 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         }
       }
       
-      // Get ITP items if ITP is assigned
+      // Get ITP items if ITP is assigned (check both fields)
       let itpItems: any[] = []
-      if (lot.itp_template_id) {
+      const assignedItpId = lot.itp_id || lot.itp_template_id
+      if (assignedItpId) {
         const { data: items } = await supabase
           .from('itp_items')
           .select('*')
-          .eq('itp_id', lot.itp_template_id)
+          .eq('itp_id', assignedItpId)
           .order('sort_order')
         
         // Map database format to TypeScript interface

@@ -112,6 +112,7 @@ export interface Lot {
   description?: string;
   location_description?: string;
   itp_template_id?: number | string; // Legacy - to be deprecated
+  itp_id?: number | string; // Current field name in Supabase
   status: 'pending' | 'in_progress' | 'completed' | 'approved' | 'rejected';
   start_date?: string;
   target_completion_date?: string;

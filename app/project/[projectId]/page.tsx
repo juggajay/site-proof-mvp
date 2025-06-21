@@ -373,7 +373,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {lot.itp_template_id ? 'Assigned' : 'Not assigned'}
+                          {(lot.itp_template_id || lot.itp_id) ? 'Assigned' : 'Not assigned'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(lot.created_at).toLocaleDateString()}
