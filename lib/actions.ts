@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
 import { 
-  User, Profile, Organization, Project, Lot, ITPTemplate, ITPItem, 
+  User, Profile, Organization, Project, Lot, ITPTemplate, ITPItem, ITPTemplateItem,
   ConformanceRecord, Attachment, InspectionReport, NonConformance,
   ProjectWithDetails, LotWithDetails, ITPTemplateWithItems,
   CreateProjectRequest, CreateLotRequest, CreateITPTemplateRequest,
