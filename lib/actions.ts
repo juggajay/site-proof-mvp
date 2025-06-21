@@ -1226,7 +1226,6 @@ export async function createITPTemplateAction(data: CreateITPTemplateRequest): P
           template_id: newItp.id,
           item_number: item.item_number || `ITEM-${index + 1}`,
           description: item.description,
-          specification_reference: item.specification_reference || null,
           inspection_method: item.inspection_method || null,
           acceptance_criteria: item.acceptance_criteria || null,
           is_mandatory: item.is_mandatory ?? true,
