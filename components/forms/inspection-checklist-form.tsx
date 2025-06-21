@@ -156,7 +156,7 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
         const error = errors[String(item.id)]
 
         return (
-          <div key={item.id} className="p-6">
+          <div key={item.id} className="p-6 hover:bg-gray-50 transition-colors">
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0 mt-1">
                 {getStatusIcon(status)}
@@ -178,6 +178,13 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                       )}
                     </div>
                     <h4 className="text-sm font-medium text-gray-900 mb-2">{item.description}</h4>
+                    
+                    {/* Visual hint for interaction */}
+                    {!getExistingRecord(item.id) && !hasUnsavedChanges(item.id) && (
+                      <p className="text-xs text-blue-600 mb-2 animate-pulse">
+                        👇 Select a result below to inspect this item
+                      </p>
+                    )}
                     
                     {item.specification_reference && (
                       <p className="text-xs text-gray-500 mb-2">
@@ -224,8 +231,16 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                       </label>
                       <select
                         value={getItemValue(item.id, 'result_pass_fail') || ''}
-                        onChange={(e) => updateFormData(item.id, 'result_pass_fail', e.target.value as 'PASS' | 'FAIL' | 'N/A')}
-                        className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        onChange={(e) => {
+                          updateFormData(item.id, 'result_pass_fail', e.target.value as 'PASS' | 'FAIL' | 'N/A')
+                          // Auto-save after 1 second delay
+                          setTimeout(() => {
+                            if (e.target.value) {
+                              saveInspectionItem(item)
+                            }
+                          }, 1000)
+                        }}
+                        className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer hover:border-blue-400 transition-colors"
                       >
                         <option value="">Select result</option>
                         <option value="PASS">PASS</option>
@@ -257,8 +272,16 @@ export function InspectionChecklistForm({ lot, onInspectionSaved }: InspectionCh
                         </label>
                         <select
                           value={getItemValue(item.id, 'result_pass_fail') || ''}
-                          onChange={(e) => updateFormData(item.id, 'result_pass_fail', e.target.value as 'PASS' | 'FAIL' | 'N/A')}
-                          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          onChange={(e) => {
+                            updateFormData(item.id, 'result_pass_fail', e.target.value as 'PASS' | 'FAIL' | 'N/A')
+                            // Auto-save after 1 second delay
+                            setTimeout(() => {
+                              if (e.target.value) {
+                                saveInspectionItem(item)
+                              }
+                            }, 1000)
+                          }}
+                          className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer hover:border-blue-400 transition-colors"
                         >
                           <option value="">Select result</option>
                           <option value="PASS">PASS</option>

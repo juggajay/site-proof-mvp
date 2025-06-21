@@ -61,6 +61,14 @@ if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
         email_verified: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      },
+      {
+        id: 3,
+        email: 'test@example.com',
+        password_hash: '$2a$10$PhKVNwsWUE2QLWsnQWPS2etjrPr3cCBsbSilAyieFC0s1mqbZ//qW',
+        email_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
     ],
     profiles: [
@@ -82,6 +90,17 @@ if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
         last_name: 'Mitchell',
         avatar_url: undefined,
         phone: '+1-555-0124',
+        timezone: 'UTC',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      {
+        id: 3,
+        user_id: 3,
+        first_name: 'Test',
+        last_name: 'User',
+        avatar_url: undefined,
+        phone: '+1-555-0125',
         timezone: 'UTC',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

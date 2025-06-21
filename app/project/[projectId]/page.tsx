@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { getProjectByIdAction, getLotByIdAction, debugDatabaseAction } from '@/lib/actions'
 import { ProjectWithDetails, Lot } from '@/types/database'
 import Link from 'next/link'
-import { ArrowLeft, Plus, MapPin, Calendar, User, Building, Settings, FileText, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Plus, MapPin, Calendar, User, Building, Settings, FileText, AlertCircle, BookOpen } from 'lucide-react'
 import { CreateLotModal } from '@/components/modals/create-lot-modal'
 
 interface PageProps {
@@ -165,6 +165,12 @@ export default function ProjectDetailPage({ params }: PageProps) {
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
                 {project.status?.replace('_', ' ') || 'Active'}
               </span>
+              <Link href={`/project/${projectId}/site-diary`}>
+                <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Site Diary
+                </button>
+              </Link>
               <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings

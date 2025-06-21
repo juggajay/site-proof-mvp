@@ -1754,6 +1754,214 @@ export async function getDailyReportByDateAction(lotId: number | string, date: s
   }
 }
 
+// ==================== PROJECT-LEVEL SITE DIARY ACTIONS ====================
+
+export async function getDailyReportsByProjectAction(projectId: number | string): Promise<APIResponse<DailyReport[]>> {
+  try {
+    await requireAuth()
+    
+    // Get all lots for this project
+    const project = await getProjectByIdAction(projectId)
+    if (!project.success || !project.data) {
+      return { success: false, error: 'Project not found' }
+    }
+    
+    const lotIds = project.data.lots.map(lot => lot.id)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily reports from Supabase for project...', projectId)
+      
+      const { data: reports, error } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .in('lot_id', lotIds)
+        .order('report_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily reports from Supabase:', reports?.length || 0)
+      return { success: true, data: reports || [] }
+    } else {
+      console.log('📝 Fetching daily reports from mock data for project...', projectId)
+      const reports = mockDailyReports.filter(r => 
+        lotIds.some(lotId => compareIds(r.lot_id, lotId))
+      )
+      return { success: true, data: reports }
+    }
+  } catch (error) {
+    console.error('Get daily reports by project error:', error)
+    return { success: false, error: 'Failed to fetch daily reports' }
+  }
+}
+
+export async function getDailyEventsByProjectAction(projectId: number | string): Promise<APIResponse<DailyEvent[]>> {
+  try {
+    await requireAuth()
+    
+    // Get all lots for this project
+    const project = await getProjectByIdAction(projectId)
+    if (!project.success || !project.data) {
+      return { success: false, error: 'Project not found' }
+    }
+    
+    const lotIds = project.data.lots.map(lot => lot.id)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily events from Supabase for project...', projectId)
+      
+      const { data: events, error } = await supabase
+        .from('daily_events')
+        .select('*')
+        .in('lot_id', lotIds)
+        .order('event_date', { ascending: false })
+        .order('event_time', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily events from Supabase:', events?.length || 0)
+      return { success: true, data: events || [] }
+    } else {
+      console.log('📝 Fetching daily events from mock data for project...', projectId)
+      const events = mockDailyEvents.filter(e => 
+        lotIds.some(lotId => compareIds(e.lot_id, lotId))
+      )
+      return { success: true, data: events }
+    }
+  } catch (error) {
+    console.error('Get daily events by project error:', error)
+    return { success: false, error: 'Failed to fetch daily events' }
+  }
+}
+
+export async function getDailyLabourByProjectAction(projectId: number | string): Promise<APIResponse<DailyLabour[]>> {
+  try {
+    await requireAuth()
+    
+    // Get all lots for this project
+    const project = await getProjectByIdAction(projectId)
+    if (!project.success || !project.data) {
+      return { success: false, error: 'Project not found' }
+    }
+    
+    const lotIds = project.data.lots.map(lot => lot.id)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily labour from Supabase for project...', projectId)
+      
+      const { data: labour, error } = await supabase
+        .from('daily_labour')
+        .select('*')
+        .in('lot_id', lotIds)
+        .order('work_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily labour from Supabase:', labour?.length || 0)
+      return { success: true, data: labour || [] }
+    } else {
+      console.log('📝 Fetching daily labour from mock data for project...', projectId)
+      const labour = mockDailyLabour.filter(l => 
+        lotIds.some(lotId => compareIds(l.lot_id, lotId))
+      )
+      return { success: true, data: labour }
+    }
+  } catch (error) {
+    console.error('Get daily labour by project error:', error)
+    return { success: false, error: 'Failed to fetch daily labour records' }
+  }
+}
+
+export async function getDailyPlantByProjectAction(projectId: number | string): Promise<APIResponse<DailyPlant[]>> {
+  try {
+    await requireAuth()
+    
+    // Get all lots for this project
+    const project = await getProjectByIdAction(projectId)
+    if (!project.success || !project.data) {
+      return { success: false, error: 'Project not found' }
+    }
+    
+    const lotIds = project.data.lots.map(lot => lot.id)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily plant from Supabase for project...', projectId)
+      
+      const { data: plant, error } = await supabase
+        .from('daily_plant')
+        .select('*')
+        .in('lot_id', lotIds)
+        .order('work_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily plant from Supabase:', plant?.length || 0)
+      return { success: true, data: plant || [] }
+    } else {
+      console.log('📝 Fetching daily plant from mock data for project...', projectId)
+      const plant = mockDailyPlant.filter(p => 
+        lotIds.some(lotId => compareIds(p.lot_id, lotId))
+      )
+      return { success: true, data: plant }
+    }
+  } catch (error) {
+    console.error('Get daily plant by project error:', error)
+    return { success: false, error: 'Failed to fetch daily plant records' }
+  }
+}
+
+export async function getDailyMaterialsByProjectAction(projectId: number | string): Promise<APIResponse<DailyMaterials[]>> {
+  try {
+    await requireAuth()
+    
+    // Get all lots for this project
+    const project = await getProjectByIdAction(projectId)
+    if (!project.success || !project.data) {
+      return { success: false, error: 'Project not found' }
+    }
+    
+    const lotIds = project.data.lots.map(lot => lot.id)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Fetching daily materials from Supabase for project...', projectId)
+      
+      const { data: materials, error } = await supabase
+        .from('daily_materials')
+        .select('*')
+        .in('lot_id', lotIds)
+        .order('delivery_date', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Fetched daily materials from Supabase:', materials?.length || 0)
+      return { success: true, data: materials || [] }
+    } else {
+      console.log('📝 Fetching daily materials from mock data for project...', projectId)
+      const materials = mockDailyMaterials.filter(m => 
+        lotIds.some(lotId => compareIds(m.lot_id, lotId))
+      )
+      return { success: true, data: materials }
+    }
+  } catch (error) {
+    console.error('Get daily materials by project error:', error)
+    return { success: false, error: 'Failed to fetch daily materials records' }
+  }
+}
+
 // ==================== FORM ACTION WRAPPERS ====================
 
 export async function handleSignup(formData: FormData) {
