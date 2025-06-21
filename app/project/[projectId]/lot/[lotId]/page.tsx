@@ -116,10 +116,34 @@ export default function LotDetailPage({ params }: PageProps) {
         <div className="text-center">
           <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
           <p className="text-gray-600">{error || 'Lot not found'}</p>
-          <Link href={`/project/${projectId}`} className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-700">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Project
-          </Link>
+          <div className="mt-4 space-y-2">
+            <Link href={`/project/${projectId}`} className="block">
+              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Project
+              </button>
+            </Link>
+            <button
+              onClick={async () => {
+                console.log('🔍 Debug: Testing lot API...')
+                try {
+                  const response = await fetch(`/api/test-lot?id=${lotId}`)
+                  const data = await response.json()
+                  console.log('🔍 Test lot API response:', data)
+                  alert('Check console for API response')
+                } catch (err) {
+                  console.error('🔍 Test lot API error:', err)
+                }
+              }}
+              className="block w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Test Lot API
+            </button>
+            <div className="mt-4 text-left bg-gray-100 p-4 rounded">
+              <p className="text-xs font-mono">Lot ID: {lotId}</p>
+              <p className="text-xs font-mono">Project ID: {projectId}</p>
+            </div>
+          </div>
         </div>
       </div>
     )
