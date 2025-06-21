@@ -31,31 +31,61 @@ async function testITPAssignment() {
     console.log('\nChecking if itps table exists...')
     const { data: itps, error: itpsError } = await supabase
       .from('itps')
-      .select('id')
-      .limit(5)
+      .select('id, name')
+      .limit(10)
     
     if (!itpsError && itps) {
       console.log(`Found ${itps.length} records in 'itps' table`)
-      console.log('ITP IDs in itps table:', itps.map(i => i.id))
+      console.log('ITP samples in itps table:', itps.map(i => ({ id: i.id, name: i.name })))
+      
+      // Check if our specific ID exists in itps table
+      const { data: specificItp } = await supabase
+        .from('itps')
+        .select('*')
+        .eq('id', '7fd887dd-a451-41f3-bebc-0b0bc37b4425')
+        .single()
+      
+      if (specificItp) {
+        console.log('✅ Found our specific ITP in itps table:', specificItp.name)
+      } else {
+        console.log('❌ Our specific ITP NOT found in itps table')
+      }
+    } else {
+      console.log('❌ No itps table or error:', itpsError?.message)
     }
     
     // Check itp_templates table
     console.log('\nChecking itp_templates table...')
     const { data: templates, error: templatesError } = await supabase
       .from('itp_templates')
-      .select('id')
-      .limit(5)
+      .select('id, name')
+      .limit(10)
     
     if (!templatesError && templates) {
       console.log(`Found ${templates.length} records in 'itp_templates' table`)
-      console.log('ITP IDs in itp_templates table:', templates.map(t => t.id))
+      console.log('ITP samples in itp_templates table:', templates.map(t => ({ id: t.id, name: t.name })))
+      
+      // Check if our specific ID exists in itp_templates table
+      const { data: specificTemplate } = await supabase
+        .from('itp_templates')
+        .select('*')
+        .eq('id', '7fd887dd-a451-41f3-bebc-0b0bc37b4425')
+        .single()
+      
+      if (specificTemplate) {
+        console.log('✅ Found our specific ITP in itp_templates table:', specificTemplate.name)
+      } else {
+        console.log('❌ Our specific ITP NOT found in itp_templates table')
+      }
+    } else {
+      console.log('❌ No itp_templates table or error:', templatesError?.message)
     }
     
     // Try to find which table the constraint actually references
     console.log('\n\nTesting assignment with ITP from each table...')
     
-    const testLotId = '1e250900-a9ab-472b-95ba-464dd8c756cd'
-    const testItpId = '8b5c78e1-9fe5-4c25-bb10-278e11d28c27'
+    const testLotId = '7948e379-1753-4a50-a647-2923e2b63dfe'
+    const testItpId = '7fd887dd-a451-41f3-bebc-0b0bc37b4425'
     
     // First, check current value
     const { data: currentLot } = await supabase

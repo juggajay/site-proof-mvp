@@ -596,17 +596,30 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: false, error: 'Lot not found' }
       }
       
-      // Check if ITP exists
+      // Check if ITP exists in the itps table (which the foreign key constraint references)
       const { data: itp, error: itpError } = await supabase
-        .from('itp_templates')
+        .from('itps')
         .select('*')
         .eq('id', itpTemplateId)
         .single()
       
       if (itpError || !itp) {
-        console.log('ITP not found:', itpError)
-        return { success: false, error: 'ITP not found' }
+        console.log('ITP not found in itps table:', itpError)
+        // Try to check itp_templates as fallback and provide better error message
+        const { data: templateItp } = await supabase
+          .from('itp_templates')
+          .select('*')
+          .eq('id', itpTemplateId)
+          .single()
+        
+        if (templateItp) {
+          return { success: false, error: `ITP template exists but is not synced to itps table. Please sync data first.` }
+        }
+        
+        return { success: false, error: `ITP template not found: ${itpTemplateId}` }
       }
+      
+      console.log('Found ITP:', { id: itp.id, name: itp.name })
       
       // Check if this ITP is already assigned
       const { data: existingAssignment } = await supabase
@@ -635,6 +648,7 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       let assignError = null
       
       try {
+        console.log('Attempting junction table assignment...')
         const result = await supabase
           .from('lot_itp_templates')
           .insert({
@@ -651,18 +665,37 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         
         newAssignment = result.data
         assignError = result.error
+        
+        if (assignError) {
+          console.log('Junction table assignment error:', assignError)
+        } else {
+          console.log('Junction table assignment successful')
+        }
       } catch (e) {
-        console.log('Junction table not available, using direct assignment')
+        console.log('Junction table assignment exception:', e)
         assignError = e
       }
       
       // If junction table fails, try direct lot assignment (legacy support)
       if (assignError) {
         console.log('Falling back to direct lot assignment')
+        
+        // First verify the ITP exists in itps table to avoid foreign key constraint errors
+        const { data: itpExists, error: itpCheckError } = await supabase
+          .from('itps')
+          .select('id')
+          .eq('id', itpTemplateId)
+          .single()
+        
+        if (itpCheckError || !itpExists) {
+          console.error('ITP does not exist in itps table for direct assignment:', itpTemplateId)
+          return { success: false, error: `ITP not found in itps table: ${itpTemplateId}` }
+        }
+        
         const { data: updatedLot, error: lotUpdateError } = await supabase
           .from('lots')
           .update({
-            itp_id: itpTemplateId,
+            itp_id: itpTemplateId,  // Use correct field name for actual database schema
             updated_at: new Date().toISOString()
           })
           .eq('id', lotId)
@@ -902,10 +935,10 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           .eq('id', simpleLot.project_id)
           .single() : null
         
-        // Check both itp_id and itp_template_id for compatibility
-        const itpId = simpleLot.itp_id || simpleLot.itp_template_id
+        // Check for itp_id field (actual database schema uses itp_id, not itp_template_id)
+        const itpId = simpleLot.itp_id
         const itpResult = itpId ? await supabase
-          .from('itp_templates')
+          .from('itps')
           .select('*')
           .eq('id', itpId)
           .single() : null
@@ -939,18 +972,18 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         const { data: allItems } = await supabase
           .from('itp_items')
           .select('*')
-          .in('itp_id', itpTemplateIds)
+          .in('itp_template_id', itpTemplateIds)
           .order('sort_order')
         
         // Group items by template
         itpTemplates = (templates || []).map(template => {
-          const templateItems = (allItems || []).filter(item => item.itp_id === template.id)
+          const templateItems = (allItems || []).filter(item => item.itp_template_id === template.id)
           const mappedItems = templateItems.map(item => ({
             ...item,
             item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
                       item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
                       item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-            itp_template_id: item.itp_id, // Map itp_id to itp_template_id
+            itp_template_id: item.itp_template_id, // Use correct field name
             order_index: item.sort_order, // Map sort_order to order_index
             item_number: `${item.sort_order}`, // Use sort_order as item number
             inspection_method: item.item_number // Store the type as inspection method
@@ -973,23 +1006,30 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       }
       
       // If no templates from junction table, check direct assignment (lots.itp_id)
-      if (itpTemplates.length === 0 && (lot.itp_id || lot.itp_template_id)) {
-        const directItpId = lot.itp_id || lot.itp_template_id
+      if (itpTemplates.length === 0 && lot.itp_id) {
+        const directItpId = lot.itp_id
         console.log('📊 No junction table templates found, checking direct assignment:', directItpId)
         
-        // Fetch the directly assigned ITP template
+        // Fetch the directly assigned ITP from itps table
         const { data: directTemplate } = await supabase
-          .from('itp_templates')
+          .from('itps')
           .select('*')
           .eq('id', directItpId)
           .single()
         
         if (directTemplate) {
+          // Since itps table doesn't have items, fetch corresponding template from itp_templates
+          const { data: templateForItems } = await supabase
+            .from('itp_templates')
+            .select('*')
+            .eq('id', directItpId)
+            .single()
+          
           // Fetch items for this template
           const { data: directItems } = await supabase
             .from('itp_items')
             .select('*')
-            .eq('itp_id', directItpId)
+            .eq('itp_template_id', directItpId)
             .order('sort_order')
           
           // Map items to expected format
@@ -998,7 +1038,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
                       item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
                       item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-            itp_template_id: item.itp_id, // Map itp_id to itp_template_id
+            itp_template_id: item.itp_template_id, // Use correct field name
             order_index: item.sort_order, // Map sort_order to order_index
             item_number: `${item.sort_order}`, // Use sort_order as item number
             inspection_method: item.item_number // Store the type as inspection method
@@ -1009,10 +1049,10 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             name: directTemplate.name,
             description: directTemplate.description,
             category: directTemplate.category || 'general',
-            version: '1.0',
-            is_active: true,
+            version: templateForItems?.version || '1.0',
+            is_active: templateForItems?.is_active ?? true,
             organization_id: directTemplate.organization_id,
-            created_by: 1, // Default user ID
+            created_by: templateForItems?.created_by || 1,
             created_at: directTemplate.created_at,
             updated_at: directTemplate.updated_at,
             itp_items: mappedItems
@@ -1184,7 +1224,7 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
       const { data: items, error: itemsError } = await supabase
         .from('itp_items')
         .select('*')
-        .eq('itp_id', templateId)
+        .eq('itp_template_id', templateId)
         .order('sort_order')
       
       if (itemsError) {
@@ -1197,7 +1237,7 @@ export async function getITPTemplateWithItemsAction(templateId: number | string)
         item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
                   item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
                   item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-        itp_template_id: item.itp_id, // Map itp_id to itp_template_id
+        itp_template_id: item.itp_template_id, // Use correct field name
         order_index: item.sort_order, // Map sort_order to order_index
         item_number: `${item.sort_order}`, // Use sort_order as item number
         inspection_method: item.item_number // Store the type as inspection method
@@ -1286,7 +1326,7 @@ export async function createITPTemplateAction(data: CreateITPTemplateRequest): P
       // Create ITP items if provided
       if (data.itp_items && data.itp_items.length > 0) {
         const itemsToInsert = data.itp_items.map((item, index) => ({
-          itp_id: newItp.id,
+          itp_template_id: newItp.id,
           item_number: item.item_number || `ITEM-${index + 1}`,
           description: item.description,
           specification_reference: item.specification_reference || null,

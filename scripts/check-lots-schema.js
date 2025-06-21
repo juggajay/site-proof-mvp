@@ -54,19 +54,19 @@ async function checkLotsSchema() {
       console.log(JSON.stringify(lotsWithItp, null, 2))
     }
 
-    // Check if we can update itp_template_id
-    console.log('\n\nTesting itp_template_id update...')
+    // Check if we can update itp_id (actual field in database)
+    console.log('\n\nTesting itp_id update...')
     const testLotId = lots?.[0]?.id
     if (testLotId) {
       const { error: updateError } = await supabase
         .from('lots')
-        .update({ itp_template_id: null })
+        .update({ itp_id: null })
         .eq('id', testLotId)
       
       if (updateError) {
-        console.error('Error updating itp_template_id:', updateError)
+        console.error('Error updating itp_id:', updateError)
       } else {
-        console.log('✅ Successfully updated itp_template_id (set to null)')
+        console.log('✅ Successfully updated itp_id (set to null)')
       }
     }
 

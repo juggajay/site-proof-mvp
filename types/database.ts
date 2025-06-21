@@ -111,8 +111,8 @@ export interface Lot {
   lot_number: string;
   description?: string;
   location_description?: string;
-  itp_template_id?: number | string; // Legacy - to be deprecated
-  itp_id?: number | string; // Current field name in Supabase
+  itp_template_id?: number | string; // Current field name in database
+  itp_id?: number | string; // Legacy - for backward compatibility
   status: 'pending' | 'in_progress' | 'completed' | 'approved' | 'rejected';
   start_date?: string;
   target_completion_date?: string;
