@@ -47,15 +47,16 @@ export async function POST(request: NextRequest) {
         // Create new ITP item - use original UUID as string ID
         const newItem: ITPItem = {
           id: item.id || `item_${Date.now()}_${i}`,
-          itp_template_id: item.itp_id || item.itp_template_id || 1,
+          itp_id: item.itp_id || 1, // Reference to the ITP this item belongs to
+          template_item_id: item.template_item_id || null, // Reference to template item if created from template
           item_number: item.item_number || `${i + 1}`,
           description: item.description,
           specification_reference: item.specification_reference || null,
           inspection_method: item.inspection_type || item.inspection_method || 'PASS_FAIL',
           acceptance_criteria: item.acceptance_criteria || item.required_value || 'As specified',
-          item_type: (item.inspection_type || item.item_type || 'PASS_FAIL').toLowerCase(),
           is_mandatory: item.is_mandatory === 'true' || item.is_mandatory === true || true,
-          order_index: parseInt(item.order_index) || (i + 1),
+          sort_order: parseInt(item.order_index) || (i + 1),
+          status: 'Pending',
           created_at: item.created_at || new Date().toISOString()
         }
 
