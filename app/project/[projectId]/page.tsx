@@ -348,38 +348,48 @@ export default function ProjectDetailPage({ params }: PageProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {project.lots.map((lot) => (
-                    <tr key={lot.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{lot.lot_number}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{lot.description || 'No description'}</div>
-                        {lot.location_description && (
-                          <div className="text-sm text-gray-500">{lot.location_description}</div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLotStatusColor(lot.status)}`}>
-                          {lot.status?.replace('_', ' ') || 'pending'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {lot.itp_template_id ? 'Assigned' : 'Not assigned'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(lot.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/project/${projectId}/lot/${lot.id}`}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
+                  {project.lots.map((lot) => {
+                    console.log('🎯 Rendering lot row:', {
+                      lotId: lot.id,
+                      lotNumber: lot.lot_number,
+                      href: `/project/${projectId}/lot/${lot.id}`,
+                      projectId,
+                      lotIdType: typeof lot.id
+                    })
+                    return (
+                      <tr key={lot.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{lot.lot_number}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">{lot.description || 'No description'}</div>
+                          {lot.location_description && (
+                            <div className="text-sm text-gray-500">{lot.location_description}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLotStatusColor(lot.status)}`}>
+                            {lot.status?.replace('_', ' ') || 'pending'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {lot.itp_template_id ? 'Assigned' : 'Not assigned'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(lot.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <Link
+                            href={`/project/${projectId}/lot/${lot.id}`}
+                            className="text-blue-600 hover:text-blue-900"
+                            onClick={() => console.log('🔗 Lot link clicked:', lot.id)}
+                          >
+                            View
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

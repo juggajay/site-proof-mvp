@@ -10,6 +10,7 @@ import { InspectionChecklistForm } from '@/components/forms/inspection-checklist
 import { InteractiveInspectionForm } from '@/components/forms/interactive-inspection-form'
 import { MultiITPInspectionForm } from '@/components/forms/multi-itp-inspection-form'
 import { SiteDiaryTab } from '@/components/site-diary/site-diary-tab'
+import { RouteDebug } from '@/components/debug/route-debug'
 
 interface PageProps {
   params: {
@@ -118,6 +119,7 @@ export default function LotDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <RouteDebug />
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
