@@ -81,6 +81,11 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
     setError(null)
 
     try {
+      console.log('Starting save all changes...')
+      console.log('Lot ID:', lot.id)
+      console.log('Items to save:', items.length)
+      console.log('Status map:', Array.from(statusMap.entries()))
+      
       // Get all items that have been changed
       const promises = items.map(async (item) => {
         const status = statusMap.get(item.id)
@@ -92,23 +97,45 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
             result_pass_fail: result,
             comments: status.comments || ''
           }
+          
+          console.log('Saving item:', { lotId: lot.id, itemId: item.id, data })
 
           return saveConformanceRecordAction(lot.id, item.id, data)
         }
         return null
       }).filter(Boolean)
 
-      await Promise.all(promises)
-      setHasChanges(false)
-      setSuccessMessage('All changes saved successfully!')
+      const results = await Promise.all(promises)
+      console.log('Save results:', results)
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000)
+      // Check if all saves were successful
+      const allSuccessful = results.every(r => r && r.success)
+      const failedResults = results.filter(r => r && !r.success)
+      
+      if (allSuccessful) {
+        setHasChanges(false)
+        const savedCount = results.filter(r => r && r.success).length
+        setSuccessMessage(`Successfully saved ${savedCount} inspection${savedCount > 1 ? 's' : ''}!`)
+        console.log(`✅ All ${savedCount} inspections saved successfully`)
+      } else {
+        const failedCount = failedResults.length
+        const errorMessages = failedResults.map(r => r?.error).filter(Boolean).join(', ')
+        setError(`Failed to save ${failedCount} inspection${failedCount > 1 ? 's' : ''}${errorMessages ? ': ' + errorMessages : ''}`)
+        console.error('Failed saves:', failedResults)
+      }
+      
+      // Clear messages after 3 seconds
+      if (allSuccessful) {
+        setTimeout(() => setSuccessMessage(null), 3000)
+      } else {
+        setTimeout(() => setError(null), 5000)
+      }
       
       // Don't call onInspectionSaved here as it will reload the page
       // The UI will update from the current state
     } catch (error) {
-      setError('Failed to save some inspections')
+      console.error('Error saving inspections:', error)
+      setError('Failed to save inspections: ' + (error instanceof Error ? error.message : 'Unknown error'))
       setTimeout(() => setError(null), 5000)
     } finally {
       setIsSavingAll(false)

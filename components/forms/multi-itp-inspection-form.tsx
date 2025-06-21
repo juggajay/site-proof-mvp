@@ -17,8 +17,19 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
 
-  // For now, use the single template until we implement multiple templates
-  const templates = lot.itp_template ? [lot.itp_template] : []
+  // Use multiple templates if available, fall back to single template for backward compatibility
+  const templates = lot.itp_templates && lot.itp_templates.length > 0 
+    ? lot.itp_templates 
+    : (lot.itp_template ? [lot.itp_template] : [])
+    
+  console.log('📊 Templates analysis:', {
+    hasITPTemplates: !!lot.itp_templates,
+    itpTemplatesLength: lot.itp_templates?.length || 0,
+    hasITPTemplate: !!lot.itp_template,
+    finalTemplatesCount: templates.length,
+    templates: templates.map(t => ({ id: t?.id, name: t?.name })),
+    lotITPTemplates: lot.lot_itp_templates?.length || 0
+  })
   
   console.log('🎨 MultiITPInspectionForm - lot data:', {
     lotId: lot.id,
@@ -79,7 +90,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           <div className="mt-6">
             <button
               onClick={() => setIsAssignModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 min-h-[44px] touch-manipulation"
             >
               <Plus className="h-4 w-4 mr-2" />
               Assign ITP Template
@@ -92,6 +103,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           onClose={() => setIsAssignModalOpen(false)}
           onITPAssigned={handleITPAssigned}
           lotId={lot.id}
+          assignedTemplateIds={templates.map(t => t.id)}
         />
       </div>
     )
@@ -127,7 +139,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
               </div>
               <button
                 onClick={() => setIsAssignModalOpen(true)}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 min-h-[44px] touch-manipulation"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Template
@@ -165,7 +177,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           onClose={() => setIsAssignModalOpen(false)}
           onITPAssigned={handleITPAssigned}
           lotId={lot.id}
-          currentITPTemplateId={templates[0].id}
+          assignedTemplateIds={templates.map(t => t.id)}
         />
       </div>
     )
@@ -179,7 +191,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           <h3 className="text-lg font-medium text-gray-900">Quality Inspection Checklists</h3>
           <button
             onClick={() => setIsAssignModalOpen(true)}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 min-h-[44px] touch-manipulation"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Template
@@ -250,6 +262,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
         onClose={() => setIsAssignModalOpen(false)}
         onITPAssigned={handleITPAssigned}
         lotId={lot.id}
+        assignedTemplateIds={templates.map(t => t.id)}
       />
     </div>
   )

@@ -11,9 +11,10 @@ interface AssignITPModalProps {
   onITPAssigned: () => void
   lotId: number | string
   currentITPTemplateId?: number | string
+  assignedTemplateIds?: (number | string)[]
 }
 
-export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentITPTemplateId }: AssignITPModalProps) {
+export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentITPTemplateId, assignedTemplateIds = [] }: AssignITPModalProps) {
   const [templates, setTemplates] = useState<ITPTemplate[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(currentITPTemplateId || null)
   const [isLoading, setIsLoading] = useState(false)
@@ -100,8 +101,13 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
 
             <div className="mb-4">
               <p className="text-sm text-gray-600">
-                Select an Inspection Test Plan (ITP) template to assign to this lot. This will define the quality checklist items for inspection.
+                Select an Inspection Test Plan (ITP) template to assign to this lot. You can assign multiple ITP templates to the same lot.
               </p>
+              {assignedTemplateIds.length > 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  {assignedTemplateIds.length} template{assignedTemplateIds.length > 1 ? 's' : ''} already assigned.
+                </p>
+              )}
             </div>
 
             {isLoadingTemplates ? (
@@ -122,12 +128,18 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
                 {templates.map((template) => (
                   <div
                     key={template.id}
-                    className={`relative cursor-pointer rounded-lg border p-4 hover:bg-gray-50 ${
-                      selectedTemplateId === template.id
-                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                        : 'border-gray-300'
+                    className={`relative rounded-lg border p-4 ${
+                      assignedTemplateIds.includes(template.id)
+                        ? 'border-green-300 bg-green-50 cursor-default'
+                        : selectedTemplateId === template.id
+                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 cursor-pointer hover:bg-blue-100'
+                          : 'border-gray-300 cursor-pointer hover:bg-gray-50'
                     }`}
-                    onClick={() => setSelectedTemplateId(template.id)}
+                    onClick={() => {
+                      if (!assignedTemplateIds.includes(template.id)) {
+                        setSelectedTemplateId(template.id)
+                      }
+                    }}
                   >
                     <div className="flex items-start">
                       <div className="flex-1 min-w-0">
@@ -147,9 +159,9 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
                             </span>
                           )}
                           <span className="text-xs text-gray-500">v{template.version}</span>
-                          {currentITPTemplateId === template.id && (
+                          {assignedTemplateIds.includes(template.id) && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Current
+                              Assigned
                             </span>
                           )}
                         </div>
@@ -165,10 +177,12 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
             <button
               type="button"
               onClick={handleAssign}
-              disabled={isLoading || !selectedTemplateId || templates.length === 0}
+              disabled={isLoading || !selectedTemplateId || templates.length === 0 || (!!selectedTemplateId && assignedTemplateIds.includes(selectedTemplateId))}
               className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Assigning...' : 'Assign Template'}
+              {isLoading ? 'Assigning...' : 
+               selectedTemplateId && assignedTemplateIds.includes(selectedTemplateId) ? 'Already Assigned' :
+               'Assign Template'}
             </button>
             <button
               type="button"

@@ -317,7 +317,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
               <div className="mt-6">
                 <button
                   onClick={() => setIsCreateLotModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 min-h-[44px] touch-manipulation"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Lot
@@ -325,8 +325,56 @@ export default function ProjectDetailPage({ params }: PageProps) {
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
+            <>
+              {/* Mobile Card Layout */}
+              <div className="block sm:hidden space-y-4">
+                {project.lots.map((lot) => (
+                  <div key={lot.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-medium text-gray-900">Lot {lot.lot_number}</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLotStatusColor(lot.status)}`}>
+                        {lot.status?.replace('_', ' ') || 'pending'}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">Description:</span>
+                        <p className="text-sm text-gray-900 mt-1">{lot.description || 'No description'}</p>
+                        {lot.location_description && (
+                          <p className="text-sm text-gray-500 mt-1">{lot.location_description}</p>
+                        )}
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">ITP:</span>
+                          <span className="text-sm text-gray-900 ml-2">
+                            {(lot.itp_template_id || lot.itp_id) ? 'Assigned' : 'Not assigned'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium text-gray-500">Created:</span>
+                          <span className="text-sm text-gray-900 ml-2">
+                            {new Date(lot.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Link
+                      href={`/project/${projectId}/lot/${lot.id}`}
+                      className="block w-full px-4 py-2 bg-blue-600 text-white text-center text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      View Lot Details
+                    </Link>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Desktop Table Layout */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -373,7 +421,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <Link
                           href={`/project/${projectId}/lot/${lot.id}`}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors min-h-[44px] min-w-[44px] justify-center"
                         >
                           View
                         </Link>
@@ -381,8 +429,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

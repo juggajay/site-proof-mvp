@@ -12,6 +12,7 @@ declare global {
     organizations: Organization[]
     projects: Project[]
     lots: Lot[]
+    lotITPTemplates: any[]
     itpTemplates: ITPTemplate[]
     itpItems: ITPItem[]
     conformanceRecords: ConformanceRecord[]
@@ -263,6 +264,7 @@ if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
         updated_at: '2025-06-15T01:40:16.852564Z'
       }
     ],
+    lotITPTemplates: [],
     itpTemplates: [],
     itpItems: [],
     conformanceRecords: [],
@@ -288,6 +290,7 @@ export const mockProfiles = globalThis.mockDatabase.profiles
 export const mockOrganizations = globalThis.mockDatabase.organizations
 export const mockProjects = globalThis.mockDatabase.projects
 export const mockLots = globalThis.mockDatabase.lots
+export const mockLotITPTemplates = globalThis.mockDatabase.lotITPTemplates
 export const mockITPTemplates = globalThis.mockDatabase.itpTemplates
 export const mockITPItems = globalThis.mockDatabase.itpItems
 export const mockConformanceRecords = globalThis.mockDatabase.conformanceRecords

@@ -251,6 +251,21 @@ CREATE TABLE audit_logs (
     user_agent TEXT
 );
 
+-- Junction table for multiple ITPs per lot
+CREATE TABLE lot_itp_templates (
+    id SERIAL PRIMARY KEY,
+    lot_id INTEGER REFERENCES lots(id) ON DELETE CASCADE,
+    itp_template_id INTEGER REFERENCES itp_templates(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    assigned_by INTEGER REFERENCES users(id),
+    is_active BOOLEAN DEFAULT TRUE,
+    completion_percentage DECIMAL(5,2) DEFAULT 0,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(lot_id, itp_template_id)
+);
+
 -- Additional indexes for performance
 CREATE INDEX idx_projects_org_id ON projects(organization_id);
 CREATE INDEX idx_projects_status ON projects(status);
@@ -263,6 +278,9 @@ CREATE INDEX idx_itp_items_order ON itp_items(order_index);
 CREATE INDEX idx_lots_project_id ON lots(project_id);
 CREATE INDEX idx_lots_status ON lots(status);
 CREATE INDEX idx_lots_inspector ON lots(assigned_inspector_id);
+CREATE INDEX idx_lot_itp_templates_lot_id ON lot_itp_templates(lot_id);
+CREATE INDEX idx_lot_itp_templates_itp_id ON lot_itp_templates(itp_template_id);
+CREATE INDEX idx_lot_itp_templates_active ON lot_itp_templates(is_active);
 CREATE INDEX idx_conformance_lot_id ON conformance_records(lot_id);
 CREATE INDEX idx_conformance_item_id ON conformance_records(itp_item_id);
 CREATE INDEX idx_conformance_inspector ON conformance_records(inspector_id);
@@ -281,6 +299,9 @@ CREATE TRIGGER itp_templates_updated_at BEFORE UPDATE ON itp_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER lots_updated_at BEFORE UPDATE ON lots 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER lot_itp_templates_updated_at BEFORE UPDATE ON lot_itp_templates 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER conformance_records_updated_at BEFORE UPDATE ON conformance_records 
@@ -460,3 +481,11 @@ INSERT INTO itp_items (itp_template_id, item_number, description, inspection_met
 (1, '1.4', 'Concrete slump test', 'test', 'Slump: 100mm ±25mm', 'numeric', 4),
 (1, '1.5', 'Surface finish', 'visual', 'Smooth, level finish without major defects', 'pass_fail', 5),
 (1, '1.6', 'Photographic evidence', 'photo_required', 'Before, during, and after photos required', 'photo_required', 6);
+
+-- Migrate existing single ITP assignments to the junction table
+-- This will be run once to preserve existing data
+INSERT INTO lot_itp_templates (lot_id, itp_template_id, assigned_by, is_active)
+SELECT id, itp_template_id, created_by, TRUE
+FROM lots
+WHERE itp_template_id IS NOT NULL
+ON CONFLICT (lot_id, itp_template_id) DO NOTHING;

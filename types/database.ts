@@ -132,6 +132,8 @@ export interface LotITPTemplate {
   is_active: boolean;
   completion_percentage?: number;
   completed_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ConformanceRecord {

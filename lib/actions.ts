@@ -20,9 +20,9 @@ import {
 // Import shared mock database storage
 import { 
   mockUsers, mockProfiles, mockOrganizations, mockProjects, mockLots,
-  mockITPTemplates, mockITPItems, mockConformanceRecords, mockAttachments,
-  mockReports, mockNonConformances, mockDailyReports, mockDailyEvents,
-  mockDailyLabour, mockDailyPlant, mockDailyMaterials
+  mockLotITPTemplates, mockITPTemplates, mockITPItems, mockConformanceRecords, 
+  mockAttachments, mockReports, mockNonConformances, mockDailyReports, 
+  mockDailyEvents, mockDailyLabour, mockDailyPlant, mockDailyMaterials
 } from './mock-data'
 
 // Import database abstraction layer
@@ -577,7 +577,7 @@ export async function createLotAction(formData: FormData): Promise<APIResponse<L
 
 export async function assignITPToLotAction(lotId: number | string, itpTemplateId: number | string): Promise<APIResponse<Lot>> {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     
     console.log('assignITPToLotAction: Assigning template', itpTemplateId, 'to lot', lotId)
     
@@ -608,30 +608,66 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: false, error: 'ITP not found' }
       }
       
-      // Update the lot with the ITP template (using itp_id as that's the actual column name)
-      const { data: updatedLot, error: updateError } = await supabase
-        .from('lots')
-        .update({
-          itp_id: itpTemplateId,
-          status: 'IN_PROGRESS',
+      // Check if this ITP is already assigned
+      const { data: existingAssignment } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .eq('lot_id', lotId)
+        .eq('itp_template_id', itpTemplateId)
+        .single()
+      
+      if (existingAssignment) {
+        // Reactivate if it was deactivated
+        if (!existingAssignment.is_active) {
+          await supabase
+            .from('lot_itp_templates')
+            .update({
+              is_active: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingAssignment.id)
+        }
+        return { success: true, data: lot, message: 'ITP template already assigned' }
+      }
+      
+      // Add entry to junction table
+      const { data: newAssignment, error: assignError } = await supabase
+        .from('lot_itp_templates')
+        .insert({
+          lot_id: lotId,
+          itp_template_id: itpTemplateId,
+          assigned_by: user.id,
+          is_active: true,
+          assigned_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', lotId)
         .select()
         .single()
       
-      if (updateError) {
-        console.error('Supabase error:', updateError)
-        return { success: false, error: updateError.message }
+      if (assignError) {
+        console.error('Supabase error:', assignError)
+        return { success: false, error: assignError.message }
       }
       
-      console.log('✅ ITP assigned in Supabase:', updatedLot)
+      // Update lot status if needed
+      if (lot.status === 'pending') {
+        await supabase
+          .from('lots')
+          .update({
+            status: 'IN_PROGRESS',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', lotId)
+      }
+      
+      console.log('✅ ITP assigned in Supabase:', newAssignment)
       revalidatePath(`/project/${lot.project_id}`)
-      return { success: true, data: updatedLot, message: 'ITP assigned successfully' }
+      return { success: true, data: lot, message: 'ITP assigned successfully' }
     } else {
       console.log('📝 Assigning ITP in mock data...')
-      const lotIndex = mockLots.findIndex(l => compareIds(l.id, lotId))
-      if (lotIndex === -1) {
+      const lot = mockLots.find(l => compareIds(l.id, lotId))
+      if (!lot) {
         console.log('assignITPToLotAction: Lot not found for ID:', lotId)
         return { success: false, error: 'Lot not found' }
       }
@@ -643,22 +679,100 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: false, error: 'ITP template not found' }
       }
       
-      console.log('assignITPToLotAction: Successfully found lot and template')
-
-      mockLots[lotIndex] = {
-        ...mockLots[lotIndex],
+      // Check if already assigned
+      const existingAssignment = mockLotITPTemplates.find(lit => 
+        compareIds(lit.lot_id, lotId) && compareIds(lit.itp_template_id, itpTemplateId)
+      )
+      
+      if (existingAssignment) {
+        if (!existingAssignment.is_active) {
+          existingAssignment.is_active = true
+          existingAssignment.updated_at = new Date().toISOString()
+        }
+        return { success: true, data: lot, message: 'ITP template already assigned' }
+      }
+      
+      // Add new assignment to junction table
+      const newAssignment = {
+        id: mockLotITPTemplates.length + 1,
+        lot_id: lotId,
         itp_template_id: itpTemplateId,
-        status: 'in_progress',
+        assigned_by: user.id,
+        is_active: true,
+        assigned_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
-
-      const updatedLot = mockLots[lotIndex]
+      
+      mockLotITPTemplates.push(newAssignment)
+      
+      // Update lot status if needed
+      if (lot.status === 'pending') {
+        const lotIndex = mockLots.findIndex(l => compareIds(l.id, lotId))
+        mockLots[lotIndex] = {
+          ...lot,
+          status: 'in_progress',
+          updated_at: new Date().toISOString()
+        }
+      }
+      
       console.log('assignITPToLotAction: Successfully assigned ITP template to lot')
-      revalidatePath(`/project/${updatedLot.project_id}`)
-      return { success: true, data: mockLots[lotIndex], message: 'ITP assigned successfully' }
+      revalidatePath(`/project/${lot.project_id}`)
+      return { success: true, data: lot, message: 'ITP assigned successfully' }
     }
   } catch (error) {
     return { success: false, error: 'Failed to assign ITP' }
+  }
+}
+
+export async function removeITPFromLotAction(lotId: number | string, itpTemplateId: number | string): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    
+    console.log('removeITPFromLotAction: Removing template', itpTemplateId, 'from lot', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Removing ITP in Supabase...')
+      
+      // Deactivate the ITP assignment (soft delete)
+      const { error } = await supabase
+        .from('lot_itp_templates')
+        .update({
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('lot_id', lotId)
+        .eq('itp_template_id', itpTemplateId)
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ ITP removed from lot in Supabase')
+      revalidatePath(`/project/*/lot/${lotId}`)
+      return { success: true, message: 'ITP removed successfully' }
+    } else {
+      console.log('📝 Removing ITP in mock data...')
+      
+      const assignment = mockLotITPTemplates.find(lit => 
+        compareIds(lit.lot_id, lotId) && compareIds(lit.itp_template_id, itpTemplateId) && lit.is_active
+      )
+      
+      if (!assignment) {
+        return { success: false, error: 'ITP assignment not found' }
+      }
+      
+      // Soft delete by marking as inactive
+      assignment.is_active = false
+      assignment.updated_at = new Date().toISOString()
+      
+      console.log('removeITPFromLotAction: Successfully removed ITP template from lot')
+      revalidatePath(`/project/*/lot/${lotId}`)
+      return { success: true, message: 'ITP removed successfully' }
+    }
+  } catch (error) {
+    return { success: false, error: 'Failed to remove ITP' }
   }
 }
 
@@ -720,7 +834,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         }
       }
       
-      // Get lot with project and ITP details
+      // Get lot with project details
       // Use the same ID approach that worked in the existence check
       const lotIdToUse = lotExists ? lotExists.id : String(lotId)
       console.log('📊 Using lot ID for full query:', lotIdToUse, 'Type:', typeof lotIdToUse)
@@ -730,8 +844,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         .from('lots')
         .select(`
           *,
-          project:projects(*),
-          itp:itp_templates(*)
+          project:projects(*)
         `)
         .eq('id', lotIdToUse)
         .single()
@@ -775,28 +888,63 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         }
       }
       
-      // Get ITP items if ITP is assigned (check both fields)
-      let itpItems: any[] = []
-      const assignedItpId = lot.itp_id || lot.itp_template_id
-      if (assignedItpId) {
-        const { data: items } = await supabase
+      // Get all assigned ITPs from junction table
+      const { data: lotItpTemplates } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .eq('lot_id', lotIdToUse)
+        .eq('is_active', true)
+      
+      // Fetch all ITP templates and their items
+      let itpTemplates: any[] = []
+      if (lotItpTemplates && lotItpTemplates.length > 0) {
+        const itpTemplateIds = lotItpTemplates.map(lit => lit.itp_template_id)
+        
+        // Fetch all ITP templates
+        const { data: templates } = await supabase
+          .from('itp_templates')
+          .select('*')
+          .in('id', itpTemplateIds)
+        
+        // Fetch all ITP items for these templates
+        const { data: allItems } = await supabase
           .from('itp_items')
           .select('*')
-          .eq('itp_id', assignedItpId)
+          .in('itp_id', itpTemplateIds)
           .order('sort_order')
         
-        // Map database format to TypeScript interface
-        itpItems = (items || []).map(item => ({
-          ...item,
-          item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
-                    item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
-                    item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-          itp_template_id: item.itp_id, // Map itp_id to itp_template_id
-          order_index: item.sort_order, // Map sort_order to order_index
-          item_number: `${item.sort_order}`, // Use sort_order as item number
-          inspection_method: item.item_number // Store the type as inspection method
-        })) as ITPItem[]
+        // Group items by template
+        itpTemplates = (templates || []).map(template => {
+          const templateItems = (allItems || []).filter(item => item.itp_id === template.id)
+          const mappedItems = templateItems.map(item => ({
+            ...item,
+            item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
+                      item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
+                      item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
+            itp_template_id: item.itp_id, // Map itp_id to itp_template_id
+            order_index: item.sort_order, // Map sort_order to order_index
+            item_number: `${item.sort_order}`, // Use sort_order as item number
+            inspection_method: item.item_number // Store the type as inspection method
+          })) as ITPItem[]
+          
+          return {
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            category: template.category || 'general',
+            version: '1.0',
+            is_active: true,
+            organization_id: template.organization_id,
+            created_by: 1, // Default user ID
+            created_at: template.created_at,
+            updated_at: template.updated_at,
+            itp_items: mappedItems
+          }
+        })
       }
+      
+      // For backward compatibility, set the first template as itp_template
+      const primaryTemplate = itpTemplates.length > 0 ? itpTemplates[0] : undefined
       
       // Get conformance records
       const { data: conformanceRecords } = await supabase
@@ -808,23 +956,13 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       const lotWithDetails: LotWithDetails = {
         ...lot,
         project: lot.project,
-        itp_template: lot.itp ? {
-          id: lot.itp.id,
-          name: lot.itp.name,
-          description: lot.itp.description,
-          category: lot.itp.category || 'general',
-          version: '1.0',
-          is_active: true,
-          organization_id: lot.itp.organization_id,
-          created_by: 1, // Default user ID
-          created_at: lot.itp.created_at,
-          updated_at: lot.itp.updated_at,
-          itp_items: itpItems  // Include ITP items in the template object
-        } : undefined,
+        itp_template: primaryTemplate,  // Legacy support
+        itp_templates: itpTemplates,     // New multiple templates
+        lot_itp_templates: lotItpTemplates || [],
         conformance_records: conformanceRecords || []
       }
       
-      console.log('✅ Fetched lot from Supabase with', itpItems.length, 'ITP items')
+      console.log('✅ Fetched lot from Supabase with', itpTemplates.length, 'ITP templates')
       return { success: true, data: lotWithDetails }
     } else {
       console.log('📝 Fetching lot from mock data...')
@@ -835,27 +973,60 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       }
 
       console.log('getLotByIdAction: Found lot:', lot.lot_number)
-      console.log('getLotByIdAction: Lot ITP template ID:', lot.itp_template_id)
       const project = mockProjects.find(p => compareIds(p.id, lot.project_id))!
-      const itpTemplate = lot.itp_template_id ? mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id!)) : undefined
-      const itpItems = itpTemplate ? mockITPItems.filter(i => compareIds(i.itp_template_id, itpTemplate.id)) : []
+      
+      // Get all assigned ITPs from junction table
+      const lotItpTemplates = mockLotITPTemplates.filter(lit => 
+        compareIds(lit.lot_id, lotId) && lit.is_active
+      )
+      
+      // Fetch all ITP templates and their items
+      const itpTemplates = lotItpTemplates.map(lit => {
+        const template = mockITPTemplates.find(t => compareIds(t.id, lit.itp_template_id))
+        if (!template) return null
+        
+        const items = mockITPItems.filter(i => compareIds(i.itp_template_id, template.id))
+        return { ...template, itp_items: items }
+      }).filter(Boolean)
+      
+      // For backward compatibility, use first template or single assignment
+      let primaryTemplate = itpTemplates.length > 0 ? itpTemplates[0] : undefined
+      if (!primaryTemplate && lot.itp_template_id) {
+        // Fall back to legacy single ITP assignment
+        const template = mockITPTemplates.find(t => compareIds(t.id, lot.itp_template_id!))
+        if (template) {
+          const items = mockITPItems.filter(i => compareIds(i.itp_template_id, template.id))
+          primaryTemplate = { ...template, itp_items: items }
+          itpTemplates.push(primaryTemplate)
+        }
+      }
+      
+      console.log('getLotByIdAction: Found', itpTemplates.length, 'ITP templates')
+      console.log('getLotByIdAction: Templates:', itpTemplates.map(t => ({ id: t?.id, name: t?.name })))
+      
+      // Get all conformance records and find their associated items
       const conformanceRecords = mockConformanceRecords.filter(c => compareIds(c.lot_id, lotId))
       
-      console.log('getLotByIdAction: Found ITP template:', itpTemplate?.name || 'None')
-      console.log('getLotByIdAction: ITP template ID from template:', itpTemplate?.id)
-      console.log('getLotByIdAction: Available ITP templates:', mockITPTemplates.map(t => ({ id: t.id, name: t.name })))
-      console.log('getLotByIdAction: Found ITP items:', itpItems.length)
-      console.log('getLotByIdAction: ITP items for template:', mockITPItems.filter(i => compareIds(i.itp_template_id, lot.itp_template_id!)).map(i => ({ id: i.id, templateId: i.itp_template_id, desc: i.description })))
-      console.log('getLotByIdAction: Found conformance records:', conformanceRecords.length)
+      // Build a map of all ITP items from all templates
+      const allItpItems = itpTemplates.reduce((acc, template) => {
+        if (template && template.itp_items) {
+          template.itp_items.forEach(item => {
+            acc[item.id] = item
+          })
+        }
+        return acc
+      }, {} as Record<string | number, ITPItem>)
 
       const lotWithDetails: LotWithDetails = {
         ...lot,
         project,
-        itp_template: itpTemplate ? { ...itpTemplate, itp_items: itpItems } : undefined,
+        itp_template: primaryTemplate || undefined,  // Legacy support
+        itp_templates: itpTemplates.filter((t): t is NonNullable<typeof t> => t !== null),     // New multiple templates
+        lot_itp_templates: lotItpTemplates,
         assigned_inspector: lot.assigned_inspector_id ? mockProfiles.find(p => p.user_id === lot.assigned_inspector_id) : undefined,
         conformance_records: conformanceRecords.map(record => ({
           ...record,
-          itp_item: itpItems.find(item => item.id === record.itp_item_id)!,
+          itp_item: allItpItems[record.itp_item_id]!,
           attachments: mockAttachments.filter(a => a.conformance_record_id === record.id)
         }))
       }
@@ -1132,20 +1303,60 @@ export async function saveConformanceRecordAction(
     
     console.log('saveConformanceRecordAction: User authenticated:', user.email)
     
-    if (isSupabaseEnabled && supabase) {
-      console.log('📊 Saving conformance record in Supabase...')
-      
-      // Check if record exists
-      const { data: existing } = await supabase
-        .from('conformance_records')
+    // Check if we're working with mock data (numeric IDs)
+    const isNumericLotId = typeof lotId === 'number' || (!isNaN(Number(lotId)) && Number(lotId) < 1000)
+    const isNumericItemId = typeof itpItemId === 'number' || (!isNaN(Number(itpItemId)) && Number(itpItemId) < 1000)
+    const isMockData = isNumericLotId || isNumericItemId
+    
+    console.log('📊 ID type detection:', {
+      lotId,
+      itpItemId,
+      isNumericLotId,
+      isNumericItemId,
+      isMockData
+    })
+    
+    // Try to detect if this lot exists in Supabase first
+    let shouldUseMockData = isMockData
+    if (isSupabaseEnabled && supabase && !isMockData) {
+      // Check if this lot actually exists in Supabase
+      const { data: lotCheck, error: lotCheckError } = await supabase
+        .from('lots')
         .select('id')
-        .eq('lot_id', lotId)
-        .eq('itp_item_id', itpItemId)
+        .eq('id', String(lotId))
         .single()
       
+      if (lotCheckError || !lotCheck) {
+        console.log('📊 Lot not found in Supabase, falling back to mock data')
+        shouldUseMockData = true
+      }
+    }
+    
+    if (isSupabaseEnabled && supabase && !shouldUseMockData) {
+      console.log('📊 Saving conformance record in Supabase...')
+      
+      // Convert numeric IDs to strings for Supabase (which uses UUIDs)
+      const lotIdStr = String(lotId)
+      const itpItemIdStr = String(itpItemId)
+      
+      console.log('📊 Checking for existing record with IDs:', { lotIdStr, itpItemIdStr })
+      
+      // Check if record exists
+      const { data: existing, error: existingError } = await supabase
+        .from('conformance_records')
+        .select('id')
+        .eq('lot_id', lotIdStr)
+        .eq('itp_item_id', itpItemIdStr)
+        .single()
+      
+      if (existingError && existingError.code !== 'PGRST116') {
+        // PGRST116 means no rows found, which is fine
+        console.error('Error checking existing record:', existingError)
+      }
+      
       const recordData = {
-        lot_id: lotId,
-        itp_item_id: itpItemId,
+        lot_id: lotIdStr,
+        itp_item_id: itpItemIdStr,
         result: data.result_pass_fail || 'PASS',
         notes: data.comments || data.result_text || null,
         inspector_name: user.email || 'Inspector',
@@ -1164,8 +1375,9 @@ export async function saveConformanceRecordAction(
           .single()
         
         if (error) {
-          console.error('Supabase error:', error)
-          return { success: false, error: error.message }
+          console.error('Supabase UPDATE error:', error)
+          console.error('UPDATE failed with data:', recordData)
+          return { success: false, error: `Update failed: ${error.message}` }
         }
         result = updated
       } else {
@@ -1180,8 +1392,10 @@ export async function saveConformanceRecordAction(
           .single()
         
         if (error) {
-          console.error('Supabase error:', error)
-          return { success: false, error: error.message }
+          console.error('Supabase INSERT error:', error)
+          console.error('INSERT failed with data:', recordData)
+          console.error('Error details:', { code: error.code, details: error.details, hint: error.hint })
+          return { success: false, error: `Insert failed: ${error.message}` }
         }
         result = inserted
       }
@@ -1209,9 +1423,18 @@ export async function saveConformanceRecordAction(
       return { success: true, data: transformedResult, message: 'Inspection saved successfully' }
     } else {
       console.log('📝 Saving conformance record in mock data...')
+      console.log('📝 Mock conformance records count:', mockConformanceRecords.length)
+      console.log('📝 Looking for existing record with:', { lotId, itpItemId })
+      
+      // Ensure IDs are in the correct format for comparison
+      const normalizedLotId = String(lotId)
+      const normalizedItemId = Number(itpItemId)
+      
       const existingIndex = mockConformanceRecords.findIndex(
-        r => compareIds(r.lot_id, lotId) && compareIds(r.itp_item_id, itpItemId)
+        r => String(r.lot_id) === normalizedLotId && Number(r.itp_item_id) === normalizedItemId
       )
+      
+      console.log('📝 Existing record index:', existingIndex)
 
       const recordData: ConformanceRecord = {
         id: existingIndex >= 0 ? mockConformanceRecords[existingIndex].id : mockConformanceRecords.length + 1,
@@ -1223,23 +1446,33 @@ export async function saveConformanceRecordAction(
         comments: data.comments,
         is_non_conformance: data.result_pass_fail === 'FAIL',
         corrective_action: data.corrective_action,
-        inspector_id: user.id,
+        inspector_id: 1, // Mock user ID
         inspection_date: new Date().toISOString(),
         created_at: existingIndex >= 0 ? mockConformanceRecords[existingIndex].created_at : new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
 
       if (existingIndex >= 0) {
+        console.log('📝 Updating existing record at index:', existingIndex)
         mockConformanceRecords[existingIndex] = recordData
       } else {
+        console.log('📝 Adding new record to mock data')
         mockConformanceRecords.push(recordData)
       }
+      
+      console.log('📝 Save complete. Total records:', mockConformanceRecords.length)
+      console.log('📝 Saved record:', recordData)
+      console.log('📝 All records for this lot:', mockConformanceRecords.filter(r => String(r.lot_id) === normalizedLotId))
 
       revalidatePath(`/project/*/lot/${lotId}`)
-      return { success: true, data: recordData, message: 'Inspection saved successfully' }
+      return { success: true, data: recordData, message: 'Inspection saved successfully (mock data)' }
     }
   } catch (error) {
-    return { success: false, error: 'Failed to save inspection' }
+    console.error('❌ saveConformanceRecordAction error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to save inspection' 
+    }
   }
 }
 

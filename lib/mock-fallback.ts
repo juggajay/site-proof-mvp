@@ -10,6 +10,7 @@ interface DatabaseState {
   organizations: Organization[]
   projects: Project[]
   lots: Lot[]
+  lotITPTemplates: any[]
   itpTemplates: ITPTemplate[]
   itpItems: ITPItem[]
   conformanceRecords: ConformanceRecord[]
@@ -93,6 +94,7 @@ function getDefaultDatabaseState(): DatabaseState {
     lots: [],
     itpTemplates: [],
     itpItems: [],
+    lotITPTemplates: [],
     conformanceRecords: [],
     attachments: [],
     reports: [],
