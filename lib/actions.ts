@@ -1142,7 +1142,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           
           if (template) {
             // Map items to expected format
-            const mappedItems = (template.itp_items || []).map(item => ({
+            const mappedItems = (template.itp_items || []).map((item: any) => ({
               ...item,
               item_type: item.item_type || 'pass_fail',
               itp_template_id: template.id,
@@ -1175,7 +1175,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         
         if (legacyTemplate) {
           // Map items to expected format
-          const mappedItems = (legacyTemplate.itp_items || []).map(item => ({
+          const mappedItems = (legacyTemplate.itp_items || []).map((item: any) => ({
             ...item,
             item_type: item.item_type || 'pass_fail',
             itp_template_id: legacyTemplate.id,
