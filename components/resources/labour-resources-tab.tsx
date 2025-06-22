@@ -84,8 +84,11 @@ export function LabourResourcesTab() {
           return
         }
       } else {
+        console.log('Creating subcontractor with data:', subcontractorForm)
         const result = await createSubcontractorAction(subcontractorForm)
+        console.log('Create subcontractor result:', result)
         if (!result.success) {
+          console.error('Create subcontractor failed:', result.error)
           setError(result.error || 'Failed to create subcontractor')
           return
         }

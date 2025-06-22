@@ -113,8 +113,11 @@ export function PlantResourcesTab() {
           return
         }
       } else {
+        console.log('Creating company with data:', companyData)
         const result = await createCompanyAction(companyData)
+        console.log('Create company result:', result)
         if (!result.success) {
+          console.error('Create company failed:', result.error)
           setError(result.error || 'Failed to create company')
           return
         }
