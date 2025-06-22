@@ -69,9 +69,22 @@ export default function LotDetailPage({ params }: PageProps) {
   }
 
   const getCompletionStats = () => {
-    if (!lot?.itp_template?.itp_items) return { total: 0, completed: 0, passed: 0, failed: 0 }
+    if (!lot) return { total: 0, completed: 0, passed: 0, failed: 0 }
     
-    const total = lot.itp_template.itp_items.length
+    // Support both legacy single ITP and new multiple ITPs
+    let total = 0
+    
+    // Count items from multiple ITPs if available
+    if (lot.itp_templates && lot.itp_templates.length > 0) {
+      total = lot.itp_templates.reduce((sum, template) => 
+        sum + (template.itp_items?.length || 0), 0
+      )
+    } 
+    // Fall back to legacy single ITP if no multiple ITPs
+    else if (lot.itp_template?.itp_items) {
+      total = lot.itp_template.itp_items.length
+    }
+    
     const completed = lot.conformance_records.length
     const passed = lot.conformance_records.filter(r => r.result_pass_fail === 'PASS').length
     const failed = lot.conformance_records.filter(r => r.result_pass_fail === 'FAIL').length

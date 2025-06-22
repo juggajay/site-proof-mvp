@@ -33,6 +33,8 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
     subcontractor_employee_id: '',
     subcontractor_id: ''
   })
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [enterManually, setEnterManually] = useState(false)
 
   useEffect(() => {
     if (showForm) {
@@ -61,19 +63,47 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
     }
   }
 
+  const handleCompanySelect = (companyId: string) => {
+    setSelectedCompanyId(companyId)
+    // Reset employee selection when company changes
+    setSelectedEmployee(null)
+    setFormData({
+      ...formData,
+      worker_name: '',
+      trade: '',
+      hourly_rate: '',
+      subcontractor_employee_id: '',
+      subcontractor_id: companyId
+    })
+    setEnterManually(false)
+  }
+
   const handleEmployeeSelect = (employeeId: string) => {
-    const employee = employees.find(e => e.id === employeeId)
-    if (employee) {
-      const subcontractor = subcontractors.find(s => s.id === employee.subcontractor_id)
-      setSelectedEmployee(employee)
+    if (employeeId === 'manual') {
+      setEnterManually(true)
+      setSelectedEmployee(null)
       setFormData({
         ...formData,
-        worker_name: employee.employee_name,
-        trade: employee.role || '',
-        hourly_rate: employee.hourly_rate.toString(),
-        subcontractor_employee_id: employee.id,
-        subcontractor_id: employee.subcontractor_id
+        worker_name: '',
+        trade: '',
+        hourly_rate: '',
+        subcontractor_employee_id: '',
+        subcontractor_id: selectedCompanyId
       })
+    } else {
+      const employee = employees.find(e => e.id === employeeId)
+      if (employee) {
+        setSelectedEmployee(employee)
+        setEnterManually(false)
+        setFormData({
+          ...formData,
+          worker_name: employee.employee_name,
+          trade: employee.role || '',
+          hourly_rate: employee.hourly_rate.toString(),
+          subcontractor_employee_id: employee.id,
+          subcontractor_id: employee.subcontractor_id
+        })
+      }
     }
   }
 
@@ -84,7 +114,7 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
 
     try {
       const labourData: CreateDailyLabourRequest = {
-        lot_id: parseInt(lotId),
+        lot_id: lotId,
         work_date: format(date, 'yyyy-MM-dd'),
         worker_name: formData.worker_name,
         trade: formData.trade || undefined,
@@ -114,6 +144,8 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
           subcontractor_id: ''
         })
         setSelectedEmployee(null)
+        setSelectedCompanyId('')
+        setEnterManually(false)
         onUpdate()
       } else {
         setError(result.error || 'Failed to create labour record')
@@ -167,31 +199,52 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
+            <div>
+              <label htmlFor="company_select" className="block text-sm font-medium text-gray-700">
+                Select Company *
+              </label>
+              {isLoadingResources ? (
+                <div className="mt-1 text-sm text-gray-500">Loading companies...</div>
+              ) : (
+                <select
+                  id="company_select"
+                  value={selectedCompanyId}
+                  onChange={(e) => handleCompanySelect(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  required
+                >
+                  <option value="">Select a company</option>
+                  {subcontractors.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.company_name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div>
               <label htmlFor="employee_select" className="block text-sm font-medium text-gray-700">
                 Select Employee
               </label>
-              {isLoadingResources ? (
-                <div className="mt-1 text-sm text-gray-500">Loading employees...</div>
-              ) : (
-                <select
-                  id="employee_select"
-                  value={formData.subcontractor_employee_id}
-                  onChange={(e) => handleEmployeeSelect(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                >
-                  <option value="">Select from resource library or enter manually</option>
-                  {employees.map((employee) => {
-                    const subcontractor = subcontractors.find(s => s.id === employee.subcontractor_id)
-                    return (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.employee_name} - {subcontractor?.company_name || 'Unknown Company'} 
-                        {employee.role && ` (${employee.role})`} - ${employee.hourly_rate}/hr
-                      </option>
-                    )
-                  })}
-                </select>
-              )}
+              <select
+                id="employee_select"
+                value={enterManually ? 'manual' : formData.subcontractor_employee_id}
+                onChange={(e) => handleEmployeeSelect(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                disabled={!selectedCompanyId}
+              >
+                <option value="">Select an employee</option>
+                <option value="manual">Enter manually</option>
+                {selectedCompanyId && employees
+                  .filter(emp => emp.subcontractor_id === selectedCompanyId)
+                  .map((employee) => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.employee_name}
+                      {employee.role && ` (${employee.role})`} - ${employee.hourly_rate}/hr
+                    </option>
+                  ))}
+              </select>
             </div>
 
             <div>
@@ -206,7 +259,8 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
                 onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder={selectedEmployee ? "Auto-filled from selection" : "Enter manually"}
+                placeholder={selectedEmployee ? "Auto-filled from selection" : "Enter worker name"}
+                disabled={!enterManually && selectedEmployee !== null}
               />
             </div>
 
