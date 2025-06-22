@@ -33,8 +33,15 @@ export default function LotDetailPage({ params }: PageProps) {
       console.log('LotDetailPage: Loading lot with ID:', lotId)
       const result = await getLotByIdAction(lotId)
       console.log('LotDetailPage: getLotByIdAction result:', result)
-      if (result.success) {
-        setLot(result.data!)
+      if (result.success && result.data) {
+        console.log('LotDetailPage: Lot data:', {
+          lotId: result.data.id,
+          itpTemplatesCount: result.data.itp_templates?.length || 0,
+          lotItpTemplatesCount: result.data.lot_itp_templates?.length || 0,
+          itpTemplates: result.data.itp_templates,
+          lotItpTemplates: result.data.lot_itp_templates
+        })
+        setLot(result.data)
       } else {
         setError(result.error || 'Failed to load lot')
       }
