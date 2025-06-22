@@ -515,12 +515,14 @@ export interface DailyEvent {
   lot_id: number | string;
   event_date: string; // YYYY-MM-DD format
   event_time?: string; // HH:MM format
-  event_type: 'note' | 'incident' | 'inspection' | 'delivery' | 'meeting' | 'other';
+  event_type: 'note' | 'incident' | 'inspection' | 'delivery' | 'meeting' | 'delay' | 'other';
   title: string;
   description?: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   assigned_to?: number;
+  delay_cause?: string;
+  delay_duration?: number;
   created_by: number;
   created_at: string;
   updated_at: string;
@@ -601,6 +603,8 @@ export interface CreateDailyEventRequest {
   description?: string;
   severity?: DailyEvent['severity'];
   assigned_to?: number;
+  delay_cause?: string;
+  delay_duration?: number;
 }
 
 export interface CreateDailyLabourRequest {

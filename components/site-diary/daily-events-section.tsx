@@ -25,6 +25,8 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
     description: '',
     severity: 'low',
     status: 'open',
+    delay_cause: '',
+    delay_duration: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +43,8 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
         title: formData.title,
         description: formData.description || undefined,
         severity: (formData.severity || 'low') as DailyEvent['severity'],
+        delay_cause: formData.event_type === 'delay' && formData.delay_cause ? formData.delay_cause : undefined,
+        delay_duration: formData.event_type === 'delay' && formData.delay_duration ? parseFloat(formData.delay_duration) : undefined,
       }
 
       const result = await createDailyEventAction(eventData)
@@ -54,6 +58,8 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
           description: '',
           severity: 'low',
           status: 'open',
+          delay_cause: '',
+          delay_duration: '',
         })
         onUpdate()
       } else {
@@ -77,6 +83,7 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
       case 'incident': return '⚠️'
       case 'inspection': return '🔍'
       case 'delivery': return '📦'
+      case 'delay': return '⏱️'
       default: return '📝'
     }
   }
@@ -150,6 +157,7 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
                 <option value="incident">Incident</option>
                 <option value="inspection">Inspection</option>
                 <option value="delivery">Delivery</option>
+                <option value="delay">Delay</option>
               </select>
             </div>
 
@@ -220,6 +228,49 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
               placeholder="Detailed description..."
             />
           </div>
+
+          {/* Smart fields for delay events */}
+          {formData.event_type === 'delay' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="delay_cause" className="block text-sm font-medium text-gray-700">
+                  Cause of Delay
+                </label>
+                <select
+                  id="delay_cause"
+                  name="delay_cause"
+                  value={formData.delay_cause}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select cause</option>
+                  <option value="weather">Weather</option>
+                  <option value="material_shortage">Material Shortage</option>
+                  <option value="labor_shortage">Labor Shortage</option>
+                  <option value="equipment_failure">Equipment Failure</option>
+                  <option value="design_changes">Design Changes</option>
+                  <option value="permit_issues">Permit Issues</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="delay_duration" className="block text-sm font-medium text-gray-700">
+                  Duration (hours)
+                </label>
+                <input
+                  type="number"
+                  id="delay_duration"
+                  name="delay_duration"
+                  value={formData.delay_duration}
+                  onChange={handleChange}
+                  min="0.5"
+                  step="0.5"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="e.g., 2.5"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3">
             <button

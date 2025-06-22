@@ -282,6 +282,9 @@ export default function DashboardPage() {
                 <p className="mt-2 text-sm text-gray-500">
                   Get started by creating your first project.
                 </p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Create your first project to start tracking on-site compliance and daily reports.
+                </p>
                 <div className="mt-6">
                   <button
                     onClick={() => setIsCreateModalOpen(true)}
@@ -327,6 +330,13 @@ export default function DashboardPage() {
                           📍 {project.location}
                         </p>
                       )}
+                      {/* Progress indicator placeholder - will show lot count */}
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Progress</span>
+                          <span className="text-gray-700 font-medium">View project for details</span>
+                        </div>
+                      </div>
                       <div className="mt-4 flex items-center text-sm text-gray-500">
                         <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
                       </div>

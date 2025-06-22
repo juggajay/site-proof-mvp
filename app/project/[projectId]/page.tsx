@@ -346,6 +346,33 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         )}
                       </div>
                       
+                      {/* Progress Indicator */}
+                      {(lot.itp_template_id || lot.itp_id) && (
+                        <div className="mt-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700">ITP Progress</span>
+                            <span className="text-sm text-gray-500">
+                              {lot.status === 'completed' ? '100%' : 
+                               lot.status === 'in_progress' ? '50%' : 
+                               lot.status === 'approved' ? '100%' : '0%'}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                lot.status === 'completed' || lot.status === 'approved' ? 'bg-green-600' : 
+                                lot.status === 'in_progress' ? 'bg-blue-600' : 
+                                'bg-gray-300'
+                              }`}
+                              style={{
+                                width: lot.status === 'completed' || lot.status === 'approved' ? '100%' : 
+                                       lot.status === 'in_progress' ? '50%' : '0%'
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="text-sm font-medium text-gray-500">ITP:</span>
@@ -390,6 +417,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       ITP Template
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Progress
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Created
                     </th>
                     <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
@@ -414,6 +444,34 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {(lot.itp_template_id || lot.itp_id) ? 'Assigned' : 'Not assigned'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {(lot.itp_template_id || lot.itp_id) && (
+                          <div className="flex items-center">
+                            <div className="flex-1">
+                              <div className="flex items-center">
+                                <div className="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                  <div 
+                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                      lot.status === 'completed' || lot.status === 'approved' ? 'bg-green-600' : 
+                                      lot.status === 'in_progress' ? 'bg-blue-600' : 
+                                      'bg-gray-300'
+                                    }`}
+                                    style={{
+                                      width: lot.status === 'completed' || lot.status === 'approved' ? '100%' : 
+                                             lot.status === 'in_progress' ? '50%' : '0%'
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-sm text-gray-600">
+                                  {lot.status === 'completed' ? '100%' : 
+                                   lot.status === 'in_progress' ? '50%' : 
+                                   lot.status === 'approved' ? '100%' : '0%'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(lot.created_at).toLocaleDateString()}

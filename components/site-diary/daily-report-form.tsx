@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { saveDailyReportAction } from '@/lib/actions'
 import { DailyReport, CreateDailyReportRequest } from '@/types/database'
-import { X, Save } from 'lucide-react'
+import { X } from 'lucide-react'
+import { useDebounce } from '@/hooks/useDebounce'
+import { AutoSaveStatus } from '@/components/ui/auto-save-status'
 
 interface DailyReportFormProps {
   lotId: string
@@ -15,8 +17,9 @@ interface DailyReportFormProps {
 }
 
 export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel }: DailyReportFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [hasChanges, setHasChanges] = useState(false)
   
   const [formData, setFormData] = useState({
     weather_condition: existingReport?.weather_condition || '',
@@ -30,11 +33,10 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
     progress_notes: existingReport?.progress_notes || '',
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  // Auto-save function
+  const saveReport = async () => {
     setError(null)
-
+    
     try {
       const reportData: CreateDailyReportRequest = {
         lot_id: parseInt(lotId),
@@ -53,6 +55,8 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
       const result = await saveDailyReportAction(reportData)
       
       if (result.success) {
+        setLastSaved(new Date())
+        setHasChanges(false)
         onSave()
       } else {
         setError(result.error || 'Failed to save daily report')
@@ -60,22 +64,34 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
     } catch (error) {
       console.error('Error saving daily report:', error)
       setError('An unexpected error occurred')
-    } finally {
-      setIsSubmitting(false)
     }
   }
+
+  // Debounced auto-save
+  const [debouncedSave, isSaving] = useDebounce(saveReport, 2000)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+    setHasChanges(true)
   }
 
+  // Trigger auto-save when form data changes
+  useEffect(() => {
+    if (hasChanges) {
+      debouncedSave()
+    }
+  }, [formData, hasChanges, debouncedSave])
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">
-          {existingReport ? 'Edit' : 'Create'} Daily Report - {format(date, 'MMMM d, yyyy')}
-        </h3>
+        <div className="flex items-center space-x-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            {existingReport ? 'Edit' : 'Create'} Daily Report - {format(date, 'MMMM d, yyyy')}
+          </h3>
+          <AutoSaveStatus isSaving={isSaving} lastSaved={lastSaved} error={error} />
+        </div>
         <button
           type="button"
           onClick={onCancel}
@@ -231,23 +247,15 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
         />
       </div>
 
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={onCancel}
           className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
         >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {isSubmitting ? 'Saving...' : 'Save Report'}
+          Close
         </button>
       </div>
-    </form>
+    </div>
   )
 }
