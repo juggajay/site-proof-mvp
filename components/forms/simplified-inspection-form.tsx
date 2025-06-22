@@ -122,6 +122,16 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
       const results = await Promise.all(promises)
       console.log('Save results:', results)
       
+      // Log detailed error information
+      results.forEach((result, index) => {
+        if (result && !result.success) {
+          console.error(`❌ Save failed for item ${index}:`, {
+            error: result.error,
+            fullResult: result
+          })
+        }
+      })
+      
       // Check if all saves were successful
       const allSuccessful = results.every(r => r && r.success)
       const failedResults = results.filter(r => r && !r.success)

@@ -1714,6 +1714,30 @@ export async function saveConformanceRecordAction(
       
       console.log('📊 Checking for existing record with IDs:', { lotIdStr, itpItemIdStr })
       
+      // First verify this is a valid ITP item (not a template item)
+      const { data: itemCheck } = await supabase
+        .from('itp_items')
+        .select('id')
+        .eq('id', itpItemIdStr)
+        .single()
+      
+      if (!itemCheck) {
+        console.error('❌ ITP item not found in itp_items table:', itpItemIdStr)
+        console.log('📊 This might be a template item ID. Checking itp_template_items...')
+        const { data: templateItemCheck } = await supabase
+          .from('itp_template_items')
+          .select('id')
+          .eq('id', itpItemIdStr)
+          .single()
+        
+        if (templateItemCheck) {
+          console.error('❌ This is a template item ID, not an ITP instance item!')
+          return { success: false, error: 'Cannot save conformance record with template item ID. ITP instance required.' }
+        }
+        
+        return { success: false, error: 'ITP item not found' }
+      }
+      
       // Check if record exists
       const { data: existing, error: existingError } = await supabase
         .from('conformance_records')
