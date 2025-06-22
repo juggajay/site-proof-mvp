@@ -1894,6 +1894,14 @@ export async function createDailyLabourAction(data: CreateDailyLabourRequest): P
     const user = await requireAuth()
     
     console.log('createDailyLabourAction: Creating daily labour record for lot', data.lot_id)
+    console.log('📊 Lot ID type:', typeof data.lot_id, 'Value:', data.lot_id)
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (isSupabaseEnabled && !uuidRegex.test(String(data.lot_id))) {
+      console.error('❌ Invalid UUID format for lot_id:', data.lot_id)
+      return { success: false, error: 'Invalid lot ID format. Expected UUID but got: ' + data.lot_id }
+    }
     
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Creating daily labour in Supabase...')
@@ -1956,6 +1964,14 @@ export async function createDailyPlantAction(data: CreateDailyPlantRequest): Pro
     const user = await requireAuth()
     
     console.log('createDailyPlantAction: Creating daily plant record for lot', data.lot_id)
+    console.log('📊 Plant Lot ID type:', typeof data.lot_id, 'Value:', data.lot_id)
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (isSupabaseEnabled && !uuidRegex.test(String(data.lot_id))) {
+      console.error('❌ Invalid UUID format for lot_id:', data.lot_id)
+      return { success: false, error: 'Invalid lot ID format. Expected UUID but got: ' + data.lot_id }
+    }
     
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Creating daily plant in Supabase...')
