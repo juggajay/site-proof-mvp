@@ -86,6 +86,14 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
       console.log('Items to save:', items.length)
       console.log('Status map:', Array.from(statusMap.entries()))
       
+      // Log the actual item IDs being used
+      console.log('🔍 Item IDs debug:', items.map(item => ({
+        id: item.id,
+        type: typeof item.id,
+        isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(item.id)),
+        description: item.description
+      })))
+      
       // Get all items that have been changed
       const promises = items.map(async (item) => {
         const status = statusMap.get(item.id)
@@ -98,7 +106,13 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
             comments: status.comments || ''
           }
           
-          console.log('Saving item:', { lotId: lot.id, itemId: item.id, data })
+          console.log('Saving item:', { 
+            lotId: lot.id, 
+            itemId: item.id,
+            itemIdType: typeof item.id,
+            data,
+            itemTableSource: 'itp_template_items' // These items come from template definitions
+          })
 
           return saveConformanceRecordAction(lot.id, item.id, data)
         }

@@ -874,29 +874,52 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         // For now, we'll make it nullable in case of mock auth
         const assignedByUserId = typeof user.id === 'number' ? null : String(user.id)
         
-        const newAssignments = newTemplateIds.map(templateId => ({
-          lot_id: lotIdString,
-          itp_template_id: templateId,
-          assigned_by: assignedByUserId,  // NULL if using mock auth with numeric IDs
-          is_active: true,
-          assigned_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }))
-        
-        console.log('Assignments to insert:', JSON.stringify(newAssignments, null, 2))
-        
-        const { data: insertedData, error: assignError } = await supabase
-          .from('lot_itp_templates')
-          .insert(newAssignments)
-          .select()
-        
-        console.log('Inserted assignments:', JSON.stringify(insertedData, null, 2))
-        
-        if (assignError) {
-          console.error('Failed to create assignments:', assignError)
-          console.error('Assignment data that failed:', newAssignments)
-          return { success: false, error: `Failed to assign ITPs: ${assignError.message}` }
+        // For each template, create an ITP instance
+        for (const templateId of newTemplateIds) {
+          console.log('🔧 Creating ITP instance from template:', templateId)
+          
+          // Call the database function to create ITP instance
+          const { data: itpData, error: itpError } = await supabase
+            .rpc('create_itp_from_template', {
+              p_template_id: templateId,
+              p_lot_id: lotIdString,
+              p_name: `${templates.find(t => t.id === templateId)?.name || 'ITP'} - Lot ${lot.lot_number}`,
+              p_created_by: assignedByUserId
+            })
+          
+          if (itpError) {
+            console.error('Failed to create ITP instance:', itpError)
+            return { success: false, error: `Failed to create ITP instance: ${itpError.message}` }
+          }
+          
+          console.log('✅ Created ITP instance:', itpData)
+          
+          // Now create the assignment in lot_itp_templates
+          const assignment = {
+            lot_id: lotIdString,
+            itp_template_id: templateId,
+            itp_id: itpData, // Store the created ITP instance ID
+            assigned_by: assignedByUserId,  // NULL if using mock auth with numeric IDs
+            is_active: true,
+            assigned_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          
+          console.log('Assignment to insert:', JSON.stringify(assignment, null, 2))
+          
+          const { data: insertedData, error: assignError } = await supabase
+            .from('lot_itp_templates')
+            .insert(assignment)
+            .select()
+          
+          console.log('Inserted assignment:', JSON.stringify(insertedData, null, 2))
+          
+          if (assignError) {
+            console.error('Failed to create assignment:', assignError)
+            console.error('Assignment data that failed:', assignment)
+            return { success: false, error: `Failed to assign ITP: ${assignError.message}` }
+          }
         }
       }
       
@@ -1162,7 +1185,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       
       console.log('📊 Found lot_itp_templates:', lotItpTemplates?.length || 0)
       
-      // Fetch each assigned template with its items
+      // Fetch each assigned template with its ITP instance and items
       if (lotItpTemplates && lotItpTemplates.length > 0) {
         for (const assignment of lotItpTemplates) {
           const { data: template, error: templateError } = await supabase
@@ -1176,16 +1199,45 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             continue
           }
           
-          // Fetch items separately from itp_template_items table
-          const { data: items } = await supabase
-            .from('itp_template_items')
-            .select('*')
-            .eq('template_id', assignment.itp_template_id)
-            .order('sort_order')
+          let items = []
+          let itpInstance = null
+          
+          // Check if this assignment has an ITP instance
+          if (assignment.itp_id) {
+            console.log('🔧 Fetching ITP instance:', assignment.itp_id)
+            // Fetch the ITP instance
+            const { data: itp } = await supabase
+              .from('itps')
+              .select('*')
+              .eq('id', assignment.itp_id)
+              .single()
+            
+            itpInstance = itp
+            
+            // Fetch ITP instance items
+            const { data: itpItems } = await supabase
+              .from('itp_items')
+              .select('*')
+              .eq('itp_id', assignment.itp_id)
+              .order('sort_order')
+            
+            console.log(`✅ Fetched ${itpItems?.length || 0} ITP instance items`)
+            items = itpItems || []
+          } else {
+            // Fallback to template items if no ITP instance exists
+            console.log('⚠️ No ITP instance found, falling back to template items')
+            const { data: templateItems } = await supabase
+              .from('itp_template_items')
+              .select('*')
+              .eq('template_id', assignment.itp_template_id)
+              .order('sort_order')
+            
+            items = templateItems || []
+          }
           
           if (template) {
             // Map items to expected format
-            const mappedItems = (items || []).map((item: any) => ({
+            const mappedItems = items.map((item: any) => ({
               ...item,
               // Map template_id to itp_template_id for consistency
               itp_template_id: item.template_id || template.id,
@@ -1201,9 +1253,10 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             
             itpTemplates.push({
               ...template,
-              itp_items: mappedItems
+              itp_items: mappedItems,
+              itp_instance: itpInstance // Include the ITP instance if available
             })
-            console.log('✅ Added template from junction table:', template.name)
+            console.log('✅ Added template from junction table:', template.name, 'ITP Instance:', !!itpInstance)
           }
         }
       }
