@@ -254,10 +254,44 @@ export async function requireAuth() {
 async function getUserOrganizationId(userId: number | string): Promise<string | null> {
   if (isSupabaseEnabled && supabase) {
     // When using Supabase with mock auth, we need a workaround
-    // For now, return a default organization ID since we're using mock auth
-    // In a real implementation, you'd use Supabase Auth
-    console.log('getUserOrganizationId: Using default org for Supabase mode with mock auth')
-    return '550e8400-e29b-41d4-a716-446655440001' // Default organization ID
+    // Try to get the first organization from the database
+    console.log('getUserOrganizationId: Fetching organization for Supabase mode with mock auth')
+    
+    try {
+      // First, try to get any existing organization
+      const { data: orgs, error: orgError } = await supabase
+        .from('organizations')
+        .select('id')
+        .limit(1)
+        .single()
+      
+      if (!orgError && orgs) {
+        console.log('getUserOrganizationId: Found existing organization:', orgs.id)
+        return orgs.id
+      }
+      
+      // If no organization exists, create a default one
+      console.log('getUserOrganizationId: No organization found, creating default')
+      const { data: newOrg, error: createError } = await supabase
+        .from('organizations')
+        .insert({
+          name: 'Default Organization',
+          created_at: new Date().toISOString()
+        })
+        .select('id')
+        .single()
+      
+      if (!createError && newOrg) {
+        console.log('getUserOrganizationId: Created new organization:', newOrg.id)
+        return newOrg.id
+      }
+      
+      console.error('getUserOrganizationId: Failed to create organization:', createError)
+      return null
+    } catch (error) {
+      console.error('getUserOrganizationId: Error:', error)
+      return null
+    }
   } else {
     // Mock implementation
     const userOrg = mockUserOrganizations.find(uo => uo.user_id === userId)
@@ -2699,30 +2733,45 @@ export async function getCompaniesAction(type?: 'subcontractor' | 'plant_supplie
 
 export async function createCompanyAction(data: CreateCompanyRequest): Promise<APIResponse<Company>> {
   try {
+    console.log('createCompanyAction: Starting with data:', data)
     const user = await requireAuth()
+    console.log('createCompanyAction: User authenticated:', user.email)
+    
     const organizationId = await getUserOrganizationId(user.id)
+    console.log('createCompanyAction: Organization ID:', organizationId)
     
     if (!organizationId) {
+      console.error('createCompanyAction: No organization ID found')
       return { success: false, error: 'User organization not found' }
     }
     
     if (isSupabaseEnabled && supabase) {
+      const insertData = {
+        ...data,
+        organization_id: organizationId,
+        is_active: data.is_active ?? true,
+        created_at: new Date().toISOString()
+      }
+      console.log('createCompanyAction: Inserting company with data:', insertData)
+      
       const { data: company, error } = await supabase
         .from('companies')
-        .insert({
-          ...data,
-          organization_id: organizationId,
-          is_active: data.is_active ?? true,
-          created_at: new Date().toISOString()
-        })
+        .insert(insertData)
         .select()
         .single()
       
       if (error) {
-        console.error('Database error:', error)
+        console.error('createCompanyAction: Database error:', error)
+        console.error('createCompanyAction: Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
         return { success: false, error: error.message }
       }
       
+      console.log('createCompanyAction: Company created successfully:', company)
       revalidatePath('/dashboard/resources')
       return { success: true, data: company, message: 'Company created successfully' }
     } else {
@@ -2736,10 +2785,11 @@ export async function createCompanyAction(data: CreateCompanyRequest): Promise<A
         updated_at: new Date().toISOString()
       }
       
+      console.log('createCompanyAction: Mock company created:', newCompany)
       return { success: true, data: newCompany, message: 'Company created successfully' }
     }
   } catch (error) {
-    console.error('Create company error:', error)
+    console.error('createCompanyAction: Caught error:', error)
     return { success: false, error: 'Failed to create company' }
   }
 }
@@ -2837,29 +2887,41 @@ export async function getSubcontractorsAction(): Promise<APIResponse<Subcontract
 
 export async function createSubcontractorAction(data: CreateSubcontractorRequest): Promise<APIResponse<Subcontractor>> {
   try {
+    console.log('createSubcontractorAction: Starting with data:', data)
     const user = await requireAuth()
     const organizationId = await getUserOrganizationId(user.id)
+    console.log('createSubcontractorAction: Organization ID:', organizationId)
     
     if (!organizationId) {
       return { success: false, error: 'User organization not found' }
     }
     
     if (isSupabaseEnabled && supabase) {
+      const insertData = {
+        ...data,
+        organization_id: organizationId,
+        created_at: new Date().toISOString()
+      }
+      console.log('createSubcontractorAction: Inserting with data:', insertData)
+      
       const { data: subcontractor, error } = await supabase
         .from('subcontractors')
-        .insert({
-          ...data,
-          organization_id: organizationId,
-          created_at: new Date().toISOString()
-        })
+        .insert(insertData)
         .select()
         .single()
       
       if (error) {
-        console.error('Database error:', error)
+        console.error('createSubcontractorAction: Database error:', error)
+        console.error('createSubcontractorAction: Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
         return { success: false, error: error.message }
       }
       
+      console.log('createSubcontractorAction: Created successfully:', subcontractor)
       revalidatePath('/dashboard/resources')
       return { success: true, data: subcontractor, message: 'Subcontractor created successfully' }
     } else {
