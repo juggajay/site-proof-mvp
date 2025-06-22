@@ -1,5 +1,5 @@
 import { 
-  User, Profile, Organization, Project, Lot, ITPTemplate, ITPItem, 
+  User, Profile, Organization, UserOrganization, Project, Lot, ITPTemplate, ITPItem, 
   ConformanceRecord, Attachment, InspectionReport, NonConformance,
   DailyReport, DailyEvent, DailyLabour, DailyPlant, DailyMaterials
 } from '@/types/database'
@@ -10,6 +10,7 @@ declare global {
     users: any[]
     profiles: Profile[]
     organizations: Organization[]
+    user_organizations: UserOrganization[]
     projects: Project[]
     lots: Lot[]
     lotITPTemplates: any[]
@@ -116,6 +117,35 @@ if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
         created_by: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
+      }
+    ],
+    user_organizations: [
+      {
+        id: 1,
+        user_id: 1,
+        organization_id: 1,
+        role: 'owner' as const,
+        status: 'active' as const,
+        invited_by: 1,
+        joined_at: new Date().toISOString()
+      },
+      {
+        id: 2,
+        user_id: 2,
+        organization_id: 1,
+        role: 'admin' as const,
+        status: 'active' as const,
+        invited_by: 1,
+        joined_at: new Date().toISOString()
+      },
+      {
+        id: 3,
+        user_id: 3,
+        organization_id: 1,
+        role: 'member' as const,
+        status: 'active' as const,
+        invited_by: 1,
+        joined_at: new Date().toISOString()
       }
     ],
     projects: [
@@ -288,6 +318,7 @@ if (!globalThis.mockDatabase || !globalThis.mockDatabaseInitialized) {
 export const mockUsers = globalThis.mockDatabase.users
 export const mockProfiles = globalThis.mockDatabase.profiles
 export const mockOrganizations = globalThis.mockDatabase.organizations
+export const mockUserOrganizations = globalThis.mockDatabase.user_organizations
 export const mockProjects = globalThis.mockDatabase.projects
 export const mockLots = globalThis.mockDatabase.lots
 export const mockLotITPTemplates = globalThis.mockDatabase.lotITPTemplates

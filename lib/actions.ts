@@ -17,14 +17,14 @@ import {
   CreateDailyPlantRequest, CreateDailyMaterialsRequest,
   ITP, ITPWithDetails, ITPAssignment, CreateITPFromTemplateRequest,
   CreateITPAssignmentRequest, UpdateITPItemRequest, VITPOverview,
-  Subcontractor, SubcontractorEmployee, PlantProfile, MaterialProfile,
-  CreateSubcontractorRequest, CreateSubcontractorEmployeeRequest,
+  Company, Subcontractor, SubcontractorEmployee, PlantProfile, MaterialProfile,
+  CreateCompanyRequest, CreateSubcontractorRequest, CreateSubcontractorEmployeeRequest,
   CreatePlantProfileRequest, CreateMaterialProfileRequest, ProjectCostSummary
 } from '@/types/database'
 
 // Import shared mock database storage
 import { 
-  mockUsers, mockProfiles, mockOrganizations, mockProjects, mockLots,
+  mockUsers, mockProfiles, mockOrganizations, mockUserOrganizations, mockProjects, mockLots,
   mockLotITPTemplates, mockITPTemplates, mockITPItems, mockConformanceRecords, 
   mockAttachments, mockReports, mockNonConformances, mockDailyReports, 
   mockDailyEvents, mockDailyLabour, mockDailyPlant, mockDailyMaterials
@@ -2642,6 +2642,167 @@ export async function handleLogin(formData: FormData) {
 
 // ==================== RESOURCE MANAGEMENT ACTIONS ====================
 
+// Company actions
+export async function getCompaniesAction(type?: 'subcontractor' | 'plant_supplier' | 'both'): Promise<APIResponse<Company[]>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      let query = supabase
+        .from('companies')
+        .select('*')
+        .eq('organization_id', userOrg.organization_id)
+        .eq('is_active', true)
+      
+      if (type) {
+        query = query.or(`company_type.eq.${type},company_type.eq.both`)
+      }
+      
+      const { data: companies, error } = await query.order('company_name')
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: companies || [] }
+    } else {
+      // Mock implementation
+      const userOrg = mockUserOrganizations.find(uo => uo.user_id === user.id)
+      if (!userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      // For now, return empty array as we haven't added mock companies yet
+      return { success: true, data: [] }
+    }
+  } catch (error) {
+    console.error('Get companies error:', error)
+    return { success: false, error: 'Failed to fetch companies' }
+  }
+}
+
+export async function createCompanyAction(data: CreateCompanyRequest): Promise<APIResponse<Company>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: company, error } = await supabase
+        .from('companies')
+        .insert({
+          ...data,
+          organization_id: userOrg.organization_id,
+          is_active: data.is_active ?? true,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: company, message: 'Company created successfully' }
+    } else {
+      // Mock implementation
+      const newCompany: Company = {
+        id: randomUUID(),
+        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        ...data,
+        is_active: data.is_active ?? true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      return { success: true, data: newCompany, message: 'Company created successfully' }
+    }
+  } catch (error) {
+    console.error('Create company error:', error)
+    return { success: false, error: 'Failed to create company' }
+  }
+}
+
+export async function updateCompanyAction(id: string, data: Partial<CreateCompanyRequest>): Promise<APIResponse<Company>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data: company, error } = await supabase
+        .from('companies')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: company, message: 'Company updated successfully' }
+    } else {
+      return { success: false, error: 'Update not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Update company error:', error)
+    return { success: false, error: 'Failed to update company' }
+  }
+}
+
+export async function deleteCompanyAction(id: string): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, message: 'Company deleted successfully' }
+    } else {
+      return { success: false, error: 'Delete not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Delete company error:', error)
+    return { success: false, error: 'Failed to delete company' }
+  }
+}
+
 // Subcontractor actions
 export async function getSubcontractorsAction(): Promise<APIResponse<Subcontractor[]>> {
   try {
@@ -2673,6 +2834,12 @@ export async function getSubcontractorsAction(): Promise<APIResponse<Subcontract
       return { success: true, data: subcontractors || [] }
     } else {
       // Mock implementation
+      const userOrg = mockUserOrganizations.find(uo => uo.user_id === user.id)
+      if (!userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      // For now, return empty array as we haven't added mock subcontractors yet
       return { success: true, data: [] }
     }
   } catch (error) {
@@ -3217,24 +3384,60 @@ export async function getProjectCostSummaryAction(
         project_id: projectId,
         start_date: startDate,
         end_date: endDate,
-        total_cost: 0,
+        total_cost: 125650,
         labour: {
-          total_cost: 0,
-          days_worked: 0,
-          entries: 0,
-          details: []
+          total_cost: 45200,
+          days_worked: 15,
+          entries: 32,
+          details: [
+            {
+              date: '2024-01-15',
+              worker: 'John Smith',
+              subcontractor: 'ABC Construction',
+              hours: 8,
+              overtime_hours: 2,
+              rate: 45,
+              cost: 450,
+              lot: 'LOT-001',
+              description: 'Foundation work'
+            }
+          ]
         },
         plant: {
-          total_cost: 0,
-          days_used: 0,
-          entries: 0,
-          details: []
+          total_cost: 38750,
+          days_used: 12,
+          entries: 18,
+          details: [
+            {
+              date: '2024-01-15',
+              equipment: 'Excavator CAT 320',
+              supplier: 'Heavy Equipment Co',
+              hours: 8,
+              idle_hours: 1,
+              rate: 150,
+              cost: 1350,
+              lot: 'LOT-001',
+              description: 'Site excavation'
+            }
+          ]
         },
         materials: {
-          total_cost: 0,
-          delivery_days: 0,
-          entries: 0,
-          details: []
+          total_cost: 41700,
+          delivery_days: 8,
+          entries: 15,
+          details: [
+            {
+              date: '2024-01-15',
+              material: 'Concrete 32MPa',
+              supplier: 'Ready Mix Co',
+              quantity: 25,
+              unit: 'm3',
+              rate: 280,
+              cost: 7000,
+              lot: 'LOT-001',
+              docket: 'DEL-2024-0123'
+            }
+          ]
         }
       }
       
@@ -3243,5 +3446,338 @@ export async function getProjectCostSummaryAction(
   } catch (error) {
     console.error('Get project cost summary error:', error)
     return { success: false, error: 'Failed to fetch cost summary' }
+  }
+}
+
+// Get detailed labour costs for a project
+export async function getProjectLabourCostsAction(
+  projectId: string,
+  startDate?: string,
+  endDate?: string,
+  lotId?: string
+): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      let query = supabase
+        .from('v_labour_costs')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('work_date', { ascending: false })
+      
+      if (startDate) {
+        query = query.gte('work_date', startDate)
+      }
+      if (endDate) {
+        query = query.lte('work_date', endDate)
+      }
+      if (lotId) {
+        query = query.eq('lot_id', lotId)
+      }
+      
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: data || [] }
+    } else {
+      // Mock implementation
+      const mockLabourData = [
+        {
+          id: '1',
+          lot_id: '1',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-001',
+          work_date: '2024-01-15',
+          worker_name: 'John Smith',
+          subcontractor_name: 'ABC Construction',
+          trade: 'Carpenter',
+          hours_worked: 8,
+          overtime_hours: 2,
+          rate_at_time_of_entry: 45,
+          total_cost: 450,
+          cost_code: 'LAB-001',
+          task_description: 'Foundation formwork'
+        },
+        {
+          id: '2',
+          lot_id: '1',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-001',
+          work_date: '2024-01-16',
+          worker_name: 'Mike Johnson',
+          subcontractor_name: 'ABC Construction',
+          trade: 'Electrician',
+          hours_worked: 8,
+          overtime_hours: 0,
+          rate_at_time_of_entry: 55,
+          total_cost: 440,
+          cost_code: 'LAB-002',
+          task_description: 'Electrical rough-in'
+        },
+        {
+          id: '3',
+          lot_id: '2',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-002',
+          work_date: '2024-01-17',
+          worker_name: 'Sarah Davis',
+          subcontractor_name: 'XYZ Plumbing',
+          trade: 'Plumber',
+          hours_worked: 6,
+          overtime_hours: 0,
+          rate_at_time_of_entry: 50,
+          total_cost: 300,
+          cost_code: 'LAB-003',
+          task_description: 'Pipe installation'
+        }
+      ]
+      
+      let filteredData = mockLabourData
+      if (lotId) {
+        filteredData = filteredData.filter(item => item.lot_id === lotId)
+      }
+      if (startDate) {
+        filteredData = filteredData.filter(item => item.work_date >= startDate)
+      }
+      if (endDate) {
+        filteredData = filteredData.filter(item => item.work_date <= endDate)
+      }
+      
+      return { success: true, data: filteredData }
+    }
+  } catch (error) {
+    console.error('Get project labour costs error:', error)
+    return { success: false, error: 'Failed to fetch labour costs' }
+  }
+}
+
+// Get detailed plant costs for a project
+export async function getProjectPlantCostsAction(
+  projectId: string,
+  startDate?: string,
+  endDate?: string,
+  lotId?: string
+): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      let query = supabase
+        .from('v_plant_costs')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('work_date', { ascending: false })
+      
+      if (startDate) {
+        query = query.gte('work_date', startDate)
+      }
+      if (endDate) {
+        query = query.lte('work_date', endDate)
+      }
+      if (lotId) {
+        query = query.eq('lot_id', lotId)
+      }
+      
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: data || [] }
+    } else {
+      // Mock implementation
+      const mockPlantData = [
+        {
+          id: '1',
+          lot_id: '1',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-001',
+          work_date: '2024-01-15',
+          equipment_type: 'Excavator',
+          machine_name: 'CAT 320',
+          supplier: 'Heavy Equipment Co',
+          hours_used: 8,
+          idle_hours: 1,
+          rate_at_time_of_entry: 150,
+          total_cost: 1350,
+          cost_code: 'PLT-001',
+          task_description: 'Site excavation'
+        },
+        {
+          id: '2',
+          lot_id: '1',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-001',
+          work_date: '2024-01-16',
+          equipment_type: 'Crane',
+          machine_name: 'Grove GMK3060',
+          supplier: 'Heavy Equipment Co',
+          hours_used: 6,
+          idle_hours: 2,
+          rate_at_time_of_entry: 250,
+          total_cost: 2000,
+          cost_code: 'PLT-002',
+          task_description: 'Steel beam installation'
+        },
+        {
+          id: '3',
+          lot_id: '2',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-002',
+          work_date: '2024-01-17',
+          equipment_type: 'Concrete Pump',
+          machine_name: 'Putzmeister M42',
+          supplier: 'Concrete Equipment Ltd',
+          hours_used: 4,
+          idle_hours: 0,
+          rate_at_time_of_entry: 180,
+          total_cost: 720,
+          cost_code: 'PLT-003',
+          task_description: 'Slab pour'
+        }
+      ]
+      
+      let filteredData = mockPlantData
+      if (lotId) {
+        filteredData = filteredData.filter(item => item.lot_id === lotId)
+      }
+      if (startDate) {
+        filteredData = filteredData.filter(item => item.work_date >= startDate)
+      }
+      if (endDate) {
+        filteredData = filteredData.filter(item => item.work_date <= endDate)
+      }
+      
+      return { success: true, data: filteredData }
+    }
+  } catch (error) {
+    console.error('Get project plant costs error:', error)
+    return { success: false, error: 'Failed to fetch plant costs' }
+  }
+}
+
+// Get detailed material costs for a project
+export async function getProjectMaterialCostsAction(
+  projectId: string,
+  startDate?: string,
+  endDate?: string,
+  lotId?: string
+): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      let query = supabase
+        .from('v_material_costs')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('delivery_date', { ascending: false })
+      
+      if (startDate) {
+        query = query.gte('delivery_date', startDate)
+      }
+      if (endDate) {
+        query = query.lte('delivery_date', endDate)
+      }
+      if (lotId) {
+        query = query.eq('lot_id', lotId)
+      }
+      
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: data || [] }
+    } else {
+      // Mock implementation
+      const mockMaterialData = [
+        {
+          id: '1',
+          lot_id: '1',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-001',
+          delivery_date: '2024-01-15',
+          material_type: 'Concrete',
+          material_name: 'Concrete 32MPa',
+          profile_supplier: 'Ready Mix Co',
+          delivery_supplier: 'Ready Mix Co',
+          quantity: 25,
+          unit_measure: 'm3',
+          rate_at_time_of_entry: 280,
+          total_cost: 7000,
+          cost_code: 'MAT-001',
+          delivery_docket: 'DEL-2024-0123'
+        },
+        {
+          id: '2',
+          lot_id: '1',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-001',
+          delivery_date: '2024-01-16',
+          material_type: 'Steel',
+          material_name: 'Rebar 16mm',
+          profile_supplier: 'Steel Supplies Ltd',
+          delivery_supplier: 'Steel Supplies Ltd',
+          quantity: 5,
+          unit_measure: 'tonnes',
+          rate_at_time_of_entry: 950,
+          total_cost: 4750,
+          cost_code: 'MAT-002',
+          delivery_docket: 'DEL-2024-0124'
+        },
+        {
+          id: '3',
+          lot_id: '2',
+          project_id: projectId,
+          project_name: 'Test Project',
+          lot_number: 'LOT-002',
+          delivery_date: '2024-01-17',
+          material_type: 'Aggregate',
+          material_name: 'Crushed Rock 20mm',
+          profile_supplier: 'Quarry Products',
+          delivery_supplier: 'Quarry Products',
+          quantity: 30,
+          unit_measure: 'tonnes',
+          rate_at_time_of_entry: 45,
+          total_cost: 1350,
+          cost_code: 'MAT-003',
+          delivery_docket: 'DEL-2024-0125'
+        }
+      ]
+      
+      let filteredData = mockMaterialData
+      if (lotId) {
+        filteredData = filteredData.filter(item => item.lot_id === lotId)
+      }
+      if (startDate) {
+        filteredData = filteredData.filter(item => item.delivery_date >= startDate)
+      }
+      if (endDate) {
+        filteredData = filteredData.filter(item => item.delivery_date <= endDate)
+      }
+      
+      return { success: true, data: filteredData }
+    }
+  } catch (error) {
+    console.error('Get project material costs error:', error)
+    return { success: false, error: 'Failed to fetch material costs' }
   }
 }

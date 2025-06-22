@@ -595,10 +595,26 @@ export interface DailyMaterials {
 }
 
 // Job Costing Resource Types
+export interface Company {
+  id: string;
+  organization_id: string;
+  company_name: string;
+  company_type: 'subcontractor' | 'plant_supplier' | 'both';
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  abn?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Subcontractor {
   id: string;
   organization_id: string;
   company_name: string;
+  company_id?: string;
   contact_person?: string;
   phone?: string;
   email?: string;
@@ -624,6 +640,7 @@ export interface SubcontractorEmployee {
 export interface PlantProfile {
   id: string;
   organization_id: string;
+  company_id?: string;
   machine_name: string;
   machine_type?: string;
   supplier?: string;
@@ -731,8 +748,20 @@ export interface CreateDailyMaterialsRequest {
 }
 
 // Resource creation request types
+export interface CreateCompanyRequest {
+  company_name: string;
+  company_type: 'subcontractor' | 'plant_supplier' | 'both';
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  abn?: string;
+  is_active?: boolean;
+}
+
 export interface CreateSubcontractorRequest {
   company_name: string;
+  company_id?: string;
   contact_person?: string;
   phone?: string;
   email?: string;
@@ -751,6 +780,7 @@ export interface CreateSubcontractorEmployeeRequest {
 }
 
 export interface CreatePlantProfileRequest {
+  company_id?: string;
   machine_name: string;
   machine_type?: string;
   supplier?: string;
@@ -773,8 +803,17 @@ export interface CreateMaterialProfileRequest {
 }
 
 // Extended types with relationships
+export interface CompanyWithPlants extends Company {
+  plant_profiles: PlantProfile[];
+}
+
 export interface SubcontractorWithEmployees extends Subcontractor {
   employees: SubcontractorEmployee[];
+  company?: Company;
+}
+
+export interface PlantProfileWithCompany extends PlantProfile {
+  company?: Company;
 }
 
 export interface DailyLabourWithDetails extends DailyLabour {
