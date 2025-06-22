@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const lotId = searchParams.get('lotId') || '2924e1e1-9d03-4b34-8e25-24cbb4d51836'
   
-  const supabase = createClient()
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+  }
   
   // Test various queries
   const results: any = {

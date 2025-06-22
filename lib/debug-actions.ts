@@ -1,9 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { supabase } from '@/lib/supabase'
 
 export async function debugLotITPTemplates(lotId: string) {
-  const supabase = createClient()
+  if (!supabase) {
+    return { error: 'Supabase not configured' }
+  }
   
   const debug: any = {
     lotId,
