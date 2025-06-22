@@ -1146,14 +1146,14 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       console.log('📊 Fetching ITP templates from junction table...')
       console.log('📊 Looking for lot_id:', lotId, 'Type:', typeof lotId)
       
-      // Use the actual lot ID from the fetched lot data
-      const lotIdToUse = lot ? lot.id : String(lotId)
-      console.log('📊 Using lot ID for junction query:', lotIdToUse)
+      // Use the same lot ID that worked in the initial query
+      const lotIdForJunction = lotIdToUse  // This is the same ID used to fetch the lot
+      console.log('📊 Using lot ID for junction query:', lotIdForJunction, 'Original:', lotId)
       
       const { data: lotItpTemplates, error: lotItpError } = await supabase
         .from('lot_itp_templates')
         .select('*')
-        .eq('lot_id', lotIdToUse)
+        .eq('lot_id', lotIdForJunction)
         .eq('is_active', true)
       
       if (lotItpError) {
@@ -1261,6 +1261,12 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       }
       
       console.log('✅ Fetched lot from Supabase with', itpTemplates.length, 'ITP templates')
+      console.log('📊 Final lot data being returned:', {
+        lotId: lotWithDetails.id,
+        itpTemplatesCount: lotWithDetails.itp_templates?.length,
+        lotItpTemplatesCount: lotWithDetails.lot_itp_templates?.length,
+        hasItpTemplate: !!lotWithDetails.itp_template
+      })
       return { success: true, data: lotWithDetails }
     } else {
       console.log('📝 Fetching lot from mock data...')
