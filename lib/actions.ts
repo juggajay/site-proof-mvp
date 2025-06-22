@@ -867,16 +867,24 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         console.log('New template IDs to assign:', newTemplateIds)
         console.log('Lot ID (UUID):', lotIdString, 'Type:', typeof lotIdString)
         console.log('User ID:', user.id, 'Type:', typeof user.id)
+        console.log('User object:', JSON.stringify(user, null, 2))
+        
+        // Handle user ID - in Supabase with mock auth, we might need to use a different approach
+        // The assigned_by field references auth.users which expects UUID
+        // For now, we'll make it nullable in case of mock auth
+        const assignedByUserId = typeof user.id === 'number' ? null : String(user.id)
         
         const newAssignments = newTemplateIds.map(templateId => ({
           lot_id: lotIdString,
-          itp_template_id: templateId,  // Keep as numeric for INTEGER column
-          assigned_by: user.id,
+          itp_template_id: templateId,
+          assigned_by: assignedByUserId,  // NULL if using mock auth with numeric IDs
           is_active: true,
           assigned_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }))
+        
+        console.log('Assignments to insert:', JSON.stringify(newAssignments, null, 2))
         
         const { error: assignError } = await supabase
           .from('lot_itp_templates')
