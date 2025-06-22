@@ -1170,6 +1170,13 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         .limit(10)
       console.log('📊 All junction table records:', JSON.stringify(allRecords, null, 2))
       
+      // Debug: Try direct query with the specific lot ID
+      const { data: directQuery } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .eq('lot_id', '2924e1e1-9d03-4b34-8e25-24cbb4d51836')
+      console.log('📊 Direct query for specific lot:', JSON.stringify(directQuery, null, 2))
+      
       // Fetch each assigned template with its items
       if (lotItpTemplates && lotItpTemplates.length > 0) {
         for (const assignment of lotItpTemplates) {

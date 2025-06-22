@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { getLotByIdAction, getITPTemplatesAction, assignITPToLotAction, saveConformanceRecordAction } from '@/lib/actions'
+import { debugLotITPTemplates } from '@/lib/debug-actions'
 import { LotWithDetails, ITPTemplate, ConformanceRecord, UpdateConformanceRequest } from '@/types/database'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardList, FileText, CheckCircle2, XCircle, AlertTriangle, Settings, MapPin, BookOpen, Calendar } from 'lucide-react'
@@ -31,6 +32,11 @@ export default function LotDetailPage({ params }: PageProps) {
   const loadLotData = useCallback(async () => {
     try {
       console.log('LotDetailPage: Loading lot with ID:', lotId)
+      
+      // Debug query
+      const debugResult = await debugLotITPTemplates(lotId)
+      console.log('🔍 DEBUG: ITP Templates Query Results:', debugResult)
+      
       const result = await getLotByIdAction(lotId)
       console.log('LotDetailPage: getLotByIdAction result:', result)
       if (result.success && result.data) {
