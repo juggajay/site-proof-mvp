@@ -800,11 +800,10 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Assigning multiple ITPs in Supabase...')
       
-      // Convert IDs to appropriate types based on database schema
-      // lots.id is UUID, itp_templates.id is INTEGER
+      // Convert IDs to strings for UUID compatibility
+      // Both lots.id and itp_templates.id are UUIDs in Supabase
       const lotIdString = String(lotId)
-      // Keep template IDs as-is since they're numeric in the database
-      const templateIds = itpTemplateIds
+      const templateIds = itpTemplateIds.map(id => String(id))
       
       // First check if lot exists
       const { data: lot, error: lotError } = await supabase
@@ -840,7 +839,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         .eq('lot_id', lotIdString)
         .in('itp_template_id', templateIds)
       
-      const existingTemplateIds = existingAssignments?.map(a => a.itp_template_id) || []
+      const existingTemplateIds = existingAssignments?.map(a => String(a.itp_template_id)) || []
       const newTemplateIds = templateIds.filter(id => !existingTemplateIds.includes(id))
       
       // Reactivate any inactive existing assignments
