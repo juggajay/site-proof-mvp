@@ -1176,22 +1176,27 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             continue
           }
           
-          // Fetch items separately
+          // Fetch items separately from itp_template_items table
           const { data: items } = await supabase
-            .from('itp_items')
+            .from('itp_template_items')
             .select('*')
-            .eq('itp_template_id', assignment.itp_template_id)
-            .order('order_index')
+            .eq('template_id', assignment.itp_template_id)
+            .order('sort_order')
           
           if (template) {
             // Map items to expected format
             const mappedItems = (items || []).map((item: any) => ({
               ...item,
-              item_type: item.item_type || 'pass_fail',
-              itp_template_id: template.id,
-              order_index: item.order_index || item.sort_order || 0,
-              item_number: item.item_number || `${item.order_index || item.sort_order || 0}`,
-              inspection_method: item.inspection_method || item.item_type || 'Visual'
+              // Map template_id to itp_template_id for consistency
+              itp_template_id: item.template_id || template.id,
+              // Determine item_type based on item_number field
+              item_type: item.item_number === 'PASS_FAIL' ? 'pass_fail' : 
+                        item.item_number === 'NUMERIC' ? 'numeric' : 
+                        item.item_number === 'TEXT_INPUT' ? 'text' : 'pass_fail',
+              // Use sort_order as order_index
+              order_index: item.sort_order || 0,
+              // Keep original fields
+              inspection_method: item.inspection_method || 'Visual'
             }))
             
             itpTemplates.push({
@@ -1214,21 +1219,26 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           .single()
         
         if (legacyTemplate) {
-          // Fetch items separately
+          // Fetch items separately from itp_template_items table
           const { data: legacyItems } = await supabase
-            .from('itp_items')
+            .from('itp_template_items')
             .select('*')
-            .eq('itp_template_id', lot.itp_id)
-            .order('order_index')
+            .eq('template_id', lot.itp_id)
+            .order('sort_order')
           
           // Map items to expected format
           const mappedItems = (legacyItems || []).map((item: any) => ({
             ...item,
-            item_type: item.item_type || 'pass_fail',
-            itp_template_id: legacyTemplate.id,
-            order_index: item.order_index || item.sort_order || 0,
-            item_number: item.item_number || `${item.order_index || item.sort_order || 0}`,
-            inspection_method: item.inspection_method || item.item_type || 'Visual'
+            // Map template_id to itp_template_id for consistency
+            itp_template_id: item.template_id || legacyTemplate.id,
+            // Determine item_type based on item_number field
+            item_type: item.item_number === 'PASS_FAIL' ? 'pass_fail' : 
+                      item.item_number === 'NUMERIC' ? 'numeric' : 
+                      item.item_number === 'TEXT_INPUT' ? 'text' : 'pass_fail',
+            // Use sort_order as order_index
+            order_index: item.sort_order || 0,
+            // Keep original fields
+            inspection_method: item.inspection_method || 'Visual'
           }))
           
           itpTemplates.push({
