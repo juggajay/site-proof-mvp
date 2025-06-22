@@ -1910,6 +1910,10 @@ export async function createDailyLabourAction(data: CreateDailyLabourRequest): P
           overtime_hours: data.overtime_hours || 0,
           overtime_rate: data.overtime_rate || null,
           task_description: data.task_description || null,
+          rate_at_time_of_entry: data.rate_at_time_of_entry || data.hourly_rate || null,
+          cost_code: data.cost_code || null,
+          subcontractor_employee_id: data.subcontractor_employee_id || null,
+          subcontractor_id: data.subcontractor_id || null,
           created_by: user.id,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -1969,6 +1973,9 @@ export async function createDailyPlantAction(data: CreateDailyPlantRequest): Pro
           fuel_consumed: data.fuel_consumed || null,
           maintenance_notes: data.maintenance_notes || null,
           task_description: data.task_description || null,
+          rate_at_time_of_entry: data.rate_at_time_of_entry || data.hourly_rate || null,
+          cost_code: data.cost_code || null,
+          plant_profile_id: data.plant_profile_id || null,
           created_by: user.id,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
