@@ -250,6 +250,21 @@ export async function requireAuth() {
   return user
 }
 
+// Helper function to get user's organization ID
+async function getUserOrganizationId(userId: number | string): Promise<string | null> {
+  if (isSupabaseEnabled && supabase) {
+    // When using Supabase with mock auth, we need a workaround
+    // For now, return a default organization ID since we're using mock auth
+    // In a real implementation, you'd use Supabase Auth
+    console.log('getUserOrganizationId: Using default org for Supabase mode with mock auth')
+    return '550e8400-e29b-41d4-a716-446655440001' // Default organization ID
+  } else {
+    // Mock implementation
+    const userOrg = mockUserOrganizations.find(uo => uo.user_id === userId)
+    return userOrg ? String(userOrg.organization_id) : null
+  }
+}
+
 // ==================== DEBUG ACTIONS ====================
 
 export async function debugLotLookupAction(lotId: string): Promise<APIResponse<any>> {
@@ -2646,23 +2661,17 @@ export async function handleLogin(formData: FormData) {
 export async function getCompaniesAction(type?: 'subcontractor' | 'plant_supplier' | 'both'): Promise<APIResponse<Company[]>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       let query = supabase
         .from('companies')
         .select('*')
-        .eq('organization_id', userOrg.organization_id)
+        .eq('organization_id', organizationId)
         .eq('is_active', true)
       
       if (type) {
@@ -2679,11 +2688,6 @@ export async function getCompaniesAction(type?: 'subcontractor' | 'plant_supplie
       return { success: true, data: companies || [] }
     } else {
       // Mock implementation
-      const userOrg = mockUserOrganizations.find(uo => uo.user_id === user.id)
-      if (!userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       // For now, return empty array as we haven't added mock companies yet
       return { success: true, data: [] }
     }
@@ -2696,24 +2700,18 @@ export async function getCompaniesAction(type?: 'subcontractor' | 'plant_supplie
 export async function createCompanyAction(data: CreateCompanyRequest): Promise<APIResponse<Company>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: company, error } = await supabase
         .from('companies')
         .insert({
           ...data,
-          organization_id: userOrg.organization_id,
+          organization_id: organizationId,
           is_active: data.is_active ?? true,
           created_at: new Date().toISOString()
         })
@@ -2731,7 +2729,7 @@ export async function createCompanyAction(data: CreateCompanyRequest): Promise<A
       // Mock implementation
       const newCompany: Company = {
         id: randomUUID(),
-        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        organization_id: organizationId,
         ...data,
         is_active: data.is_active ?? true,
         created_at: new Date().toISOString(),
@@ -2807,23 +2805,17 @@ export async function deleteCompanyAction(id: string): Promise<APIResponse<void>
 export async function getSubcontractorsAction(): Promise<APIResponse<Subcontractor[]>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: subcontractors, error } = await supabase
         .from('subcontractors')
         .select('*')
-        .eq('organization_id', userOrg.organization_id)
+        .eq('organization_id', organizationId)
         .order('company_name')
       
       if (error) {
@@ -2834,11 +2826,6 @@ export async function getSubcontractorsAction(): Promise<APIResponse<Subcontract
       return { success: true, data: subcontractors || [] }
     } else {
       // Mock implementation
-      const userOrg = mockUserOrganizations.find(uo => uo.user_id === user.id)
-      if (!userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       // For now, return empty array as we haven't added mock subcontractors yet
       return { success: true, data: [] }
     }
@@ -2851,24 +2838,18 @@ export async function getSubcontractorsAction(): Promise<APIResponse<Subcontract
 export async function createSubcontractorAction(data: CreateSubcontractorRequest): Promise<APIResponse<Subcontractor>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: subcontractor, error } = await supabase
         .from('subcontractors')
         .insert({
           ...data,
-          organization_id: userOrg.organization_id,
+          organization_id: organizationId,
           created_at: new Date().toISOString()
         })
         .select()
@@ -2885,7 +2866,7 @@ export async function createSubcontractorAction(data: CreateSubcontractorRequest
       // Mock implementation
       const newSubcontractor: Subcontractor = {
         id: randomUUID(),
-        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        organization_id: organizationId,
         ...data,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -3063,23 +3044,17 @@ export async function updateSubcontractorEmployeeAction(id: string, data: Partia
 export async function getPlantProfilesAction(): Promise<APIResponse<PlantProfile[]>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: profiles, error } = await supabase
         .from('plant_profiles')
         .select('*')
-        .eq('organization_id', userOrg.organization_id)
+        .eq('organization_id', organizationId)
         .eq('is_active', true)
         .order('machine_name')
       
@@ -3101,24 +3076,18 @@ export async function getPlantProfilesAction(): Promise<APIResponse<PlantProfile
 export async function createPlantProfileAction(data: CreatePlantProfileRequest): Promise<APIResponse<PlantProfile>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: profile, error } = await supabase
         .from('plant_profiles')
         .insert({
           ...data,
-          organization_id: userOrg.organization_id,
+          organization_id: organizationId,
           is_active: data.is_active ?? true,
           created_at: new Date().toISOString()
         })
@@ -3135,7 +3104,7 @@ export async function createPlantProfileAction(data: CreatePlantProfileRequest):
     } else {
       const newProfile: PlantProfile = {
         id: randomUUID(),
-        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        organization_id: organizationId,
         ...data,
         is_active: data.is_active ?? true,
         created_at: new Date().toISOString(),
@@ -3211,23 +3180,17 @@ export async function deletePlantProfileAction(id: string): Promise<APIResponse<
 export async function getMaterialProfilesAction(): Promise<APIResponse<MaterialProfile[]>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: profiles, error } = await supabase
         .from('material_profiles')
         .select('*')
-        .eq('organization_id', userOrg.organization_id)
+        .eq('organization_id', organizationId)
         .eq('is_active', true)
         .order('material_name')
       
@@ -3249,24 +3212,18 @@ export async function getMaterialProfilesAction(): Promise<APIResponse<MaterialP
 export async function createMaterialProfileAction(data: CreateMaterialProfileRequest): Promise<APIResponse<MaterialProfile>> {
   try {
     const user = await requireAuth()
+    const organizationId = await getUserOrganizationId(user.id)
+    
+    if (!organizationId) {
+      return { success: false, error: 'User organization not found' }
+    }
     
     if (isSupabaseEnabled && supabase) {
-      // Get user's organization
-      const { data: userOrg, error: orgError } = await supabase
-        .from('user_organizations')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-      
-      if (orgError || !userOrg) {
-        return { success: false, error: 'User organization not found' }
-      }
-      
       const { data: profile, error } = await supabase
         .from('material_profiles')
         .insert({
           ...data,
-          organization_id: userOrg.organization_id,
+          organization_id: organizationId,
           is_active: data.is_active ?? true,
           created_at: new Date().toISOString()
         })
@@ -3283,7 +3240,7 @@ export async function createMaterialProfileAction(data: CreateMaterialProfileReq
     } else {
       const newProfile: MaterialProfile = {
         id: randomUUID(),
-        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        organization_id: organizationId,
         ...data,
         is_active: data.is_active ?? true,
         created_at: new Date().toISOString(),
