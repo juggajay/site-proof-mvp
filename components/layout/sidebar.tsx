@@ -24,6 +24,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderOpen },
+  { name: 'Resources', href: '/dashboard/resources', icon: Building2 },
   { name: 'ITP Templates', href: '/templates', icon: ClipboardList },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Non-Conformances', href: '/non-conformances', icon: AlertTriangle },

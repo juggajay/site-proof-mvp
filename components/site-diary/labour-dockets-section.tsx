@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Users, Plus, Clock, DollarSign } from 'lucide-react'
-import { DailyLabour, CreateDailyLabourRequest } from '@/types/database'
-import { createDailyLabourAction } from '@/lib/actions'
+import { DailyLabour, CreateDailyLabourRequest, SubcontractorEmployee, Subcontractor } from '@/types/database'
+import { createDailyLabourAction, getSubcontractorEmployeesAction, getSubcontractorsAction } from '@/lib/actions'
 
 interface LabourDocketsSectionProps {
   lotId: string
@@ -17,6 +17,10 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
   const [showForm, setShowForm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [employees, setEmployees] = useState<SubcontractorEmployee[]>([])
+  const [subcontractors, setSubcontractors] = useState<Subcontractor[]>([])
+  const [selectedEmployee, setSelectedEmployee] = useState<SubcontractorEmployee | null>(null)
+  const [isLoadingResources, setIsLoadingResources] = useState(false)
   
   const [formData, setFormData] = useState({
     worker_name: '',
@@ -26,7 +30,52 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
     overtime_hours: '0',
     overtime_rate: '',
     task_description: '',
+    subcontractor_employee_id: '',
+    subcontractor_id: ''
   })
+
+  useEffect(() => {
+    if (showForm) {
+      loadResources()
+    }
+  }, [showForm])
+
+  const loadResources = async () => {
+    setIsLoadingResources(true)
+    try {
+      const [employeesResult, subcontractorsResult] = await Promise.all([
+        getSubcontractorEmployeesAction(),
+        getSubcontractorsAction()
+      ])
+      
+      if (employeesResult.success && employeesResult.data) {
+        setEmployees(employeesResult.data)
+      }
+      if (subcontractorsResult.success && subcontractorsResult.data) {
+        setSubcontractors(subcontractorsResult.data)
+      }
+    } catch (error) {
+      console.error('Error loading resources:', error)
+    } finally {
+      setIsLoadingResources(false)
+    }
+  }
+
+  const handleEmployeeSelect = (employeeId: string) => {
+    const employee = employees.find(e => e.id === employeeId)
+    if (employee) {
+      const subcontractor = subcontractors.find(s => s.id === employee.subcontractor_id)
+      setSelectedEmployee(employee)
+      setFormData({
+        ...formData,
+        worker_name: employee.employee_name,
+        trade: employee.role || '',
+        hourly_rate: employee.hourly_rate.toString(),
+        subcontractor_employee_id: employee.id,
+        subcontractor_id: employee.subcontractor_id
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +93,9 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
         overtime_hours: formData.overtime_hours ? parseFloat(formData.overtime_hours) : 0,
         overtime_rate: formData.overtime_rate ? parseFloat(formData.overtime_rate) : undefined,
         task_description: formData.task_description || undefined,
+        rate_at_time_of_entry: formData.hourly_rate ? parseFloat(formData.hourly_rate) : undefined,
+        subcontractor_employee_id: formData.subcontractor_employee_id || undefined,
+        subcontractor_id: formData.subcontractor_id || undefined
       }
 
       const result = await createDailyLabourAction(labourData)
@@ -58,7 +110,10 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
           overtime_hours: '0',
           overtime_rate: '',
           task_description: '',
+          subcontractor_employee_id: '',
+          subcontractor_id: ''
         })
+        setSelectedEmployee(null)
         onUpdate()
       } else {
         setError(result.error || 'Failed to create labour record')
@@ -112,6 +167,33 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label htmlFor="employee_select" className="block text-sm font-medium text-gray-700">
+                Select Employee
+              </label>
+              {isLoadingResources ? (
+                <div className="mt-1 text-sm text-gray-500">Loading employees...</div>
+              ) : (
+                <select
+                  id="employee_select"
+                  value={formData.subcontractor_employee_id}
+                  onChange={(e) => handleEmployeeSelect(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select from resource library or enter manually</option>
+                  {employees.map((employee) => {
+                    const subcontractor = subcontractors.find(s => s.id === employee.subcontractor_id)
+                    return (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.employee_name} - {subcontractor?.company_name || 'Unknown Company'} 
+                        {employee.role && ` (${employee.role})`} - ${employee.hourly_rate}/hr
+                      </option>
+                    )
+                  })}
+                </select>
+              )}
+            </div>
+
             <div>
               <label htmlFor="worker_name" className="block text-sm font-medium text-gray-700">
                 Worker Name *
@@ -124,6 +206,7 @@ export function LabourDocketsSection({ lotId, date, labourRecords, onUpdate }: L
                 onChange={handleChange}
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder={selectedEmployee ? "Auto-filled from selection" : "Enter manually"}
               />
             </div>
 

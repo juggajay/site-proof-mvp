@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Package, Plus, DollarSign, FileText } from 'lucide-react'
-import { DailyMaterials, CreateDailyMaterialsRequest } from '@/types/database'
-import { createDailyMaterialsAction } from '@/lib/actions'
+import { DailyMaterials, CreateDailyMaterialsRequest, MaterialProfile } from '@/types/database'
+import { createDailyMaterialsAction, getMaterialProfilesAction } from '@/lib/actions'
 
 interface MaterialsDocketsSectionProps {
   lotId: string
@@ -17,6 +17,9 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
   const [showForm, setShowForm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [materialProfiles, setMaterialProfiles] = useState<MaterialProfile[]>([])
+  const [selectedMaterialProfile, setSelectedMaterialProfile] = useState<MaterialProfile | null>(null)
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false)
   
   const [formData, setFormData] = useState({
     material_type: '',
@@ -28,7 +31,43 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
     delivery_docket: '',
     quality_notes: '',
     received_by: '',
+    material_profile_id: ''
   })
+
+  useEffect(() => {
+    if (showForm) {
+      loadMaterialProfiles()
+    }
+  }, [showForm])
+
+  const loadMaterialProfiles = async () => {
+    setIsLoadingProfiles(true)
+    try {
+      const result = await getMaterialProfilesAction()
+      if (result.success && result.data) {
+        setMaterialProfiles(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading material profiles:', error)
+    } finally {
+      setIsLoadingProfiles(false)
+    }
+  }
+
+  const handleMaterialSelect = (profileId: string) => {
+    const profile = materialProfiles.find(m => m.id === profileId)
+    if (profile) {
+      setSelectedMaterialProfile(profile)
+      setFormData({
+        ...formData,
+        material_type: profile.material_category?.toLowerCase() || 'other',
+        supplier: profile.supplier || '',
+        unit_measure: profile.default_unit,
+        unit_cost: profile.default_unit_rate.toString(),
+        material_profile_id: profile.id
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +87,8 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
         delivery_docket: formData.delivery_docket || undefined,
         quality_notes: formData.quality_notes || undefined,
         received_by: formData.received_by || undefined,
+        rate_at_time_of_entry: formData.unit_cost ? parseFloat(formData.unit_cost) : undefined,
+        material_profile_id: formData.material_profile_id || undefined
       }
 
       const result = await createDailyMaterialsAction(materialsData)
@@ -64,7 +105,9 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
           delivery_docket: '',
           quality_notes: '',
           received_by: '',
+          material_profile_id: ''
         })
+        setSelectedMaterialProfile(null)
         onUpdate()
       } else {
         setError(result.error || 'Failed to create materials record')
@@ -128,6 +171,32 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label htmlFor="material_select" className="block text-sm font-medium text-gray-700">
+                Select Material
+              </label>
+              {isLoadingProfiles ? (
+                <div className="mt-1 text-sm text-gray-500">Loading material profiles...</div>
+              ) : (
+                <select
+                  id="material_select"
+                  value={formData.material_profile_id}
+                  onChange={(e) => handleMaterialSelect(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select from resource library or enter manually</option>
+                  {materialProfiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.material_name}
+                      {profile.material_category && ` - ${profile.material_category}`}
+                      {profile.supplier && ` (${profile.supplier})`}
+                      {` - $${profile.default_unit_rate}/${profile.default_unit}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div>
               <label htmlFor="material_type" className="block text-sm font-medium text-gray-700">
                 Material Type *
@@ -164,6 +233,7 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
                 value={formData.supplier}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder={selectedMaterialProfile ? "Auto-filled from selection" : "Enter supplier name"}
               />
             </div>
 
@@ -197,11 +267,15 @@ export function MaterialsDocketsSection({ lotId, date, materialsRecords, onUpdat
               >
                 <option value="">Select unit</option>
                 <option value="m3">m³</option>
+                <option value="m2">m²</option>
+                <option value="m">m</option>
                 <option value="tonnes">tonnes</option>
                 <option value="kg">kg</option>
                 <option value="pieces">pieces</option>
                 <option value="litres">litres</option>
-                <option value="meters">meters</option>
+                <option value="units">units</option>
+                <option value="bags">bags</option>
+                <option value="pallets">pallets</option>
               </select>
             </div>
 

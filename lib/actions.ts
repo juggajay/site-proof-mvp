@@ -16,7 +16,10 @@ import {
   CreateDailyReportRequest, CreateDailyEventRequest, CreateDailyLabourRequest,
   CreateDailyPlantRequest, CreateDailyMaterialsRequest,
   ITP, ITPWithDetails, ITPAssignment, CreateITPFromTemplateRequest,
-  CreateITPAssignmentRequest, UpdateITPItemRequest, VITPOverview
+  CreateITPAssignmentRequest, UpdateITPItemRequest, VITPOverview,
+  Subcontractor, SubcontractorEmployee, PlantProfile, MaterialProfile,
+  CreateSubcontractorRequest, CreateSubcontractorEmployeeRequest,
+  CreatePlantProfileRequest, CreateMaterialProfileRequest, ProjectCostSummary
 } from '@/types/database'
 
 // Import shared mock database storage
@@ -2636,3 +2639,609 @@ export async function handleLogin(formData: FormData) {
 }
 
 // Mock data is initialized in mock-data.ts
+
+// ==================== RESOURCE MANAGEMENT ACTIONS ====================
+
+// Subcontractor actions
+export async function getSubcontractorsAction(): Promise<APIResponse<Subcontractor[]>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: subcontractors, error } = await supabase
+        .from('subcontractors')
+        .select('*')
+        .eq('organization_id', userOrg.organization_id)
+        .order('company_name')
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: subcontractors || [] }
+    } else {
+      // Mock implementation
+      return { success: true, data: [] }
+    }
+  } catch (error) {
+    console.error('Get subcontractors error:', error)
+    return { success: false, error: 'Failed to fetch subcontractors' }
+  }
+}
+
+export async function createSubcontractorAction(data: CreateSubcontractorRequest): Promise<APIResponse<Subcontractor>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: subcontractor, error } = await supabase
+        .from('subcontractors')
+        .insert({
+          ...data,
+          organization_id: userOrg.organization_id,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: subcontractor, message: 'Subcontractor created successfully' }
+    } else {
+      // Mock implementation
+      const newSubcontractor: Subcontractor = {
+        id: randomUUID(),
+        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        ...data,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      return { success: true, data: newSubcontractor, message: 'Subcontractor created successfully' }
+    }
+  } catch (error) {
+    console.error('Create subcontractor error:', error)
+    return { success: false, error: 'Failed to create subcontractor' }
+  }
+}
+
+export async function updateSubcontractorAction(id: string, data: Partial<CreateSubcontractorRequest>): Promise<APIResponse<Subcontractor>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data: subcontractor, error } = await supabase
+        .from('subcontractors')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: subcontractor, message: 'Subcontractor updated successfully' }
+    } else {
+      return { success: false, error: 'Update not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Update subcontractor error:', error)
+    return { success: false, error: 'Failed to update subcontractor' }
+  }
+}
+
+export async function deleteSubcontractorAction(id: string): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { error } = await supabase
+        .from('subcontractors')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, message: 'Subcontractor deleted successfully' }
+    } else {
+      return { success: false, error: 'Delete not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Delete subcontractor error:', error)
+    return { success: false, error: 'Failed to delete subcontractor' }
+  }
+}
+
+// Subcontractor Employee actions
+export async function getSubcontractorEmployeesAction(subcontractorId?: string): Promise<APIResponse<SubcontractorEmployee[]>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      let query = supabase
+        .from('subcontractor_employees')
+        .select('*')
+        .eq('is_active', true)
+        .order('employee_name')
+      
+      if (subcontractorId) {
+        query = query.eq('subcontractor_id', subcontractorId)
+      }
+      
+      const { data: employees, error } = await query
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: employees || [] }
+    } else {
+      return { success: true, data: [] }
+    }
+  } catch (error) {
+    console.error('Get subcontractor employees error:', error)
+    return { success: false, error: 'Failed to fetch employees' }
+  }
+}
+
+export async function createSubcontractorEmployeeAction(data: CreateSubcontractorEmployeeRequest): Promise<APIResponse<SubcontractorEmployee>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data: employee, error } = await supabase
+        .from('subcontractor_employees')
+        .insert({
+          ...data,
+          is_active: data.is_active ?? true,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: employee, message: 'Employee created successfully' }
+    } else {
+      const newEmployee: SubcontractorEmployee = {
+        id: randomUUID(),
+        ...data,
+        is_active: data.is_active ?? true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      return { success: true, data: newEmployee, message: 'Employee created successfully' }
+    }
+  } catch (error) {
+    console.error('Create subcontractor employee error:', error)
+    return { success: false, error: 'Failed to create employee' }
+  }
+}
+
+export async function updateSubcontractorEmployeeAction(id: string, data: Partial<CreateSubcontractorEmployeeRequest>): Promise<APIResponse<SubcontractorEmployee>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data: employee, error } = await supabase
+        .from('subcontractor_employees')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: employee, message: 'Employee updated successfully' }
+    } else {
+      return { success: false, error: 'Update not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Update subcontractor employee error:', error)
+    return { success: false, error: 'Failed to update employee' }
+  }
+}
+
+// Plant Profile actions
+export async function getPlantProfilesAction(): Promise<APIResponse<PlantProfile[]>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: profiles, error } = await supabase
+        .from('plant_profiles')
+        .select('*')
+        .eq('organization_id', userOrg.organization_id)
+        .eq('is_active', true)
+        .order('machine_name')
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: profiles || [] }
+    } else {
+      return { success: true, data: [] }
+    }
+  } catch (error) {
+    console.error('Get plant profiles error:', error)
+    return { success: false, error: 'Failed to fetch plant profiles' }
+  }
+}
+
+export async function createPlantProfileAction(data: CreatePlantProfileRequest): Promise<APIResponse<PlantProfile>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: profile, error } = await supabase
+        .from('plant_profiles')
+        .insert({
+          ...data,
+          organization_id: userOrg.organization_id,
+          is_active: data.is_active ?? true,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: profile, message: 'Plant profile created successfully' }
+    } else {
+      const newProfile: PlantProfile = {
+        id: randomUUID(),
+        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        ...data,
+        is_active: data.is_active ?? true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      return { success: true, data: newProfile, message: 'Plant profile created successfully' }
+    }
+  } catch (error) {
+    console.error('Create plant profile error:', error)
+    return { success: false, error: 'Failed to create plant profile' }
+  }
+}
+
+export async function updatePlantProfileAction(id: string, data: Partial<CreatePlantProfileRequest>): Promise<APIResponse<PlantProfile>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data: profile, error } = await supabase
+        .from('plant_profiles')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: profile, message: 'Plant profile updated successfully' }
+    } else {
+      return { success: false, error: 'Update not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Update plant profile error:', error)
+    return { success: false, error: 'Failed to update plant profile' }
+  }
+}
+
+export async function deletePlantProfileAction(id: string): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { error } = await supabase
+        .from('plant_profiles')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, message: 'Plant profile deleted successfully' }
+    } else {
+      return { success: false, error: 'Delete not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Delete plant profile error:', error)
+    return { success: false, error: 'Failed to delete plant profile' }
+  }
+}
+
+// Material Profile actions
+export async function getMaterialProfilesAction(): Promise<APIResponse<MaterialProfile[]>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: profiles, error } = await supabase
+        .from('material_profiles')
+        .select('*')
+        .eq('organization_id', userOrg.organization_id)
+        .eq('is_active', true)
+        .order('material_name')
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: profiles || [] }
+    } else {
+      return { success: true, data: [] }
+    }
+  } catch (error) {
+    console.error('Get material profiles error:', error)
+    return { success: false, error: 'Failed to fetch material profiles' }
+  }
+}
+
+export async function createMaterialProfileAction(data: CreateMaterialProfileRequest): Promise<APIResponse<MaterialProfile>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('user_organizations')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (orgError || !userOrg) {
+        return { success: false, error: 'User organization not found' }
+      }
+      
+      const { data: profile, error } = await supabase
+        .from('material_profiles')
+        .insert({
+          ...data,
+          organization_id: userOrg.organization_id,
+          is_active: data.is_active ?? true,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: profile, message: 'Material profile created successfully' }
+    } else {
+      const newProfile: MaterialProfile = {
+        id: randomUUID(),
+        organization_id: '550e8400-e29b-41d4-a716-446655440001', // Default org for mock
+        ...data,
+        is_active: data.is_active ?? true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      return { success: true, data: newProfile, message: 'Material profile created successfully' }
+    }
+  } catch (error) {
+    console.error('Create material profile error:', error)
+    return { success: false, error: 'Failed to create material profile' }
+  }
+}
+
+export async function updateMaterialProfileAction(id: string, data: Partial<CreateMaterialProfileRequest>): Promise<APIResponse<MaterialProfile>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data: profile, error } = await supabase
+        .from('material_profiles')
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, data: profile, message: 'Material profile updated successfully' }
+    } else {
+      return { success: false, error: 'Update not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Update material profile error:', error)
+    return { success: false, error: 'Failed to update material profile' }
+  }
+}
+
+export async function deleteMaterialProfileAction(id: string): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { error } = await supabase
+        .from('material_profiles')
+        .delete()
+        .eq('id', id)
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      revalidatePath('/dashboard/resources')
+      return { success: true, message: 'Material profile deleted successfully' }
+    } else {
+      return { success: false, error: 'Delete not implemented in mock mode' }
+    }
+  } catch (error) {
+    console.error('Delete material profile error:', error)
+    return { success: false, error: 'Failed to delete material profile' }
+  }
+}
+
+// Project Cost Summary action
+export async function getProjectCostSummaryAction(
+  projectId: string,
+  startDate: string,
+  endDate: string
+): Promise<APIResponse<ProjectCostSummary>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data, error } = await supabase
+        .rpc('get_project_cost_summary', {
+          p_project_id: projectId,
+          p_start_date: startDate,
+          p_end_date: endDate
+        })
+      
+      if (error) {
+        console.error('Database error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: data as ProjectCostSummary }
+    } else {
+      // Mock implementation - calculate from mock data
+      const mockSummary: ProjectCostSummary = {
+        project_id: projectId,
+        start_date: startDate,
+        end_date: endDate,
+        total_cost: 0,
+        labour: {
+          total_cost: 0,
+          days_worked: 0,
+          entries: 0,
+          details: []
+        },
+        plant: {
+          total_cost: 0,
+          days_used: 0,
+          entries: 0,
+          details: []
+        },
+        materials: {
+          total_cost: 0,
+          delivery_days: 0,
+          entries: 0,
+          details: []
+        }
+      }
+      
+      return { success: true, data: mockSummary }
+    }
+  } catch (error) {
+    console.error('Get project cost summary error:', error)
+    return { success: false, error: 'Failed to fetch cost summary' }
+  }
+}

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Truck, Plus, Clock, DollarSign, Gauge } from 'lucide-react'
-import { DailyPlant, CreateDailyPlantRequest } from '@/types/database'
-import { createDailyPlantAction } from '@/lib/actions'
+import { DailyPlant, CreateDailyPlantRequest, PlantProfile } from '@/types/database'
+import { createDailyPlantAction, getPlantProfilesAction } from '@/lib/actions'
 
 interface PlantDocketsSectionProps {
   lotId: string
@@ -17,6 +17,9 @@ export function PlantDocketsSection({ lotId, date, plantRecords, onUpdate }: Pla
   const [showForm, setShowForm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [plantProfiles, setPlantProfiles] = useState<PlantProfile[]>([])
+  const [selectedPlantProfile, setSelectedPlantProfile] = useState<PlantProfile | null>(null)
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false)
   
   const [formData, setFormData] = useState({
     equipment_type: '',
@@ -27,7 +30,42 @@ export function PlantDocketsSection({ lotId, date, plantRecords, onUpdate }: Pla
     fuel_consumed: '',
     maintenance_notes: '',
     task_description: '',
+    plant_profile_id: ''
   })
+
+  useEffect(() => {
+    if (showForm) {
+      loadPlantProfiles()
+    }
+  }, [showForm])
+
+  const loadPlantProfiles = async () => {
+    setIsLoadingProfiles(true)
+    try {
+      const result = await getPlantProfilesAction()
+      if (result.success && result.data) {
+        setPlantProfiles(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading plant profiles:', error)
+    } finally {
+      setIsLoadingProfiles(false)
+    }
+  }
+
+  const handlePlantSelect = (profileId: string) => {
+    const profile = plantProfiles.find(p => p.id === profileId)
+    if (profile) {
+      setSelectedPlantProfile(profile)
+      setFormData({
+        ...formData,
+        equipment_type: profile.machine_type?.toLowerCase().replace(/\s+/g, '_') || 'other',
+        equipment_id: profile.registration || '',
+        hourly_rate: profile.default_hourly_rate.toString(),
+        plant_profile_id: profile.id
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,6 +84,8 @@ export function PlantDocketsSection({ lotId, date, plantRecords, onUpdate }: Pla
         fuel_consumed: formData.fuel_consumed ? parseFloat(formData.fuel_consumed) : undefined,
         maintenance_notes: formData.maintenance_notes || undefined,
         task_description: formData.task_description || undefined,
+        rate_at_time_of_entry: formData.hourly_rate ? parseFloat(formData.hourly_rate) : undefined,
+        plant_profile_id: formData.plant_profile_id || undefined
       }
 
       const result = await createDailyPlantAction(plantData)
@@ -61,7 +101,9 @@ export function PlantDocketsSection({ lotId, date, plantRecords, onUpdate }: Pla
           fuel_consumed: '',
           maintenance_notes: '',
           task_description: '',
+          plant_profile_id: ''
         })
+        setSelectedPlantProfile(null)
         onUpdate()
       } else {
         setError(result.error || 'Failed to create plant record')
@@ -117,6 +159,32 @@ export function PlantDocketsSection({ lotId, date, plantRecords, onUpdate }: Pla
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label htmlFor="plant_select" className="block text-sm font-medium text-gray-700">
+                Select Plant/Equipment
+              </label>
+              {isLoadingProfiles ? (
+                <div className="mt-1 text-sm text-gray-500">Loading plant profiles...</div>
+              ) : (
+                <select
+                  id="plant_select"
+                  value={formData.plant_profile_id}
+                  onChange={(e) => handlePlantSelect(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select from resource library or enter manually</option>
+                  {plantProfiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.machine_name}
+                      {profile.machine_type && ` - ${profile.machine_type}`}
+                      {profile.registration && ` (${profile.registration})`}
+                      {` - $${profile.default_hourly_rate}/hr`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div>
               <label htmlFor="equipment_type" className="block text-sm font-medium text-gray-700">
                 Equipment Type *
@@ -153,7 +221,7 @@ export function PlantDocketsSection({ lotId, date, plantRecords, onUpdate }: Pla
                 value={formData.equipment_id}
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder="e.g., EX-123"
+                placeholder={selectedPlantProfile ? "Auto-filled from selection" : "e.g., EX-123"}
               />
             </div>
 

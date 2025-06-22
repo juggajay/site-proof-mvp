@@ -539,6 +539,11 @@ export interface DailyLabour {
   overtime_hours?: number;
   overtime_rate?: number;
   task_description?: string;
+  rate_at_time_of_entry?: number;
+  cost_code?: string;
+  subcontractor_employee_id?: string;
+  subcontractor_id?: string;
+  total_cost?: number;
   created_by: number;
   created_at: string;
   updated_at: string;
@@ -556,6 +561,12 @@ export interface DailyPlant {
   fuel_consumed?: number;
   maintenance_notes?: string;
   task_description?: string;
+  rate_at_time_of_entry?: number;
+  cost_code?: string;
+  plant_profile_id?: string;
+  idle_hours?: number;
+  idle_rate?: number;
+  total_cost?: number;
   created_by: number;
   created_at: string;
   updated_at: string;
@@ -574,7 +585,68 @@ export interface DailyMaterials {
   delivery_docket?: string;
   quality_notes?: string;
   received_by?: string;
+  rate_at_time_of_entry?: number;
+  cost_code?: string;
+  material_profile_id?: string;
+  calculated_total_cost?: number;
   created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Job Costing Resource Types
+export interface Subcontractor {
+  id: string;
+  organization_id: string;
+  company_name: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  abn?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubcontractorEmployee {
+  id: string;
+  subcontractor_id: string;
+  employee_name: string;
+  role?: string;
+  hourly_rate: number;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlantProfile {
+  id: string;
+  organization_id: string;
+  machine_name: string;
+  machine_type?: string;
+  supplier?: string;
+  model?: string;
+  registration?: string;
+  default_hourly_rate: number;
+  default_idle_rate?: number;
+  fuel_type?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaterialProfile {
+  id: string;
+  organization_id: string;
+  material_name: string;
+  material_category?: string;
+  supplier?: string;
+  default_unit_rate: number;
+  default_unit: string;
+  specification?: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -617,6 +689,10 @@ export interface CreateDailyLabourRequest {
   overtime_hours?: number;
   overtime_rate?: number;
   task_description?: string;
+  rate_at_time_of_entry?: number;
+  cost_code?: string;
+  subcontractor_employee_id?: string;
+  subcontractor_id?: string;
 }
 
 export interface CreateDailyPlantRequest {
@@ -630,6 +706,11 @@ export interface CreateDailyPlantRequest {
   fuel_consumed?: number;
   maintenance_notes?: string;
   task_description?: string;
+  rate_at_time_of_entry?: number;
+  cost_code?: string;
+  plant_profile_id?: string;
+  idle_hours?: number;
+  idle_rate?: number;
 }
 
 export interface CreateDailyMaterialsRequest {
@@ -644,4 +725,129 @@ export interface CreateDailyMaterialsRequest {
   delivery_docket?: string;
   quality_notes?: string;
   received_by?: string;
+  rate_at_time_of_entry?: number;
+  cost_code?: string;
+  material_profile_id?: string;
+}
+
+// Resource creation request types
+export interface CreateSubcontractorRequest {
+  company_name: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  abn?: string;
+}
+
+export interface CreateSubcontractorEmployeeRequest {
+  subcontractor_id: string;
+  employee_name: string;
+  role?: string;
+  hourly_rate: number;
+  phone?: string;
+  email?: string;
+  is_active?: boolean;
+}
+
+export interface CreatePlantProfileRequest {
+  machine_name: string;
+  machine_type?: string;
+  supplier?: string;
+  model?: string;
+  registration?: string;
+  default_hourly_rate: number;
+  default_idle_rate?: number;
+  fuel_type?: string;
+  is_active?: boolean;
+}
+
+export interface CreateMaterialProfileRequest {
+  material_name: string;
+  material_category?: string;
+  supplier?: string;
+  default_unit_rate: number;
+  default_unit: string;
+  specification?: string;
+  is_active?: boolean;
+}
+
+// Extended types with relationships
+export interface SubcontractorWithEmployees extends Subcontractor {
+  employees: SubcontractorEmployee[];
+}
+
+export interface DailyLabourWithDetails extends DailyLabour {
+  subcontractor?: Subcontractor;
+  employee?: SubcontractorEmployee;
+}
+
+export interface DailyPlantWithDetails extends DailyPlant {
+  plant_profile?: PlantProfile;
+}
+
+export interface DailyMaterialsWithDetails extends DailyMaterials {
+  material_profile?: MaterialProfile;
+}
+
+// Cost report types
+export interface ProjectCostSummary {
+  project_id: string;
+  start_date: string;
+  end_date: string;
+  total_cost: number;
+  labour: {
+    total_cost: number;
+    days_worked: number;
+    entries: number;
+    details: LabourCostDetail[];
+  };
+  plant: {
+    total_cost: number;
+    days_used: number;
+    entries: number;
+    details: PlantCostDetail[];
+  };
+  materials: {
+    total_cost: number;
+    delivery_days: number;
+    entries: number;
+    details: MaterialCostDetail[];
+  };
+}
+
+export interface LabourCostDetail {
+  date: string;
+  worker: string;
+  subcontractor?: string;
+  hours: number;
+  overtime_hours?: number;
+  rate: number;
+  cost: number;
+  lot: string;
+  description?: string;
+}
+
+export interface PlantCostDetail {
+  date: string;
+  equipment: string;
+  supplier?: string;
+  hours: number;
+  idle_hours?: number;
+  rate: number;
+  cost: number;
+  lot: string;
+  description?: string;
+}
+
+export interface MaterialCostDetail {
+  date: string;
+  material: string;
+  supplier?: string;
+  quantity: number;
+  unit: string;
+  rate: number;
+  cost: number;
+  lot: string;
+  docket?: string;
 }
