@@ -653,46 +653,66 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: false, error: 'Lot not found' }
       }
       
-      // Check if ITP exists in the itps table (which the foreign key constraint references)
-      const { data: itp, error: itpError } = await supabase
-        .from('itps')
+      // Check if ITP template exists
+      const { data: template, error: templateError } = await supabase
+        .from('itp_templates')
         .select('*')
         .eq('id', itpTemplateId)
         .single()
       
-      if (itpError || !itp) {
-        console.log('ITP not found in itps table:', itpError)
-        // Try to check itp_templates as fallback and provide better error message
-        const { data: templateItp } = await supabase
-          .from('itp_templates')
-          .select('*')
-          .eq('id', itpTemplateId)
-          .single()
-        
-        if (templateItp) {
-          return { success: false, error: `ITP template exists but is not synced to itps table. Please sync data first.` }
-        }
-        
+      if (templateError || !template) {
+        console.log('ITP template not found:', templateError)
         return { success: false, error: `ITP template not found: ${itpTemplateId}` }
       }
       
-      console.log('Found ITP:', { id: itp.id, name: itp.name })
+      console.log('Found ITP template:', { id: template.id, name: template.name })
       
-      // Update the lot with the ITP ID (no junction table exists)
-      console.log('Updating lot with ITP assignment...')
-      const { data: updatedLot, error: updateError } = await supabase
-        .from('lots')
-        .update({
-          itp_id: itpTemplateId,
+      // Check if already assigned
+      const { data: existingAssignment } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .eq('lot_id', lotId)
+        .eq('itp_template_id', itpTemplateId)
+        .single()
+      
+      if (existingAssignment) {
+        if (!existingAssignment.is_active) {
+          // Reactivate if it was deactivated
+          const { error: reactivateError } = await supabase
+            .from('lot_itp_templates')
+            .update({
+              is_active: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingAssignment.id)
+          
+          if (reactivateError) {
+            console.error('Failed to reactivate assignment:', reactivateError)
+            return { success: false, error: 'Failed to reactivate ITP assignment' }
+          }
+        }
+        return { success: true, data: lot, message: 'ITP template already assigned' }
+      }
+      
+      // Create new assignment in junction table
+      console.log('Creating new ITP assignment in lot_itp_templates...')
+      const { data: newAssignment, error: assignError } = await supabase
+        .from('lot_itp_templates')
+        .insert({
+          lot_id: lotId,
+          itp_template_id: itpTemplateId,
+          assigned_by: user.id,
+          is_active: true,
+          assigned_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', lotId)
         .select()
         .single()
       
-      if (updateError) {
-        console.error('Failed to update lot:', updateError)
-        return { success: false, error: `Failed to assign ITP: ${updateError.message}` }
+      if (assignError) {
+        console.error('Failed to create assignment:', assignError)
+        return { success: false, error: `Failed to assign ITP: ${assignError.message}` }
       }
       
       // Update lot status if needed
@@ -706,9 +726,9 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
           .eq('id', lotId)
       }
       
-      console.log('✅ ITP assigned in Supabase:', updatedLot)
+      console.log('✅ ITP assigned in Supabase:', newAssignment)
       revalidatePath(`/project/${lot.project_id}`)
-      return { success: true, data: updatedLot, message: 'ITP assigned successfully' }
+      return { success: true, data: lot, message: 'ITP assigned successfully' }
     } else {
       console.log('📝 Assigning ITP in mock data...')
       const lot = mockLots.find(l => compareIds(l.id, lotId))
@@ -767,6 +787,169 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
     }
   } catch (error) {
     return { success: false, error: 'Failed to assign ITP' }
+  }
+}
+
+export async function assignMultipleITPsToLotAction(lotId: number | string, itpTemplateIds: (number | string)[]): Promise<APIResponse<Lot>> {
+  try {
+    const user = await requireAuth()
+    
+    console.log('assignMultipleITPsToLotAction: Assigning templates', itpTemplateIds, 'to lot', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('📊 Assigning multiple ITPs in Supabase...')
+      
+      // First check if lot exists
+      const { data: lot, error: lotError } = await supabase
+        .from('lots')
+        .select('*')
+        .eq('id', lotId)
+        .single()
+      
+      if (lotError || !lot) {
+        console.log('Lot not found:', lotError)
+        return { success: false, error: 'Lot not found' }
+      }
+      
+      // Verify all ITP templates exist
+      const { data: templates, error: templateError } = await supabase
+        .from('itp_templates')
+        .select('*')
+        .in('id', itpTemplateIds)
+      
+      if (templateError || !templates || templates.length !== itpTemplateIds.length) {
+        console.log('Some ITP templates not found:', templateError)
+        return { success: false, error: 'One or more ITP templates not found' }
+      }
+      
+      console.log('Found ITP templates:', templates.map(t => ({ id: t.id, name: t.name })))
+      
+      // Get existing assignments
+      const { data: existingAssignments } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .eq('lot_id', lotId)
+        .in('itp_template_id', itpTemplateIds)
+      
+      const existingTemplateIds = existingAssignments?.map(a => a.itp_template_id) || []
+      const newTemplateIds = itpTemplateIds.filter(id => !existingTemplateIds.includes(id))
+      
+      // Reactivate any inactive existing assignments
+      if (existingAssignments && existingAssignments.length > 0) {
+        const inactiveAssignments = existingAssignments.filter(a => !a.is_active)
+        if (inactiveAssignments.length > 0) {
+          const { error: reactivateError } = await supabase
+            .from('lot_itp_templates')
+            .update({
+              is_active: true,
+              updated_at: new Date().toISOString()
+            })
+            .in('id', inactiveAssignments.map(a => a.id))
+          
+          if (reactivateError) {
+            console.error('Failed to reactivate assignments:', reactivateError)
+            return { success: false, error: 'Failed to reactivate ITP assignments' }
+          }
+        }
+      }
+      
+      // Create new assignments
+      if (newTemplateIds.length > 0) {
+        console.log('Creating new ITP assignments in lot_itp_templates...')
+        const newAssignments = newTemplateIds.map(templateId => ({
+          lot_id: lotId,
+          itp_template_id: templateId,
+          assigned_by: user.id,
+          is_active: true,
+          assigned_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }))
+        
+        const { error: assignError } = await supabase
+          .from('lot_itp_templates')
+          .insert(newAssignments)
+        
+        if (assignError) {
+          console.error('Failed to create assignments:', assignError)
+          return { success: false, error: `Failed to assign ITPs: ${assignError.message}` }
+        }
+      }
+      
+      // Update lot status if needed
+      if (lot.status === 'pending') {
+        await supabase
+          .from('lots')
+          .update({
+            status: 'IN_PROGRESS',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', lotId)
+      }
+      
+      console.log('✅ Multiple ITPs assigned in Supabase')
+      revalidatePath(`/project/${lot.project_id}`)
+      return { success: true, data: lot, message: `${itpTemplateIds.length} ITP(s) assigned successfully` }
+    } else {
+      console.log('📝 Assigning multiple ITPs in mock data...')
+      const lot = mockLots.find(l => compareIds(l.id, lotId))
+      if (!lot) {
+        console.log('assignMultipleITPsToLotAction: Lot not found for ID:', lotId)
+        return { success: false, error: 'Lot not found' }
+      }
+
+      // Verify all templates exist
+      const templates = mockITPTemplates.filter(t => itpTemplateIds.some(id => compareIds(t.id, id)))
+      if (templates.length !== itpTemplateIds.length) {
+        console.log('assignMultipleITPsToLotAction: Some ITP templates not found')
+        return { success: false, error: 'One or more ITP templates not found' }
+      }
+      
+      // Process each template
+      for (const itpTemplateId of itpTemplateIds) {
+        // Check if already assigned
+        const existingAssignment = mockLotITPTemplates.find(lit => 
+          compareIds(lit.lot_id, lotId) && compareIds(lit.itp_template_id, itpTemplateId)
+        )
+        
+        if (existingAssignment) {
+          if (!existingAssignment.is_active) {
+            existingAssignment.is_active = true
+            existingAssignment.updated_at = new Date().toISOString()
+          }
+        } else {
+          // Add new assignment to junction table
+          const newAssignment = {
+            id: mockLotITPTemplates.length + 1,
+            lot_id: lotId,
+            itp_template_id: itpTemplateId,
+            assigned_by: user.id,
+            is_active: true,
+            assigned_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          
+          mockLotITPTemplates.push(newAssignment)
+        }
+      }
+      
+      // Update lot status if needed
+      if (lot.status === 'pending') {
+        const lotIndex = mockLots.findIndex(l => compareIds(l.id, lotId))
+        mockLots[lotIndex] = {
+          ...lot,
+          status: 'in_progress',
+          updated_at: new Date().toISOString()
+        }
+      }
+      
+      console.log('assignMultipleITPsToLotAction: Successfully assigned multiple ITP templates to lot')
+      revalidatePath(`/project/${lot.project_id}`)
+      return { success: true, data: lot, message: `${itpTemplateIds.length} ITP(s) assigned successfully` }
+    }
+  } catch (error) {
+    return { success: false, error: 'Failed to assign ITPs' }
   }
 }
 
@@ -933,67 +1116,79 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         }
       }
       
-      // Get directly assigned ITP template (lots.itp_id)
+      // Get ITP templates from junction table (lot_itp_templates)
       let itpTemplates: any[] = []
-      const lotItpTemplates: any[] = [] // Empty since no junction table exists
       
-      if (lot.itp_id) {
-        const directItpId = lot.itp_id
-        console.log('📊 No junction table templates found, checking direct assignment:', directItpId)
-        
-        // Fetch the directly assigned ITP from itps table
-        const { data: directTemplate } = await supabase
-          .from('itps')
-          .select('*')
-          .eq('id', directItpId)
-          .single()
-        
-        if (directTemplate) {
-          // Since itps table doesn't have items, fetch corresponding template from itp_templates
-          const { data: templateForItems } = await supabase
+      console.log('📊 Fetching ITP templates from junction table...')
+      const { data: lotItpTemplates } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .eq('lot_id', lotId)
+        .eq('is_active', true)
+      
+      console.log('📊 Found lot_itp_templates:', lotItpTemplates?.length || 0)
+      
+      // Fetch each assigned template with its items
+      if (lotItpTemplates && lotItpTemplates.length > 0) {
+        for (const assignment of lotItpTemplates) {
+          const { data: template } = await supabase
             .from('itp_templates')
-            .select('*')
-            .eq('id', directItpId)
+            .select(`
+              *,
+              itp_items(*)
+            `)
+            .eq('id', assignment.itp_template_id)
             .single()
           
-          // Fetch items for this template (using itp_id column)
-          console.log('📊 Fetching items for ITP ID:', directItpId)
-          const { data: directItems } = await supabase
-            .from('itp_items')
-            .select('*')
-            .eq('itp_id', directItpId)
-            .order('sort_order')
-          
-          console.log('✅ Found items:', directItems?.length || 0, 'items')
-          
+          if (template) {
+            // Map items to expected format
+            const mappedItems = (template.itp_items || []).map(item => ({
+              ...item,
+              item_type: item.item_type || 'pass_fail',
+              itp_template_id: template.id,
+              order_index: item.order_index || item.sort_order || 0,
+              item_number: item.item_number || `${item.order_index || item.sort_order || 0}`,
+              inspection_method: item.inspection_method || item.item_type || 'Visual'
+            }))
+            
+            itpTemplates.push({
+              ...template,
+              itp_items: mappedItems
+            })
+            console.log('✅ Added template from junction table:', template.name)
+          }
+        }
+      }
+      
+      // FALLBACK: Check legacy itp_id field if no templates in junction table
+      if (itpTemplates.length === 0 && lot.itp_id) {
+        console.log('📊 No junction table templates found, checking legacy itp_id:', lot.itp_id)
+        
+        const { data: legacyTemplate } = await supabase
+          .from('itp_templates')
+          .select(`
+            *,
+            itp_items(*)
+          `)
+          .eq('id', lot.itp_id)
+          .single()
+        
+        if (legacyTemplate) {
           // Map items to expected format
-          const mappedItems = (directItems || []).map(item => ({
+          const mappedItems = (legacyTemplate.itp_items || []).map(item => ({
             ...item,
-            item_type: item.item_number?.toLowerCase() === 'pass_fail' ? 'pass_fail' : 
-                      item.item_number?.toLowerCase() === 'numeric' ? 'numeric' : 
-                      item.item_number?.toLowerCase() === 'text_input' ? 'text_input' : 'pass_fail',
-            itp_template_id: item.itp_id, // Map itp_id to itp_template_id for interface compatibility
-            order_index: item.sort_order, // Map sort_order to order_index
-            item_number: `${item.sort_order}`, // Use sort_order as item number
-            inspection_method: item.item_number // Store the type as inspection method
+            item_type: item.item_type || 'pass_fail',
+            itp_template_id: legacyTemplate.id,
+            order_index: item.order_index || item.sort_order || 0,
+            item_number: item.item_number || `${item.order_index || item.sort_order || 0}`,
+            inspection_method: item.inspection_method || item.item_type || 'Visual'
           }))
           
-          const formattedTemplate = {
-            id: directTemplate.id,
-            name: directTemplate.name,
-            description: directTemplate.description,
-            category: directTemplate.category || 'general',
-            version: templateForItems?.version || '1.0',
-            is_active: templateForItems?.is_active ?? true,
-            organization_id: directTemplate.organization_id,
-            created_by: templateForItems?.created_by || 1,
-            created_at: directTemplate.created_at,
-            updated_at: directTemplate.updated_at,
+          itpTemplates.push({
+            ...legacyTemplate,
             itp_items: mappedItems
-          }
-          
-          itpTemplates.push(formattedTemplate)
-          console.log('✅ Added directly assigned template:', directTemplate.name)
+          })
+          console.log('✅ Added legacy template:', legacyTemplate.name)
         }
       }
       

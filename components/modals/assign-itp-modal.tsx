@@ -1,22 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getITPTemplatesAction, assignITPToLotAction } from '@/lib/actions'
+import { getITPTemplatesAction, assignMultipleITPsToLotAction } from '@/lib/actions'
 import { ITPTemplate } from '@/types/database'
-import { X, ClipboardList, CheckCircle2 } from 'lucide-react'
+import { X, ClipboardList, CheckCircle2, Check } from 'lucide-react'
 
 interface AssignITPModalProps {
   isOpen: boolean
   onClose: () => void
   onITPAssigned: () => void
   lotId: number | string
-  currentITPTemplateId?: number | string
   assignedTemplateIds?: (number | string)[]
 }
 
-export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentITPTemplateId, assignedTemplateIds = [] }: AssignITPModalProps) {
+export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assignedTemplateIds = [] }: AssignITPModalProps) {
   const [templates, setTemplates] = useState<ITPTemplate[]>([])
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | string | null>(currentITPTemplateId || null)
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<(number | string)[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,8 +43,8 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
   }
 
   const handleAssign = async () => {
-    if (!selectedTemplateId) {
-      setError('Please select an ITP template')
+    if (selectedTemplateIds.length === 0) {
+      setError('Please select at least one ITP template')
       return
     }
 
@@ -53,24 +52,34 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
     setError(null)
 
     try {
-      console.log('Assigning ITP:', selectedTemplateId, 'to lot:', lotId)
-      const result = await assignITPToLotAction(lotId, selectedTemplateId)
+      console.log('Assigning ITPs:', selectedTemplateIds, 'to lot:', lotId)
+      const result = await assignMultipleITPsToLotAction(lotId, selectedTemplateIds)
       console.log('Assignment result:', result)
       
       if (result.success) {
-        console.log('✅ ITP assigned successfully')
+        console.log('✅ ITPs assigned successfully')
         onITPAssigned()
       } else {
-        console.error('❌ Failed to assign ITP:', result.error)
-        const errorMessage = result.error || 'Failed to assign ITP template - unknown error'
+        console.error('❌ Failed to assign ITPs:', result.error)
+        const errorMessage = result.error || 'Failed to assign ITP templates - unknown error'
         setError(errorMessage)
       }
     } catch (error) {
-      console.error('Unexpected error assigning ITP:', error)
+      console.error('Unexpected error assigning ITPs:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const toggleTemplateSelection = (templateId: number | string) => {
+    setSelectedTemplateIds(prev => {
+      if (prev.includes(templateId)) {
+        return prev.filter(id => id !== templateId)
+      } else {
+        return [...prev, templateId]
+      }
+    })
   }
 
   if (!isOpen) return null
@@ -105,8 +114,13 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
 
             <div className="mb-4">
               <p className="text-sm text-gray-600">
-                Select an Inspection Test Plan (ITP) template to assign to this lot. {currentITPTemplateId && 'This will replace the currently assigned template.'}
+                Select one or more Inspection Test Plan (ITP) templates to assign to this lot. You can select multiple templates.
               </p>
+              {selectedTemplateIds.length > 0 && (
+                <p className="text-sm text-blue-600 mt-2">
+                  {selectedTemplateIds.length} template{selectedTemplateIds.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
             {isLoadingTemplates ? (
@@ -130,13 +144,13 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
                     className={`relative rounded-lg border p-4 ${
                       assignedTemplateIds.includes(template.id)
                         ? 'border-green-300 bg-green-50 cursor-default'
-                        : selectedTemplateId === template.id
+                        : selectedTemplateIds.includes(template.id)
                           ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 cursor-pointer hover:bg-blue-100'
                           : 'border-gray-300 cursor-pointer hover:bg-gray-50'
                     }`}
                     onClick={() => {
                       if (!assignedTemplateIds.includes(template.id)) {
-                        setSelectedTemplateId(template.id)
+                        toggleTemplateSelection(template.id)
                       }
                     }}
                   >
@@ -144,8 +158,14 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h4 className="text-sm font-medium text-gray-900">{template.name}</h4>
-                          {selectedTemplateId === template.id && (
-                            <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                          {assignedTemplateIds.includes(template.id) ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ) : selectedTemplateIds.includes(template.id) ? (
+                            <div className="flex items-center justify-center w-5 h-5 rounded border-2 border-blue-600 bg-blue-600">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded border-2 border-gray-300" />
                           )}
                         </div>
                         {template.description && (
@@ -176,12 +196,12 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, currentI
             <button
               type="button"
               onClick={handleAssign}
-              disabled={isLoading || !selectedTemplateId || templates.length === 0 || (!!selectedTemplateId && assignedTemplateIds.includes(selectedTemplateId))}
+              disabled={isLoading || selectedTemplateIds.length === 0 || templates.length === 0}
               className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Assigning...' : 
-               selectedTemplateId && assignedTemplateIds.includes(selectedTemplateId) ? 'Already Assigned' :
-               'Assign Template'}
+               selectedTemplateIds.length === 0 ? 'Select Templates' :
+               `Assign ${selectedTemplateIds.length} Template${selectedTemplateIds.length !== 1 ? 's' : ''}`}
             </button>
             <button
               type="button"
