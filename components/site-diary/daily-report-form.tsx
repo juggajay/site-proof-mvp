@@ -7,6 +7,7 @@ import { DailyReport, CreateDailyReportRequest } from '@/types/database'
 import { X } from 'lucide-react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { AutoSaveStatus } from '@/components/ui/auto-save-status'
+import { useIsDesktop } from '@/hooks/useMediaQuery'
 
 interface DailyReportFormProps {
   lotId: string
@@ -20,6 +21,7 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
   const [error, setError] = useState<string | null>(null)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+  const isDesktop = useIsDesktop()
   
   const [formData, setFormData] = useState({
     weather_condition: existingReport?.weather_condition || '',
@@ -76,12 +78,12 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
     setHasChanges(true)
   }
 
-  // Trigger auto-save when form data changes
+  // Trigger auto-save when form data changes (only on mobile/tablet)
   useEffect(() => {
-    if (hasChanges) {
+    if (hasChanges && !isDesktop) {
       debouncedSave()
     }
-  }, [formData, hasChanges, debouncedSave])
+  }, [formData, hasChanges, debouncedSave, isDesktop])
 
   return (
     <div className="space-y-6">
@@ -90,7 +92,7 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
           <h3 className="text-lg font-medium text-gray-900">
             {existingReport ? 'Edit' : 'Create'} Daily Report - {format(date, 'MMMM d, yyyy')}
           </h3>
-          <AutoSaveStatus isSaving={isSaving} lastSaved={lastSaved} error={error} />
+          {!isDesktop && <AutoSaveStatus isSaving={isSaving} lastSaved={lastSaved} error={error} />}
         </div>
         <button
           type="button"
@@ -247,7 +249,17 @@ export function DailyReportForm({ lotId, date, existingReport, onSave, onCancel 
         />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end space-x-3">
+        {isDesktop && (
+          <button
+            type="button"
+            onClick={saveReport}
+            disabled={isSaving || !hasChanges}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'Saving...' : 'Save Report'}
+          </button>
+        )}
         <button
           type="button"
           onClick={onCancel}

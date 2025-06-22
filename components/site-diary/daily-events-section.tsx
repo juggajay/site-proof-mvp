@@ -36,7 +36,7 @@ export function DailyEventsSection({ lotId, date, events, onUpdate }: DailyEvent
 
     try {
       const eventData: CreateDailyEventRequest = {
-        lot_id: parseInt(lotId),
+        lot_id: lotId,
         event_date: format(date, 'yyyy-MM-dd'),
         event_time: formData.event_time || undefined,
         event_type: (formData.event_type || 'note') as DailyEvent['event_type'],

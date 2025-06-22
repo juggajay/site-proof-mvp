@@ -25,6 +25,7 @@ export function PlantResourcesTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [showAddCompany, setShowAddCompany] = useState(false)
   const [showAddPlant, setShowAddPlant] = useState<string | null>(null)
+  const [showDirectAddPlant, setShowDirectAddPlant] = useState(false)
   const [editingCompany, setEditingCompany] = useState<Company | null>(null)
   const [editingPlant, setEditingPlant] = useState<PlantProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -37,6 +38,11 @@ export function PlantResourcesTab() {
     email: '',
     address: '',
     abn: ''
+  })
+
+  // Additional form data for direct plant addition
+  const [formData, setFormData] = useState({
+    plant_company_id: ''
   })
 
   // Plant form state
@@ -140,14 +146,14 @@ export function PlantResourcesTab() {
     }
   }
 
-  const handleSubmitPlant = async (e: React.FormEvent, companyId: string) => {
+  const handleSubmitPlant = async (e: React.FormEvent, companyId?: string) => {
     e.preventDefault()
     setError(null)
 
     try {
       const plantData = {
         ...plantForm,
-        company_id: companyId,
+        company_id: companyId || formData.plant_company_id,
         default_hourly_rate: parseFloat(plantForm.default_hourly_rate),
         default_idle_rate: plantForm.default_idle_rate ? parseFloat(plantForm.default_idle_rate) : undefined
       }
@@ -167,6 +173,7 @@ export function PlantResourcesTab() {
       }
 
       setShowAddPlant(null)
+      setShowDirectAddPlant(false)
       setEditingPlant(null)
       setPlantForm({
         machine_name: '',
@@ -177,6 +184,7 @@ export function PlantResourcesTab() {
         default_idle_rate: '',
         fuel_type: ''
       })
+      setFormData({ ...formData, plant_company_id: '' })
       loadData()
     } catch (error) {
       console.error('Error submitting plant:', error)
@@ -266,25 +274,46 @@ export function PlantResourcesTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-medium text-gray-900">Plant & Equipment Companies</h2>
-        <button
-          onClick={() => {
-            setEditingCompany(null)
-            setCompanyForm({
-              company_name: '',
-              contact_person: '',
-              phone: '',
-              email: '',
-              address: '',
-              abn: ''
-            })
-            setShowAddCompany(true)
-          }}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Company
-        </button>
+        <h2 className="text-lg font-medium text-gray-900">Plant & Equipment</h2>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => {
+              setEditingPlant(null)
+              setPlantForm({
+                machine_name: '',
+                machine_type: '',
+                model: '',
+                registration: '',
+                default_hourly_rate: '',
+                default_idle_rate: '',
+                fuel_type: ''
+              })
+              setShowDirectAddPlant(true)
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Equipment
+          </button>
+          <button
+            onClick={() => {
+              setEditingCompany(null)
+              setCompanyForm({
+                company_name: '',
+                contact_person: '',
+                phone: '',
+                email: '',
+                address: '',
+                abn: ''
+              })
+              setShowAddCompany(true)
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Company
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -390,6 +419,156 @@ export function PlantResourcesTab() {
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 {editingCompany ? 'Update' : 'Create'} Company
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showDirectAddPlant && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-md font-medium text-gray-900 mb-4">
+            {editingPlant ? 'Edit Equipment' : 'Add New Equipment'}
+          </h3>
+          <form onSubmit={(e) => handleSubmitPlant(e)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label htmlFor="plant_company_select" className="block text-sm font-medium text-gray-700">
+                  Select Company
+                </label>
+                <select
+                  id="plant_company_select"
+                  value={formData.plant_company_id}
+                  onChange={(e) => setFormData({ ...formData, plant_company_id: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  required
+                >
+                  <option value="">Select a company</option>
+                  {companiesWithPlants.map(({ company }) => (
+                    <option key={company.id} value={company.id}>
+                      {company.company_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Machine Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={plantForm.machine_name}
+                  onChange={(e) => setPlantForm({ ...plantForm, machine_name: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="e.g., CAT 320 Excavator"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Machine Type
+                </label>
+                <select
+                  value={plantForm.machine_type}
+                  onChange={(e) => setPlantForm({ ...plantForm, machine_type: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select type</option>
+                  <option value="Excavator">Excavator</option>
+                  <option value="Loader">Loader</option>
+                  <option value="Dozer">Dozer</option>
+                  <option value="Grader">Grader</option>
+                  <option value="Truck">Truck</option>
+                  <option value="Crane">Crane</option>
+                  <option value="Compactor">Compactor</option>
+                  <option value="Generator">Generator</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Model
+                </label>
+                <input
+                  type="text"
+                  value={plantForm.model}
+                  onChange={(e) => setPlantForm({ ...plantForm, model: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Registration/Serial No.
+                </label>
+                <input
+                  type="text"
+                  value={plantForm.registration}
+                  onChange={(e) => setPlantForm({ ...plantForm, registration: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Fuel Type
+                </label>
+                <select
+                  value={plantForm.fuel_type}
+                  onChange={(e) => setPlantForm({ ...plantForm, fuel_type: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Select fuel type</option>
+                  <option value="Diesel">Diesel</option>
+                  <option value="Petrol">Petrol</option>
+                  <option value="Electric">Electric</option>
+                  <option value="Hybrid">Hybrid</option>
+                  <option value="LPG">LPG</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Default Hourly Rate ($) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  step="0.01"
+                  min="0"
+                  value={plantForm.default_hourly_rate}
+                  onChange={(e) => setPlantForm({ ...plantForm, default_hourly_rate: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Default Idle Rate ($/hr)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={plantForm.default_idle_rate}
+                  onChange={(e) => setPlantForm({ ...plantForm, default_idle_rate: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="Rate when equipment is idle"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDirectAddPlant(false)
+                  setEditingPlant(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
+                {editingPlant ? 'Update' : 'Add'} Equipment
               </button>
             </div>
           </form>
