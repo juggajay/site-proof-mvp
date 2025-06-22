@@ -1141,13 +1141,31 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       let itpTemplates: any[] = []
       
       console.log('📊 Fetching ITP templates from junction table...')
-      const { data: lotItpTemplates } = await supabase
+      console.log('📊 Looking for lot_id:', lotId, 'Type:', typeof lotId)
+      
+      // Use the actual lot ID from the fetched lot data
+      const lotIdToUse = lot ? lot.id : String(lotId)
+      console.log('📊 Using lot ID for junction query:', lotIdToUse)
+      
+      const { data: lotItpTemplates, error: lotItpError } = await supabase
         .from('lot_itp_templates')
         .select('*')
-        .eq('lot_id', lotId)
+        .eq('lot_id', lotIdToUse)
         .eq('is_active', true)
       
+      if (lotItpError) {
+        console.error('📊 Error fetching lot_itp_templates:', lotItpError)
+      }
+      
       console.log('📊 Found lot_itp_templates:', lotItpTemplates?.length || 0)
+      console.log('📊 Junction table data:', JSON.stringify(lotItpTemplates, null, 2))
+      
+      // Debug: Check all records in junction table
+      const { data: allRecords } = await supabase
+        .from('lot_itp_templates')
+        .select('*')
+        .limit(10)
+      console.log('📊 All junction table records:', JSON.stringify(allRecords, null, 2))
       
       // Fetch each assigned template with its items
       if (lotItpTemplates && lotItpTemplates.length > 0) {
