@@ -886,9 +886,12 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         
         console.log('Assignments to insert:', JSON.stringify(newAssignments, null, 2))
         
-        const { error: assignError } = await supabase
+        const { data: insertedData, error: assignError } = await supabase
           .from('lot_itp_templates')
           .insert(newAssignments)
+          .select()
+        
+        console.log('Inserted assignments:', JSON.stringify(insertedData, null, 2))
         
         if (assignError) {
           console.error('Failed to create assignments:', assignError)
