@@ -1161,37 +1161,31 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       }
       
       console.log('📊 Found lot_itp_templates:', lotItpTemplates?.length || 0)
-      console.log('📊 Junction table data:', JSON.stringify(lotItpTemplates, null, 2))
-      
-      // Debug: Check all records in junction table
-      const { data: allRecords } = await supabase
-        .from('lot_itp_templates')
-        .select('*')
-        .limit(10)
-      console.log('📊 All junction table records:', JSON.stringify(allRecords, null, 2))
-      
-      // Debug: Try direct query with the specific lot ID
-      const { data: directQuery } = await supabase
-        .from('lot_itp_templates')
-        .select('*')
-        .eq('lot_id', '2924e1e1-9d03-4b34-8e25-24cbb4d51836')
-      console.log('📊 Direct query for specific lot:', JSON.stringify(directQuery, null, 2))
       
       // Fetch each assigned template with its items
       if (lotItpTemplates && lotItpTemplates.length > 0) {
         for (const assignment of lotItpTemplates) {
-          const { data: template } = await supabase
+          const { data: template, error: templateError } = await supabase
             .from('itp_templates')
-            .select(`
-              *,
-              itp_items(*)
-            `)
+            .select('*')
             .eq('id', assignment.itp_template_id)
             .single()
           
+          if (templateError) {
+            console.error('Error fetching template:', templateError)
+            continue
+          }
+          
+          // Fetch items separately
+          const { data: items } = await supabase
+            .from('itp_items')
+            .select('*')
+            .eq('itp_template_id', assignment.itp_template_id)
+            .order('order_index')
+          
           if (template) {
             // Map items to expected format
-            const mappedItems = (template.itp_items || []).map((item: any) => ({
+            const mappedItems = (items || []).map((item: any) => ({
               ...item,
               item_type: item.item_type || 'pass_fail',
               itp_template_id: template.id,
@@ -1215,16 +1209,20 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         
         const { data: legacyTemplate } = await supabase
           .from('itp_templates')
-          .select(`
-            *,
-            itp_items(*)
-          `)
+          .select('*')
           .eq('id', lot.itp_id)
           .single()
         
         if (legacyTemplate) {
+          // Fetch items separately
+          const { data: legacyItems } = await supabase
+            .from('itp_items')
+            .select('*')
+            .eq('itp_template_id', lot.itp_id)
+            .order('order_index')
+          
           // Map items to expected format
-          const mappedItems = (legacyTemplate.itp_items || []).map((item: any) => ({
+          const mappedItems = (legacyItems || []).map((item: any) => ({
             ...item,
             item_type: item.item_type || 'pass_fail',
             itp_template_id: legacyTemplate.id,
