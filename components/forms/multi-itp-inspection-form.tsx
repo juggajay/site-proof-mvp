@@ -18,16 +18,32 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
 
   // Get the assigned template (only single assignment supported)
-  const templates = lot.itp_templates && lot.itp_templates.length > 0 
-    ? lot.itp_templates 
-    : (lot.itp_template ? [lot.itp_template] : [])
+  // Ensure no duplicates by checking if itp_template is already in itp_templates
+  const getUniqueTemplates = () => {
+    if (lot.itp_templates && lot.itp_templates.length > 0) {
+      return lot.itp_templates
+    } else if (lot.itp_template) {
+      return [lot.itp_template]
+    }
+    return []
+  }
+  
+  const templates = getUniqueTemplates()
     
   console.log('📊 Templates analysis:', {
     hasITPTemplates: !!lot.itp_templates,
     itpTemplatesLength: lot.itp_templates?.length || 0,
     hasITPTemplate: !!lot.itp_template,
     finalTemplatesCount: templates.length,
-    templates: templates.map(t => ({ id: t?.id, name: t?.name })),
+    templates: templates.map(t => ({ 
+      id: t?.id, 
+      name: t?.name,
+      itemsCount: t?.itp_items?.length || 0,
+      items: t?.itp_items?.map(item => ({
+        id: item.id,
+        description: item.description
+      }))
+    })),
     lotITPTemplates: lot.lot_itp_templates?.length || 0
   })
   

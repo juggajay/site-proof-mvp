@@ -37,7 +37,20 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
   const [hasChanges, setHasChanges] = useState(false)
   const [isSavingAll, setIsSavingAll] = useState(false)
 
-  const items = useMemo(() => lot.itp_template?.itp_items || [], [lot.itp_template?.itp_items])
+  const items = useMemo(() => {
+    const templateItems = lot.itp_template?.itp_items || []
+    console.log('📋 SimplifiedInspectionForm - Loading items:', {
+      templateId: lot.itp_template?.id,
+      templateName: lot.itp_template?.name,
+      itemCount: templateItems.length,
+      items: templateItems.map(item => ({
+        id: item.id,
+        description: item.description,
+        item_number: item.item_number
+      }))
+    })
+    return templateItems
+  }, [lot.itp_template?.itp_items])
 
   useEffect(() => {
     // Initialize status map from existing conformance records
@@ -95,8 +108,16 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
       })))
       
       // Get all items that have been changed
+      console.log('🔍 Building save promises for items:', {
+        totalItems: items.length,
+        statusMapSize: statusMap.size,
+        statusMapEntries: Array.from(statusMap.entries())
+      })
+      
       const promises = items.map(async (item) => {
         const status = statusMap.get(item.id)
+        console.log(`Item ${item.id} status:`, status)
+        
         if (status && status.status !== 'pending') {
           const result = status.status === 'passed' ? 'PASS' : 
                         status.status === 'failed' ? 'FAIL' : 'N/A'
