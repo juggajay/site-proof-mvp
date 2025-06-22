@@ -795,15 +795,20 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
     const user = await requireAuth()
     
     console.log('assignMultipleITPsToLotAction: Assigning templates', itpTemplateIds, 'to lot', lotId)
+    console.log('Template ID types:', itpTemplateIds.map(id => typeof id))
     
     if (isSupabaseEnabled && supabase) {
       console.log('📊 Assigning multiple ITPs in Supabase...')
+      
+      // Convert IDs to strings for UUID compatibility
+      const templateIdStrings = itpTemplateIds.map(id => String(id))
+      const lotIdString = String(lotId)
       
       // First check if lot exists
       const { data: lot, error: lotError } = await supabase
         .from('lots')
         .select('*')
-        .eq('id', lotId)
+        .eq('id', lotIdString)
         .single()
       
       if (lotError || !lot) {
@@ -815,11 +820,13 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       const { data: templates, error: templateError } = await supabase
         .from('itp_templates')
         .select('*')
-        .in('id', itpTemplateIds)
+        .in('id', templateIdStrings)
       
-      if (templateError || !templates || templates.length !== itpTemplateIds.length) {
+      if (templateError || !templates || templates.length !== templateIdStrings.length) {
         console.log('Some ITP templates not found:', templateError)
-        return { success: false, error: 'One or more ITP templates not found' }
+        console.log('Requested IDs:', templateIdStrings)
+        console.log('Found templates:', templates?.map(t => t.id))
+        return { success: false, error: `One or more ITP templates not found. Requested: ${templateIdStrings.join(', ')}` }
       }
       
       console.log('Found ITP templates:', templates.map(t => ({ id: t.id, name: t.name })))
@@ -828,11 +835,11 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       const { data: existingAssignments } = await supabase
         .from('lot_itp_templates')
         .select('*')
-        .eq('lot_id', lotId)
-        .in('itp_template_id', itpTemplateIds)
+        .eq('lot_id', lotIdString)
+        .in('itp_template_id', templateIdStrings)
       
-      const existingTemplateIds = existingAssignments?.map(a => a.itp_template_id) || []
-      const newTemplateIds = itpTemplateIds.filter(id => !existingTemplateIds.includes(id))
+      const existingTemplateIds = existingAssignments?.map(a => String(a.itp_template_id)) || []
+      const newTemplateIds = templateIdStrings.filter(id => !existingTemplateIds.includes(id))
       
       // Reactivate any inactive existing assignments
       if (existingAssignments && existingAssignments.length > 0) {
@@ -857,7 +864,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       if (newTemplateIds.length > 0) {
         console.log('Creating new ITP assignments in lot_itp_templates...')
         const newAssignments = newTemplateIds.map(templateId => ({
-          lot_id: lotId,
+          lot_id: lotIdString,
           itp_template_id: templateId,
           assigned_by: user.id,
           is_active: true,
@@ -872,6 +879,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         
         if (assignError) {
           console.error('Failed to create assignments:', assignError)
+          console.error('Assignment data that failed:', newAssignments)
           return { success: false, error: `Failed to assign ITPs: ${assignError.message}` }
         }
       }
@@ -884,12 +892,12 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
             status: 'IN_PROGRESS',
             updated_at: new Date().toISOString()
           })
-          .eq('id', lotId)
+          .eq('id', lotIdString)
       }
       
       console.log('✅ Multiple ITPs assigned in Supabase')
       revalidatePath(`/project/${lot.project_id}`)
-      return { success: true, data: lot, message: `${itpTemplateIds.length} ITP(s) assigned successfully` }
+      return { success: true, data: lot, message: `${templateIdStrings.length} ITP(s) assigned successfully` }
     } else {
       console.log('📝 Assigning multiple ITPs in mock data...')
       const lot = mockLots.find(l => compareIds(l.id, lotId))
