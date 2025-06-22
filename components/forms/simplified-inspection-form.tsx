@@ -313,7 +313,7 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
 
             {/* Inspection Items */}
             <div className="p-4 space-y-3">
-              {items.map((item) => {
+              {items.map((item, index) => {
                 const status = statusMap.get(item.id)?.status || 'pending'
                 const isSaving = savingItems.has(item.id)
                 
@@ -331,7 +331,7 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <div className="flex-1 pr-4">
                         <h4 className="text-sm font-medium text-gray-900">
-                          {item.item_number}. {item.description}
+                          {index + 1}. {item.description}
                         </h4>
                         {item.specification_reference && (
                           <p className="text-xs text-gray-500 mt-1">
