@@ -51,13 +51,19 @@ CREATE POLICY "Authenticated users can delete lot ITP assignments" ON lot_itp_te
     USING (auth.role() = 'authenticated');
 
 -- Create trigger to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
+-- Check if function already exists, if not create it
+DO $$ 
 BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+    IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_updated_at_column') THEN
+        CREATE FUNCTION update_updated_at_column()
+        RETURNS TRIGGER AS $func$
+        BEGIN
+            NEW.updated_at = CURRENT_TIMESTAMP;
+            RETURN NEW;
+        END;
+        $func$ LANGUAGE plpgsql;
+    END IF;
+END $$;
 
 CREATE TRIGGER update_lot_itp_templates_updated_at BEFORE UPDATE ON lot_itp_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
