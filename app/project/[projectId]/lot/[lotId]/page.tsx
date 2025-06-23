@@ -29,15 +29,24 @@ export default function LotDetailPage({ params }: PageProps) {
   const projectId = params.projectId
   const lotId = params.lotId
 
-  const loadLotData = useCallback(async () => {
+  const loadLotData = useCallback(async (forceRefresh = false) => {
     try {
-      console.log('LotDetailPage: Loading lot with ID:', lotId)
+      console.log('LotDetailPage: Loading lot with ID:', lotId, 'Force refresh:', forceRefresh)
+      
+      // Add timestamp to force cache bypass
+      const timestamp = Date.now()
+      console.log('Cache bust timestamp:', timestamp)
       
       // Debug query
       const debugResult = await debugLotITPTemplates(lotId)
       console.log('🔍 DEBUG: ITP Templates Query Results:', debugResult)
       
-      const result = await getLotByIdAction(lotId)
+      // Pass force refresh flag and timestamp to ensure fresh data
+      const result = await getLotByIdAction(lotId, { 
+        forceRefresh: true, 
+        timestamp,
+        skipCache: true 
+      })
       console.log('LotDetailPage: getLotByIdAction result:', result)
       if (result.success && result.data) {
         console.log('LotDetailPage: Lot data:', {
@@ -50,7 +59,13 @@ export default function LotDetailPage({ params }: PageProps) {
           itpTemplates: result.data.itp_templates,
           lotItpTemplates: result.data.lot_itp_templates
         })
-        setLot(result.data)
+        
+        // Clear any existing state before setting new data
+        setLot(null)
+        // Force a re-render with fresh data
+        setTimeout(() => {
+          setLot(result.data)
+        }, 0)
       } else {
         setError(result.error || 'Failed to load lot')
       }
