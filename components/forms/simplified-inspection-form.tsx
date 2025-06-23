@@ -172,12 +172,13 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
       // Clear messages after 3 seconds
       if (allSuccessful) {
         setTimeout(() => setSuccessMessage(null), 3000)
+        // Refresh the data to ensure consistency
+        setTimeout(() => {
+          onInspectionSaved() // This will reload the lot data
+        }, 1000)
       } else {
         setTimeout(() => setError(null), 5000)
       }
-      
-      // Don't call onInspectionSaved here as it will reload the page
-      // The UI will update from the current state
     } catch (error) {
       console.error('Error saving inspections:', error)
       setError('Failed to save inspections: ' + (error instanceof Error ? error.message : 'Unknown error'))

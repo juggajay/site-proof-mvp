@@ -79,7 +79,12 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     )
     
     const total = template.itp_items.length
-    const completed = relevantRecords.length
+    // Only count records with actual results (not pending)
+    const completed = relevantRecords.filter(r => 
+      r.result_pass_fail === 'PASS' || 
+      r.result_pass_fail === 'FAIL' || 
+      r.result_pass_fail === 'N/A'
+    ).length
     const passed = relevantRecords.filter(r => r.result_pass_fail === 'PASS').length
     const failed = relevantRecords.filter(r => r.result_pass_fail === 'FAIL').length
     
