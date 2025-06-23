@@ -144,7 +144,6 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
                 <p className="mt-2 text-sm text-gray-500">
                   Contact your administrator to create ITP templates.
                 </p>
-                {console.log('🔍 Templates array is empty:', templates)}
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
