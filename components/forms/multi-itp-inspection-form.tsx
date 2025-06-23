@@ -35,6 +35,8 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     hasITPTemplates: !!lot.itp_templates,
     itpTemplatesLength: lot.itp_templates?.length || 0,
     hasITPTemplate: !!lot.itp_template,
+    hasLotITPAssignments: !!lot.lot_itp_assignments,
+    lotITPAssignmentsLength: lot.lot_itp_assignments?.length || 0,
     finalTemplatesCount: templates.length,
     templates: templatesWithAssignments.map((t: any) => ({ 
       id: t?.id, 
@@ -47,7 +49,9 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
         description: item.description
       }))
     })),
-    assignments: assignments.length
+    assignments: assignments.length,
+    rawAssignments: assignments,
+    rawTemplates: templates
   })
   
   console.log('🎨 MultiITPInspectionForm - lot data:', {

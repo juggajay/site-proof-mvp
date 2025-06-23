@@ -1206,11 +1206,18 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       const lotIdForJunction = lotIdToUse  // This is the same ID used to fetch the lot
       console.log('📊 Using lot ID for junction query:', lotIdForJunction, 'Original:', lotId)
       
+      console.log('🔍 Querying lot_itp_assignments for lot:', lotIdForJunction)
       const { data: lotItpTemplates, error: lotItpError } = await supabase
         .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotIdForJunction)
         .in('status', ['pending', 'in_progress', 'completed', 'approved'])
+      
+      console.log('📊 lot_itp_assignments query result:', {
+        count: lotItpTemplates?.length || 0,
+        data: lotItpTemplates,
+        error: lotItpError
+      })
       
       if (lotItpError) {
         console.error('📊 Error fetching lot_itp_templates:', lotItpError)
