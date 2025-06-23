@@ -1862,13 +1862,13 @@ export async function saveConformanceRecordAction(
         .single()
       
       // Transform the result to match expected interface for backward compatibility
-      const transformedResult = {
+      const transformedResult: ConformanceRecord = {
         id: result.id,
         lot_id: assignment?.lot_id || '',
         itp_item_id: result.template_item_id,
         result_pass_fail: result.status === 'pass' ? 'PASS' : 
                          result.status === 'fail' ? 'FAIL' : 
-                         result.status === 'na' ? 'NA' : 'PENDING',
+                         result.status === 'na' ? 'N/A' : undefined,
         result_numeric: result.result_numeric,
         result_text: result.result_text,
         comments: result.comments,
