@@ -319,7 +319,8 @@ export interface LotWithDetails extends Lot {
   project: Project;
   itp_template?: ITPTemplate & { itp_items: ITPItem[] }; // Legacy - single template
   itp_templates?: (ITPTemplate & { itp_items: ITPItem[] })[]; // New - multiple templates
-  lot_itp_templates?: LotITPTemplate[]; // Junction table records
+  lot_itp_templates?: LotITPTemplate[]; // Old junction table records
+  lot_itp_assignments?: any[]; // New junction table records
   assigned_inspector?: Profile;
   conformance_records: (ConformanceRecord & { 
     itp_item: ITPItem;

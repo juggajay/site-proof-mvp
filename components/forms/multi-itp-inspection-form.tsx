@@ -17,34 +17,37 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
 
-  // Get the assigned template (only single assignment supported)
-  // Ensure no duplicates by checking if itp_template is already in itp_templates
-  const getUniqueTemplates = () => {
-    if (lot.itp_templates && lot.itp_templates.length > 0) {
-      return lot.itp_templates
-    } else if (lot.itp_template) {
-      return [lot.itp_template]
-    }
-    return []
-  }
+  // Get assignments from the new system
+  const assignments = lot.lot_itp_assignments || lot.lot_itp_templates || []
+  const templates = lot.itp_templates || []
   
-  const templates = getUniqueTemplates()
+  // Map assignments to templates with their inspection data
+  const templatesWithAssignments = assignments.map((assignment: any) => {
+    const template = templates.find((t: any) => t.id === assignment.template_id || t.id === assignment.itp_template_id)
+    return {
+      ...template,
+      assignment,
+      assignmentId: assignment.id
+    }
+  }).filter(Boolean)
     
   console.log('📊 Templates analysis:', {
     hasITPTemplates: !!lot.itp_templates,
     itpTemplatesLength: lot.itp_templates?.length || 0,
     hasITPTemplate: !!lot.itp_template,
     finalTemplatesCount: templates.length,
-    templates: templates.map(t => ({ 
+    templates: templatesWithAssignments.map((t: any) => ({ 
       id: t?.id, 
       name: t?.name,
+      assignmentId: t?.assignmentId,
+      status: t?.assignment?.status,
       itemsCount: t?.itp_items?.length || 0,
-      items: t?.itp_items?.map(item => ({
+      items: t?.itp_items?.map((item: any) => ({
         id: item.id,
         description: item.description
       }))
     })),
-    lotITPTemplates: lot.lot_itp_templates?.length || 0
+    assignments: assignments.length
   })
   
   console.log('🎨 MultiITPInspectionForm - lot data:', {
@@ -64,29 +67,29 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   })
   
   // Set active template on mount
-  if (!activeTemplateId && templates.length > 0) {
-    setActiveTemplateId(templates[0].id)
+  if (!activeTemplateId && templatesWithAssignments.length > 0) {
+    setActiveTemplateId(templatesWithAssignments[0].assignmentId)
   }
 
-  const activeTemplate = templates.find(t => t.id === activeTemplateId)
+  const activeTemplateData = templatesWithAssignments.find((t: any) => t.assignmentId === activeTemplateId)
 
-  const getTemplateStats = (templateId: string | number) => {
-    const template = templates.find(t => t.id === templateId)
-    if (!template || !template.itp_items) return { total: 0, completed: 0, passed: 0, failed: 0 }
+  const getTemplateStats = (assignmentId: string | number) => {
+    const templateData = templatesWithAssignments.find((t: any) => t.assignmentId === assignmentId)
+    if (!templateData || !templateData.itp_items) return { total: 0, completed: 0, passed: 0, failed: 0 }
     
-    const relevantRecords = lot.conformance_records.filter(r => 
-      template.itp_items.some(item => item.id === r.itp_item_id)
+    const relevantRecords = lot.conformance_records.filter((r: any) => 
+      templateData.itp_items.some((item: any) => item.id === r.itp_item_id)
     )
     
-    const total = template.itp_items.length
+    const total = templateData.itp_items.length
     // Only count records with actual results (not pending)
-    const completed = relevantRecords.filter(r => 
+    const completed = relevantRecords.filter((r: any) => 
       r.result_pass_fail === 'PASS' || 
       r.result_pass_fail === 'FAIL' || 
       r.result_pass_fail === 'N/A'
     ).length
-    const passed = relevantRecords.filter(r => r.result_pass_fail === 'PASS').length
-    const failed = relevantRecords.filter(r => r.result_pass_fail === 'FAIL').length
+    const passed = relevantRecords.filter((r: any) => r.result_pass_fail === 'PASS').length
+    const failed = relevantRecords.filter((r: any) => r.result_pass_fail === 'FAIL').length
     
     return { total, completed, passed, failed }
   }
@@ -96,7 +99,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     onInspectionSaved() // This will reload the lot data
   }
 
-  if (templates.length === 0) {
+  if (templatesWithAssignments.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -124,23 +127,26 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           onClose={() => setIsAssignModalOpen(false)}
           onITPAssigned={handleITPAssigned}
           lotId={lot.id}
-          assignedTemplateIds={templates.map(t => t.id)}
+          assignedTemplateIds={templatesWithAssignments.map((t: any) => t.id)}
         />
       </div>
     )
   }
 
   // Single template - show without tabs
-  if (templates.length === 1) {
+  if (templatesWithAssignments.length === 1) {
+    const templateData = templatesWithAssignments[0]
     console.log('🎨 Single template mode:', {
-      templateId: templates[0].id,
-      templateName: templates[0].name,
-      hasItems: !!templates[0].itp_items,
-      itemsLength: templates[0].itp_items?.length,
-      items: templates[0].itp_items
+      templateId: templateData.id,
+      assignmentId: templateData.assignmentId,
+      templateName: templateData.name,
+      status: templateData.assignment?.status,
+      hasItems: !!templateData.itp_items,
+      itemsLength: templateData.itp_items?.length,
+      items: templateData.itp_items
     })
     
-    const stats = getTemplateStats(templates[0].id)
+    const stats = getTemplateStats(templateData.assignmentId)
     const completionPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
 
     return (
@@ -149,7 +155,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-gray-900">Quality Inspection Checklist</h3>
-              <p className="text-sm text-gray-500">{templates[0].name}</p>
+              <p className="text-sm text-gray-500">{templateData.name}</p>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
@@ -173,10 +179,11 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           {(() => {
             const transformedLot = {
               ...lot,
-              itp_template: templates[0],
-              conformance_records: lot.conformance_records.filter(r => 
-                templates[0].itp_items.some(item => item.id === r.itp_item_id)
-              )
+              itp_template: templateData,
+              conformance_records: lot.conformance_records.filter((r: any) => 
+                templateData.itp_items.some((item: any) => item.id === r.itp_item_id)
+              ),
+              currentAssignment: templateData.assignment
             }
             console.log('🔄 Passing transformed lot to InteractiveInspectionForm:', {
               lotId: transformedLot.id,
@@ -198,7 +205,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           onClose={() => setIsAssignModalOpen(false)}
           onITPAssigned={handleITPAssigned}
           lotId={lot.id}
-          assignedTemplateIds={templates.map(t => t.id)}
+          assignedTemplateIds={templatesWithAssignments.map((t: any) => t.id)}
         />
       </div>
     )

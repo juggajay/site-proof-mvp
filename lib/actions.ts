@@ -834,12 +834,12 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       
       // Get existing assignments
       const { data: existingAssignments } = await supabase
-        .from('lot_itp_templates')
+        .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotIdString)
-        .in('itp_template_id', templateIds)
+        .in('template_id', templateIds)
       
-      const existingTemplateIds = existingAssignments?.map(a => String(a.itp_template_id)) || []
+      const existingTemplateIds = existingAssignments?.map(a => String(a.template_id)) || []
       const newTemplateIds = templateIds.filter(id => !existingTemplateIds.includes(id))
       
       // Reactivate any inactive existing assignments
@@ -847,9 +847,9 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         const inactiveAssignments = existingAssignments.filter(a => !a.is_active)
         if (inactiveAssignments.length > 0) {
           const { error: reactivateError } = await supabase
-            .from('lot_itp_templates')
+            .from('lot_itp_assignments')
             .update({
-              is_active: true,
+              status: 'pending',
               updated_at: new Date().toISOString()
             })
             .in('id', inactiveAssignments.map(a => a.id))
@@ -863,7 +863,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       
       // Create new assignments
       if (newTemplateIds.length > 0) {
-        console.log('Creating new ITP assignments in lot_itp_templates...')
+        console.log('Creating new ITP assignments in lot_itp_assignments...')
         console.log('New template IDs to assign:', newTemplateIds)
         console.log('Lot ID (UUID):', lotIdString, 'Type:', typeof lotIdString)
         console.log('User ID:', user.id, 'Type:', typeof user.id)
@@ -874,33 +874,33 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
         // For now, we'll make it nullable in case of mock auth
         const assignedByUserId = typeof user.id === 'number' ? null : String(user.id)
         
-        // For each template, create an ITP instance
+        // For each template, create an assignment
         for (const templateId of newTemplateIds) {
-          console.log('🔧 Creating ITP instance from template:', templateId)
+          console.log('🔧 Creating assignment for template:', templateId)
           
-          // Call the database function to create ITP instance
-          const { data: itpData, error: itpError } = await supabase
-            .rpc('create_itp_from_template', {
-              p_template_id: templateId,
-              p_lot_id: lotIdString,
-              p_name: `${templates.find(t => t.id === templateId)?.name || 'ITP'} - Lot ${lot.lot_number}`,
-              p_created_by: assignedByUserId
-            })
+          // Get the template details
+          const template = templates.find(t => t.id === templateId)
           
-          if (itpError) {
-            console.error('Failed to create ITP instance:', itpError)
-            return { success: false, error: `Failed to create ITP instance: ${itpError.message}` }
-          }
+          // Get existing assignments to determine sequence number
+          const { data: existingSeq } = await supabase
+            .from('lot_itp_assignments')
+            .select('sequence_number')
+            .eq('lot_id', lotIdString)
+            .eq('template_id', templateId)
+            .order('sequence_number', { ascending: false })
+            .limit(1)
           
-          console.log('✅ Created ITP instance:', itpData)
+          const sequenceNumber = existingSeq?.[0]?.sequence_number ? existingSeq[0].sequence_number + 1 : 1
           
-          // Now create the assignment in lot_itp_templates
+          // Create the assignment
           const assignment = {
             lot_id: lotIdString,
-            itp_template_id: templateId,
-            itp_id: itpData, // Store the created ITP instance ID
-            assigned_by: assignedByUserId,  // NULL if using mock auth with numeric IDs
-            is_active: true,
+            template_id: templateId,
+            instance_name: `${template?.name || 'ITP'} - Lot ${lot.lot_number}`,
+            sequence_number: sequenceNumber,
+            status: 'pending',
+            assigned_by: assignedByUserId,
+            assigned_to: assignedByUserId, // Can be updated later
             assigned_at: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -909,7 +909,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
           console.log('Assignment to insert:', JSON.stringify(assignment, null, 2))
           
           const { data: insertedData, error: assignError } = await supabase
-            .from('lot_itp_templates')
+            .from('lot_itp_assignments')
             .insert(assignment)
             .select()
           
@@ -919,6 +919,39 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
             console.error('Failed to create assignment:', assignError)
             console.error('Assignment data that failed:', assignment)
             return { success: false, error: `Failed to assign ITP: ${assignError.message}` }
+          }
+          
+          // Create inspection records for each template item
+          if (insertedData && insertedData[0]) {
+            const assignmentId = insertedData[0].id
+            
+            // Get template items
+            const { data: templateItems } = await supabase
+              .from('itp_template_items')
+              .select('*')
+              .eq('template_id', templateId)
+              .order('sort_order')
+            
+            if (templateItems && templateItems.length > 0) {
+              // Create inspection records
+              const inspectionRecords = templateItems.map(item => ({
+                assignment_id: assignmentId,
+                template_item_id: item.id,
+                status: 'pending',
+                is_non_conforming: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }))
+              
+              const { error: recordError } = await supabase
+                .from('itp_inspection_records')
+                .insert(inspectionRecords)
+              
+              if (recordError) {
+                console.error('Failed to create inspection records:', recordError)
+                // Continue anyway - records can be created later
+              }
+            }
           }
         }
       }
@@ -1174,10 +1207,10 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       console.log('📊 Using lot ID for junction query:', lotIdForJunction, 'Original:', lotId)
       
       const { data: lotItpTemplates, error: lotItpError } = await supabase
-        .from('lot_itp_templates')
+        .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotIdForJunction)
-        .eq('is_active', true)
+        .in('status', ['pending', 'in_progress', 'completed', 'approved'])
       
       if (lotItpError) {
         console.error('📊 Error fetching lot_itp_templates:', lotItpError)
@@ -1191,7 +1224,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           const { data: template, error: templateError } = await supabase
             .from('itp_templates')
             .select('*')
-            .eq('id', assignment.itp_template_id)
+            .eq('id', assignment.template_id)
             .single()
           
           if (templateError) {
@@ -1202,61 +1235,57 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           let items = []
           let itpInstance = null
           
-          // Check if this assignment has an ITP instance
-          if (assignment.itp_id) {
-            console.log('🔧 Fetching ITP instance:', assignment.itp_id)
-            // Fetch the ITP instance
-            const { data: itp } = await supabase
-              .from('itps')
-              .select('*')
-              .eq('id', assignment.itp_id)
-              .single()
-            
-            itpInstance = itp
-            
-            // Fetch ITP instance items
-            const { data: itpItems } = await supabase
-              .from('itp_items')
-              .select('*')
-              .eq('itp_id', assignment.itp_id)
-              .order('sort_order')
-            
-            console.log(`✅ Fetched ${itpItems?.length || 0} ITP instance items`)
-            items = itpItems || []
-          } else {
-            // Fallback to template items if no ITP instance exists
-            console.log('⚠️ No ITP instance found, falling back to template items')
-            const { data: templateItems } = await supabase
-              .from('itp_template_items')
-              .select('*')
-              .eq('template_id', assignment.itp_template_id)
-              .order('sort_order')
-            
-            items = templateItems || []
-          }
+          // Fetch template items
+          console.log('📊 Fetching template items for template:', assignment.template_id)
+          const { data: templateItems } = await supabase
+            .from('itp_template_items')
+            .select('*')
+            .eq('template_id', assignment.template_id)
+            .order('sort_order')
+          
+          items = templateItems || []
+          
+          // Fetch inspection records for this assignment
+          const { data: inspectionRecords } = await supabase
+            .from('itp_inspection_records')
+            .select('*')
+            .eq('assignment_id', assignment.id)
+          
+          console.log(`✅ Fetched ${items.length} template items and ${inspectionRecords?.length || 0} inspection records`)
           
           if (template) {
-            // Map items to expected format
-            const mappedItems = items.map((item: any) => ({
-              ...item,
-              // Map template_id to itp_template_id for consistency
-              itp_template_id: item.template_id || template.id,
-              // Determine item_type based on item_number field
-              item_type: item.item_number === 'PASS_FAIL' ? 'pass_fail' : 
-                        item.item_number === 'NUMERIC' ? 'numeric' : 
-                        item.item_number === 'TEXT_INPUT' ? 'text' : 'pass_fail',
-              // Use sort_order as order_index
-              order_index: item.sort_order || 0,
-              // Keep original fields
-              inspection_method: item.inspection_method || 'Visual'
-            }))
+            // Map items to expected format with inspection records
+            const mappedItems = items.map((item: any) => {
+              // Find corresponding inspection record
+              const record = inspectionRecords?.find((r: any) => r.template_item_id === item.id)
+              
+              return {
+                ...item,
+                // Map template_id to itp_template_id for backward compatibility
+                itp_template_id: item.template_id || template.id,
+                // Map inspection_type to item_type
+                item_type: item.inspection_type === 'boolean' ? 'pass_fail' : 
+                          item.inspection_type === 'numeric' ? 'numeric' : 
+                          item.inspection_type === 'text' ? 'text' : 
+                          item.inspection_type === 'multi_choice' ? 'multi_choice' : 'pass_fail',
+                // Use sort_order as order_index
+                order_index: item.sort_order || 0,
+                // Include inspection record data if available
+                inspection_record: record,
+                status: record?.status || 'pending',
+                inspected_at: record?.inspected_at,
+                inspected_by: record?.inspected_by
+              }
+            })
             
             itpTemplates.push({
               ...template,
               itp_items: mappedItems,
-              itp_instance: itpInstance // Include the ITP instance if available
+              assignment: assignment, // Include the assignment details
+              completion_percentage: assignment.status === 'completed' ? 100 : 
+                                    inspectionRecords ? (inspectionRecords.filter((r: any) => r.status !== 'pending').length / items.length * 100) : 0
             })
-            console.log('✅ Added template from junction table:', template.name, 'ITP Instance:', !!itpInstance)
+            console.log('✅ Added template from assignment:', template.name, 'Status:', assignment.status)
           }
         }
       }
@@ -1305,11 +1334,28 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       // For backward compatibility, set the first template as itp_template
       const primaryTemplate = itpTemplates.length > 0 ? itpTemplates[0] : undefined
       
-      // Get conformance records
-      const { data: conformanceRecords } = await supabase
-        .from('conformance_records')
-        .select('*')
-        .eq('lot_id', lotId)
+      // Get all inspection records for this lot's assignments
+      let conformanceRecords: any[] = []
+      if (lotItpTemplates && lotItpTemplates.length > 0) {
+        const assignmentIds = lotItpTemplates.map((a: any) => a.id)
+        const { data: inspectionRecords } = await supabase
+          .from('itp_inspection_records')
+          .select('*')
+          .in('assignment_id', assignmentIds)
+        
+        // Map to old conformance record format for backward compatibility
+        conformanceRecords = inspectionRecords?.map((record: any) => ({
+          id: record.id,
+          lot_id: lotId,
+          itp_item_id: record.template_item_id,
+          result_pass_fail: record.status === 'pass' ? 'PASS' : record.status === 'fail' ? 'FAIL' : record.status.toUpperCase(),
+          comments: record.comments,
+          inspected_by: record.inspected_by,
+          inspected_at: record.inspected_at,
+          created_at: record.created_at,
+          updated_at: record.updated_at
+        })) || []
+      }
       
       // Map to LotWithDetails format
       const lotWithDetails: LotWithDetails = {
@@ -1317,7 +1363,8 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         project: lot.project,
         itp_template: primaryTemplate,  // Legacy support
         itp_templates: itpTemplates,     // New multiple templates
-        lot_itp_templates: lotItpTemplates || [],
+        lot_itp_assignments: lotItpTemplates || [], // New name
+        lot_itp_templates: lotItpTemplates || [], // Keep for backward compatibility
         conformance_records: conformanceRecords || []
       }
       
@@ -1660,13 +1707,13 @@ export async function createITPTemplateAction(data: CreateITPTemplateRequest): P
 // ==================== CONFORMANCE RECORD ACTIONS ====================
 
 export async function saveConformanceRecordAction(
-  lotId: number | string, 
-  itpItemId: number | string, 
+  assignmentId: number | string, 
+  templateItemId: number | string, 
   data: UpdateConformanceRequest
 ): Promise<APIResponse<ConformanceRecord>> {
   console.log('🚀 saveConformanceRecordAction called with:', {
-    lotId,
-    itpItemId,
+    assignmentId,
+    templateItemId,
     data,
     timestamp: new Date().toISOString()
   })
@@ -1677,73 +1724,61 @@ export async function saveConformanceRecordAction(
     console.log('saveConformanceRecordAction: User authenticated:', user.email)
     
     // Check if we're working with mock data (numeric IDs)
-    const isNumericLotId = typeof lotId === 'number' || (!isNaN(Number(lotId)) && Number(lotId) < 1000)
-    const isNumericItemId = typeof itpItemId === 'number' || (!isNaN(Number(itpItemId)) && Number(itpItemId) < 1000)
-    const isMockData = isNumericLotId || isNumericItemId
+    const isNumericAssignmentId = typeof assignmentId === 'number' || (!isNaN(Number(assignmentId)) && Number(assignmentId) < 1000)
+    const isNumericItemId = typeof templateItemId === 'number' || (!isNaN(Number(templateItemId)) && Number(templateItemId) < 1000)
+    const isMockData = isNumericAssignmentId || isNumericItemId
     
     console.log('📊 ID type detection:', {
-      lotId,
-      itpItemId,
-      isNumericLotId,
+      assignmentId,
+      templateItemId,
+      isNumericAssignmentId,
       isNumericItemId,
       isMockData
     })
     
-    // Try to detect if this lot exists in Supabase first
+    // Try to detect if this assignment exists in Supabase first
     let shouldUseMockData = isMockData
     if (isSupabaseEnabled && supabase && !isMockData) {
-      // Check if this lot actually exists in Supabase
-      const { data: lotCheck, error: lotCheckError } = await supabase
-        .from('lots')
+      // Check if this assignment actually exists in Supabase
+      const { data: assignmentCheck, error: assignmentCheckError } = await supabase
+        .from('lot_itp_assignments')
         .select('id')
-        .eq('id', String(lotId))
+        .eq('id', String(assignmentId))
         .single()
       
-      if (lotCheckError || !lotCheck) {
-        console.log('📊 Lot not found in Supabase, falling back to mock data')
+      if (assignmentCheckError || !assignmentCheck) {
+        console.log('📊 Assignment not found in Supabase, falling back to mock data')
         shouldUseMockData = true
       }
     }
     
     if (isSupabaseEnabled && supabase && !shouldUseMockData) {
-      console.log('📊 Saving conformance record in Supabase...')
+      console.log('📊 Saving inspection record in Supabase...')
       
       // Convert numeric IDs to strings for Supabase (which uses UUIDs)
-      const lotIdStr = String(lotId)
-      const itpItemIdStr = String(itpItemId)
+      const assignmentIdStr = String(assignmentId)
+      const templateItemIdStr = String(templateItemId)
       
-      console.log('📊 Checking for existing record with IDs:', { lotIdStr, itpItemIdStr })
+      console.log('📊 Checking for existing record with IDs:', { assignmentIdStr, templateItemIdStr })
       
-      // First verify this is a valid ITP item (not a template item)
-      const { data: itemCheck } = await supabase
-        .from('itp_items')
-        .select('id')
-        .eq('id', itpItemIdStr)
+      // Verify this is a valid template item
+      const { data: templateItemCheck } = await supabase
+        .from('itp_template_items')
+        .select('id, inspection_type')
+        .eq('id', templateItemIdStr)
         .single()
       
-      if (!itemCheck) {
-        console.error('❌ ITP item not found in itp_items table:', itpItemIdStr)
-        console.log('📊 This might be a template item ID. Checking itp_template_items...')
-        const { data: templateItemCheck } = await supabase
-          .from('itp_template_items')
-          .select('id')
-          .eq('id', itpItemIdStr)
-          .single()
-        
-        if (templateItemCheck) {
-          console.error('❌ This is a template item ID, not an ITP instance item!')
-          return { success: false, error: 'Cannot save conformance record with template item ID. ITP instance required.' }
-        }
-        
-        return { success: false, error: 'ITP item not found' }
+      if (!templateItemCheck) {
+        console.error('❌ Template item not found:', templateItemIdStr)
+        return { success: false, error: 'Template item not found' }
       }
       
-      // Check if record exists
+      // Check if inspection record exists
       const { data: existing, error: existingError } = await supabase
-        .from('conformance_records')
+        .from('itp_inspection_records')
         .select('id')
-        .eq('lot_id', lotIdStr)
-        .eq('itp_item_id', itpItemIdStr)
+        .eq('assignment_id', assignmentIdStr)
+        .eq('template_item_id', templateItemIdStr)
         .single()
       
       if (existingError && existingError.code !== 'PGRST116') {
@@ -1751,21 +1786,41 @@ export async function saveConformanceRecordAction(
         console.error('Error checking existing record:', existingError)
       }
       
-      const recordData = {
-        lot_id: lotIdStr,
-        itp_item_id: itpItemIdStr,
-        result: data.result_pass_fail || 'PASS',
-        notes: data.comments || data.result_text || null,
-        inspector_name: user.email || 'Inspector',
-        inspection_date: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // Map the old data format to new inspection record format
+      const recordData: any = {
+        assignment_id: assignmentIdStr,
+        template_item_id: templateItemIdStr,
+        status: data.result_pass_fail === 'PASS' ? 'pass' : 
+                data.result_pass_fail === 'FAIL' ? 'fail' : 
+                data.result_pass_fail === 'NA' ? 'na' : 'pending',
+        comments: data.comments || data.result_text || null,
+        inspected_by: user.id,
+        inspected_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_non_conforming: data.result_pass_fail === 'FAIL'
+      }
+      
+      // Set result based on inspection type
+      switch (templateItemCheck.inspection_type) {
+        case 'boolean':
+          recordData.result_boolean = data.result_pass_fail === 'PASS'
+          break
+        case 'numeric':
+          recordData.result_numeric = data.result_numeric
+          break
+        case 'text':
+          recordData.result_text = data.result_text || data.comments
+          break
+        case 'multi_choice':
+          recordData.result_choice = data.result_pass_fail
+          break
       }
       
       let result;
       if (existing) {
         // Update existing record
         const { data: updated, error } = await supabase
-          .from('conformance_records')
+          .from('itp_inspection_records')
           .update(recordData)
           .eq('id', existing.id)
           .select()
@@ -1780,7 +1835,7 @@ export async function saveConformanceRecordAction(
       } else {
         // Insert new record
         const { data: inserted, error } = await supabase
-          .from('conformance_records')
+          .from('itp_inspection_records')
           .insert({
             ...recordData,
             created_at: new Date().toISOString()
@@ -1797,26 +1852,44 @@ export async function saveConformanceRecordAction(
         result = inserted
       }
       
-      console.log('✅ Conformance record saved in Supabase')
+      console.log('✅ Inspection record saved in Supabase')
       
-      // Transform the result to match expected interface
+      // Get the lot ID for revalidation
+      const { data: assignment } = await supabase
+        .from('lot_itp_assignments')
+        .select('lot_id')
+        .eq('id', assignmentIdStr)
+        .single()
+      
+      // Transform the result to match expected interface for backward compatibility
       const transformedResult = {
         id: result.id,
-        lot_id: result.lot_id,
-        itp_item_id: result.itp_item_id,
-        result_pass_fail: result.result || 'PASS',
-        result_numeric: data.result_numeric,
-        result_text: result.notes,
-        comments: result.notes,
-        is_non_conformance: result.result === 'FAIL',
+        lot_id: assignment?.lot_id || '',
+        itp_item_id: result.template_item_id,
+        result_pass_fail: result.status === 'pass' ? 'PASS' : 
+                         result.status === 'fail' ? 'FAIL' : 
+                         result.status === 'na' ? 'NA' : 'PENDING',
+        result_numeric: result.result_numeric,
+        result_text: result.result_text,
+        comments: result.comments,
+        is_non_conformance: result.is_non_conforming,
         corrective_action: data.corrective_action,
-        inspector_id: 1,
-        inspection_date: result.inspection_date,
+        inspector_id: result.inspected_by,
+        inspection_date: result.inspected_at,
         created_at: result.created_at,
         updated_at: result.updated_at
       }
       
-      revalidatePath(`/project/*/lot/${lotId}`)
+      if (assignment?.lot_id) {
+        revalidatePath(`/project/*/lot/${assignment.lot_id}`)
+      }
+      
+      // Create non-conformance if needed
+      if (result.is_non_conforming && result.status === 'fail') {
+        console.log('🚨 Creating non-conformance for failed inspection')
+        // This would call a separate function to create NC
+      }
+      
       return { success: true, data: transformedResult, message: 'Inspection saved successfully' }
     } else {
       console.log('📝 Saving conformance record in mock data...')

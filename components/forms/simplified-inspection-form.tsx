@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 
 interface SimplifiedInspectionFormProps {
-  lot: LotWithDetails
+  lot: LotWithDetails & { currentAssignment?: any }
   onInspectionSaved?: () => void
 }
 
@@ -135,7 +135,9 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
             itemTableSource: 'itp_template_items' // These items come from template definitions
           })
 
-          return saveConformanceRecordAction(lot.id, item.id, data)
+          // Use assignment ID if available, otherwise fall back to lot ID for backward compatibility
+          const assignmentId = lot.currentAssignment?.id || lot.id
+          return saveConformanceRecordAction(assignmentId, item.id, data)
         }
         return null
       }).filter(Boolean)
