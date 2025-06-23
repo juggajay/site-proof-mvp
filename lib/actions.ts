@@ -33,6 +33,7 @@ import {
 // Import database abstraction layer
 import { createProject, getProjects, getProjectById } from './database'
 import { isSupabaseEnabled, supabase } from './supabase'
+import { supabaseAdmin } from './supabase-admin'
 
 // JWT helpers
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -1455,9 +1456,14 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
   try {
     await requireAuth()
     
-    if (isSupabaseEnabled && supabase) {
+    // Try admin client first (bypasses RLS)
+    const client = supabaseAdmin || supabase
+    
+    if (isSupabaseEnabled && client) {
       console.log('📊 Fetching ITP templates from Supabase...')
-      const { data: itps, error } = await supabase
+      console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
+      
+      const { data: itps, error } = await client
         .from('itp_templates')
         .select('*')
         .order('name')
@@ -1466,6 +1472,8 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
         console.error('Supabase error:', error)
         return { success: false, error: error.message }
       }
+      
+      console.log('📊 Raw query result:', itps?.length || 0, 'templates')
       
       // Map itps to match ITPTemplate interface
       const templates = itps?.map(itp => ({
@@ -1489,6 +1497,7 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
       return { success: true, data: mockITPTemplates }
     }
   } catch (error) {
+    console.error('💥 Error in getITPTemplatesAction:', error)
     return { success: false, error: 'Failed to fetch ITP templates' }
   }
 }

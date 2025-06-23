@@ -37,8 +37,12 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
       console.log('📊 getITPTemplatesAction result:', result)
       
       if (result.success) {
-        console.log('✅ Templates loaded successfully:', result.data)
-        setTemplates(result.data || [])
+        const templateData = result.data || []
+        console.log('✅ Templates loaded successfully:', templateData)
+        console.log('📋 Template count:', templateData.length)
+        console.log('🔍 First template:', templateData[0])
+        console.log('📦 Full result object:', JSON.stringify(result, null, 2))
+        setTemplates(templateData)
       } else {
         console.error('❌ Failed to load templates:', result.error)
         setError(result.error || 'Failed to load ITP templates')
