@@ -237,15 +237,15 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex overflow-x-auto">
-          {templates.map((template) => {
-            const stats = getTemplateStats(template.id)
-            const isActive = template.id === activeTemplateId
+          {templatesWithAssignments.map((template: any) => {
+            const stats = getTemplateStats(template.assignmentId)
+            const isActive = template.assignmentId === activeTemplateId
             const completionPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
             
             return (
               <button
-                key={template.id}
-                onClick={() => setActiveTemplateId(template.id)}
+                key={template.assignmentId}
+                onClick={() => setActiveTemplateId(template.assignmentId)}
                 className={`
                   py-3 px-6 border-b-2 font-medium text-sm whitespace-nowrap
                   ${isActive 
@@ -277,18 +277,31 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
       </div>
       
       {/* Active Template Content */}
-      {activeTemplate && (
+      {activeTemplateData && (
         <div className="p-6">
-          <SimplifiedInspectionForm
-            lot={{
+          {(() => {
+            // Extract only the ITPTemplate properties, excluding assignment data
+            const { assignment, assignmentId, ...templateOnly } = activeTemplateData
+            
+            const transformedLot = {
               ...lot,
-              itp_template: activeTemplate,
-              conformance_records: lot.conformance_records.filter(r => 
-                activeTemplate.itp_items.some(item => item.id === r.itp_item_id)
-              )
-            }}
-            onInspectionSaved={onInspectionSaved}
-          />
+              itp_template: {
+                ...templateOnly,
+                itp_items: templateOnly.itp_items || []
+              } as ITPTemplate & { itp_items: ITPItem[] },
+              conformance_records: lot.conformance_records.filter((r: any) => 
+                activeTemplateData.itp_items?.some((item: any) => item.id === r.itp_item_id) || false
+              ),
+              currentAssignment: assignment
+            }
+            
+            return (
+              <SimplifiedInspectionForm
+                lot={transformedLot}
+                onInspectionSaved={onInspectionSaved}
+              />
+            )
+          })()}
         </div>
       )}
       
