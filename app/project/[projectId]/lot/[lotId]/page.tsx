@@ -41,12 +41,8 @@ export default function LotDetailPage({ params }: PageProps) {
       const debugResult = await debugLotITPTemplates(lotId)
       console.log('🔍 DEBUG: ITP Templates Query Results:', debugResult)
       
-      // Pass force refresh flag and timestamp to ensure fresh data
-      const result = await getLotByIdAction(lotId, { 
-        forceRefresh: true, 
-        timestamp,
-        skipCache: true 
-      })
+      // Get lot data
+      const result = await getLotByIdAction(lotId)
       console.log('LotDetailPage: getLotByIdAction result:', result)
       if (result.success && result.data) {
         console.log('LotDetailPage: Lot data:', {
