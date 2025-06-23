@@ -1211,7 +1211,8 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotIdForJunction)
-        .in('status', ['pending', 'in_progress', 'completed', 'approved'])
+        // Temporarily removed status filter for debugging
+        // .in('status', ['pending', 'in_progress', 'completed', 'approved'])
       
       console.log('📊 lot_itp_assignments query result:', {
         count: lotItpTemplates?.length || 0,
