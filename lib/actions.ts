@@ -1894,7 +1894,12 @@ export async function saveConformanceRecordAction(
     } else {
       console.log('📝 Saving conformance record in mock data...')
       console.log('📝 Mock conformance records count:', mockConformanceRecords.length)
-      console.log('📝 Looking for existing record with:', { lotId, itpItemId })
+      console.log('📝 Looking for existing record with:', { assignmentId, templateItemId })
+      
+      // For mock data, we need to get the lot ID from the assignment
+      // Mock data still uses lot_id, not assignment_id
+      const lotId = assignmentId // In mock data, assignment ID is actually lot ID
+      const itpItemId = templateItemId
       
       // Ensure IDs are in the correct format for comparison
       const normalizedLotId = String(lotId)
