@@ -50,7 +50,7 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
       }))
     })
     return templateItems
-  }, [lot.itp_template?.itp_items])
+  }, [lot.itp_template?.itp_items, lot.itp_template?.id, lot.itp_template?.name])
 
   useEffect(() => {
     // Initialize status map from existing conformance records
@@ -174,7 +174,7 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
         setTimeout(() => setSuccessMessage(null), 3000)
         // Refresh the data to ensure consistency
         setTimeout(() => {
-          onInspectionSaved() // This will reload the lot data
+          onInspectionSaved?.() // This will reload the lot data
         }, 1000)
       } else {
         setTimeout(() => setError(null), 5000)
