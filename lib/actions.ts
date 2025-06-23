@@ -1792,7 +1792,7 @@ export async function saveConformanceRecordAction(
         template_item_id: templateItemIdStr,
         status: data.result_pass_fail === 'PASS' ? 'pass' : 
                 data.result_pass_fail === 'FAIL' ? 'fail' : 
-                data.result_pass_fail === 'NA' ? 'na' : 'pending',
+                data.result_pass_fail === 'N/A' ? 'na' : 'pending',
         comments: data.comments || data.result_text || null,
         inspected_by: user.id,
         inspected_at: new Date().toISOString(),
