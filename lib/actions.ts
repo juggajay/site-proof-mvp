@@ -1482,6 +1482,7 @@ export async function getITPTemplatesAction(): Promise<APIResponse<ITPTemplate[]
       })) || []
       
       console.log('✅ Fetched ITPs from Supabase:', templates.length)
+      console.log('📋 Template data:', templates)
       return { success: true, data: templates }
     } else {
       console.log('📝 Fetching ITP templates from mock data...')

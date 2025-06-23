@@ -21,21 +21,30 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('🚀 AssignITPModal useEffect triggered, isOpen:', isOpen)
     if (isOpen) {
+      console.log('📂 Modal is open, loading templates...')
       loadTemplates()
     }
   }, [isOpen])
 
   const loadTemplates = async () => {
+    console.log('🔄 Starting to load ITP templates...')
     setIsLoadingTemplates(true)
     try {
+      console.log('📡 Calling getITPTemplatesAction...')
       const result = await getITPTemplatesAction()
+      console.log('📊 getITPTemplatesAction result:', result)
+      
       if (result.success) {
+        console.log('✅ Templates loaded successfully:', result.data)
         setTemplates(result.data || [])
       } else {
+        console.error('❌ Failed to load templates:', result.error)
         setError(result.error || 'Failed to load ITP templates')
       }
     } catch (error) {
+      console.error('💥 Unexpected error loading templates:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoadingTemplates(false)
@@ -135,6 +144,7 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
                 <p className="mt-2 text-sm text-gray-500">
                   Contact your administrator to create ITP templates.
                 </p>
+                {console.log('🔍 Templates array is empty:', templates)}
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
