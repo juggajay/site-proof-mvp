@@ -10,13 +10,10 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!loading) {
-      if (user) {
-        router.push('/dashboard')
-      } else {
-        router.push('/auth/login')
-      }
+      // TEMPORARY: Always redirect to dashboard (authentication bypassed)
+      router.push('/dashboard')
     }
-  }, [user, loading, router])
+  }, [loading, router])
 
   if (loading) {
     return (

@@ -212,29 +212,28 @@ export async function logoutAction() {
 }
 
 export async function getCurrentUser() {
-  try {
-    const cookieStore = cookies()
-    const token = cookieStore.get('auth-token')?.value
-    console.log('getCurrentUser: token exists:', !!token)
-    
-    if (!token) {
-      console.log('getCurrentUser: No token found in cookies')
-      return null
-    }
-
-    const payload = verifyToken(token)
-    console.log('getCurrentUser: payload:', payload)
-    if (!payload) {
-      console.log('getCurrentUser: Invalid token payload')
-      return null
-    }
-
-    const user = await findUserById(payload.userId)
-    console.log('getCurrentUser: user found:', !!user, user ? user.email : 'no user')
-    return user
-  } catch (error) {
-    console.error('getCurrentUser error:', error)
-    return null
+  // TEMPORARY: Bypass authentication - always return a mock user
+  console.log('getCurrentUser: Authentication bypassed - returning mock user')
+  
+  return {
+    id: 1,
+    email: 'demo@siteproof.com',
+    emailVerified: true,
+    profile: {
+      id: 1,
+      firstName: 'Demo',
+      lastName: 'User',
+      avatarUrl: undefined,
+      phone: '+61 400 000 000',
+      timezone: 'Australia/Brisbane'
+    },
+    organizations: [{
+      id: 1,
+      name: 'Demo Construction Company',
+      slug: 'demo-construction',
+      role: 'admin',
+      status: 'active'
+    }]
   }
 }
 

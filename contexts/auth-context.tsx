@@ -47,16 +47,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
-      })
-      
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData)
-      } else {
-        setUser(null)
+      // TEMPORARY: Bypass authentication - always set mock user
+      const mockUser = {
+        id: 1,
+        email: 'demo@siteproof.com',
+        emailVerified: true,
+        profile: {
+          id: 1,
+          firstName: 'Demo',
+          lastName: 'User',
+          avatarUrl: undefined,
+          phone: '+61 400 000 000',
+          timezone: 'Australia/Brisbane'
+        },
+        organizations: [{
+          id: 1,
+          name: 'Demo Construction Company',
+          slug: 'demo-construction',
+          role: 'admin',
+          status: 'active'
+        }]
       }
+      setUser(mockUser)
     } catch (error) {
       console.error('Auth check failed:', error)
       setUser(null)
@@ -66,29 +78,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (email: string, password: string): Promise<{ error?: string }> => {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setUser(data.user)
-        router.push('/dashboard')
-        return {}
-      } else {
-        return { error: data.error || 'Login failed' }
-      }
-    } catch (error) {
-      console.error('Login error:', error)
-      return { error: 'Network error. Please try again.' }
+    // TEMPORARY: Bypass authentication - always succeed
+    const mockUser = {
+      id: 1,
+      email: 'demo@siteproof.com',
+      emailVerified: true,
+      profile: {
+        id: 1,
+        firstName: 'Demo',
+        lastName: 'User',
+        avatarUrl: undefined,
+        phone: '+61 400 000 000',
+        timezone: 'Australia/Brisbane'
+      },
+      organizations: [{
+        id: 1,
+        name: 'Demo Construction Company',
+        slug: 'demo-construction',
+        role: 'admin',
+        status: 'active'
+      }]
     }
+    setUser(mockUser)
+    router.push('/dashboard')
+    return {}
   }
 
   const signup = async (
@@ -175,9 +188,10 @@ export function useRequireAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth/login')
-    }
+    // TEMPORARY: Bypass authentication - don't redirect to login
+    // if (!loading && !user) {
+    //   router.push('/auth/login')
+    // }
   }, [user, loading, router])
 
   return { user, loading }
