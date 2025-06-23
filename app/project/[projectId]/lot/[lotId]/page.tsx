@@ -44,6 +44,9 @@ export default function LotDetailPage({ params }: PageProps) {
           lotId: result.data.id,
           itpTemplatesCount: result.data.itp_templates?.length || 0,
           lotItpTemplatesCount: result.data.lot_itp_templates?.length || 0,
+          lotItpAssignmentsExists: 'lot_itp_assignments' in result.data,
+          lotItpAssignmentsCount: result.data.lot_itp_assignments?.length || 0,
+          lotItpAssignments: result.data.lot_itp_assignments,
           itpTemplates: result.data.itp_templates,
           lotItpTemplates: result.data.lot_itp_templates
         })
