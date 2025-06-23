@@ -56,12 +56,8 @@ export default function LotDetailPage({ params }: PageProps) {
           lotItpTemplates: result.data.lot_itp_templates
         })
         
-        // Clear any existing state before setting new data
-        setLot(null)
-        // Force a re-render with fresh data
-        setTimeout(() => {
-          setLot(result.data)
-        }, 0)
+        // Set the lot data
+        setLot(result.data || null)
       } else {
         setError(result.error || 'Failed to load lot')
       }
