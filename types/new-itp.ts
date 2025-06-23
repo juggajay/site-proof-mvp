@@ -8,6 +8,7 @@ export type InspectionStatus = 'pending' | 'pass' | 'fail' | 'na' | 'deferred'
 export type AssignmentStatus = 'pending' | 'in_progress' | 'completed' | 'approved'
 export type NonConformanceSeverity = 'critical' | 'major' | 'minor' | 'observation'
 export type NonConformanceStatus = 'open' | 'investigating' | 'resolved' | 'closed' | 'verified'
+export type AttachmentType = 'photo' | 'document' | 'video'
 
 // ITP Template (Blueprint)
 export interface ITPTemplate {
@@ -108,6 +109,10 @@ export interface ITPInspectionRecord {
   is_non_conforming: boolean
   nc_reference?: string // NC number
   
+  // Attachments
+  attachment_count: number
+  has_photos: boolean
+  
   created_at: string
   updated_at: string
 }
@@ -149,11 +154,7 @@ export interface NonConformance {
   verified_at?: string
   
   // Attachments
-  attachments: Array<{
-    filename: string
-    url: string
-    uploaded_at: string
-  }>
+  attachment_count: number
   
   created_at: string
   updated_at: string
@@ -249,4 +250,80 @@ export interface ITPProgress {
   pending_items: number
   progress_percentage: number
   has_non_conformances: boolean
+}
+
+// Attachment types
+export interface ITPInspectionAttachment {
+  id: string
+  inspection_record_id: string
+  
+  // File details
+  filename: string
+  original_filename: string
+  mime_type: string
+  file_size: number // in bytes
+  storage_path: string
+  
+  // Metadata
+  attachment_type: AttachmentType
+  description?: string
+  
+  // Location data (for field photos)
+  latitude?: number
+  longitude?: number
+  altitude?: number
+  accuracy?: number // GPS accuracy in meters
+  
+  // Device info
+  device_info?: {
+    device: string
+    os: string
+    app_version: string
+  }
+  
+  // URLs
+  url?: string
+  thumbnail_url?: string
+  
+  // Upload details
+  uploaded_by: string
+  uploaded_at: string
+  created_at: string
+}
+
+export interface NCAttachment {
+  id: string
+  non_conformance_id: string
+  
+  // File details
+  filename: string
+  original_filename: string
+  mime_type: string
+  file_size: number
+  storage_path: string
+  
+  // Metadata
+  attachment_type: AttachmentType
+  description?: string
+  
+  // URLs
+  url?: string
+  
+  // Upload details
+  uploaded_by: string
+  uploaded_at: string
+  created_at: string
+}
+
+// Upload request types
+export interface UploadAttachmentRequest {
+  file: File
+  attachment_type: AttachmentType
+  description?: string
+  location?: {
+    latitude: number
+    longitude: number
+    altitude?: number
+    accuracy?: number
+  }
 }

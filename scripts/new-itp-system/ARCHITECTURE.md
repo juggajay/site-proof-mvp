@@ -19,14 +19,19 @@
 └─────────────────┘ 1:N └────────┬────────┘
                                  │ 1:N
                                  ↓
-                        ┌─────────────────┐
-                        │   Inspection    │ ← Actual inspection data
-                        │    Records      │
+                        ┌─────────────────┐     ┌─────────────────┐
+                        │   Inspection    │────→│  Attachments    │
+                        │    Records      │ 1:N │ (Photos/Docs)   │
+                        └────────┬────────┘     └─────────────────┘
+                                 │ If failed            │
+                                 ↓                      │ GPS coords
+                        ┌─────────────────┐            ↓
+                        │Non-Conformances │ ← Quality issues
                         └────────┬────────┘
-                                 │ If failed
+                                 │ 1:N
                                  ↓
                         ┌─────────────────┐
-                        │Non-Conformances │ ← Quality issues
+                        │ NC Attachments  │ ← Evidence
                         └─────────────────┘
 ```
 
@@ -54,12 +59,17 @@ Lot: "Building A - Level 2"
 ```
 Assignment: "Concrete Pour - Footings"
 ├── Record 1: Formwork → PASS ✓
+│   └── 📷 2 photos attached (GPS: -27.4698, 153.0251)
 ├── Record 2: Reinforcement → PASS ✓
+│   └── 📷 3 photos attached
 ├── Record 3: Slump test → FAIL ✗ (135mm)
+│   ├── 📷 1 photo of slump cone
+│   ├── 📄 Test certificate PDF
 │   └── NC-2024-001: "Slump exceeds limit"
 ├── Record 4: Temperature → PASS ✓ (28°C)
 └── Record 5: Surface finish → PASS ✓
-Progress: 80% (4/5 passed)
+    └── 📷 4 photos of finished surface
+Progress: 80% (4/5 passed) | 10 attachments total
 ```
 
 ## Key Features by Table
@@ -119,3 +129,29 @@ The structure supports your future ITP builder:
    - Unlimited templates
    - Unlimited items per template
    - Unlimited assignments per lot
+
+## Mobile Features
+
+### Photo Capture
+- **Native camera integration**: Direct photo capture from inspection form
+- **Multiple photos per item**: Up to 5 photos per inspection item
+- **GPS tagging**: Automatic location capture with photos
+- **Offline support**: Photos queued for upload when online
+
+### File Attachments
+- **Document upload**: PDFs, Word docs, Excel sheets
+- **Test certificates**: Attach lab results and certificates
+- **Video support**: Record short videos of issues
+- **Automatic compression**: Optimize file sizes for mobile data
+
+### Mobile-Optimized UI
+- **Large touch targets**: Easy button taps on mobile
+- **Swipe gestures**: Quick pass/fail actions
+- **Progressive forms**: Step-by-step inspection flow
+- **Auto-save**: Never lose inspection data
+
+### Location Services
+- **GPS coordinates**: Captured with each photo
+- **Accuracy tracking**: Shows GPS accuracy in meters
+- **Map view**: See inspection locations on map
+- **Geofencing**: Verify inspector is on-site
