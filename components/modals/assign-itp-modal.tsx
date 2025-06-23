@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getITPTemplatesAction, assignMultipleITPsToLotAction } from '@/lib/actions'
+import { getITPTemplatesViaAPI } from '@/lib/actions-client-fix'
 import { ITPTemplate } from '@/types/database'
 import { X, ClipboardList, CheckCircle2, Check } from 'lucide-react'
 
@@ -32,9 +33,16 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
     console.log('🔄 Starting to load ITP templates...')
     setIsLoadingTemplates(true)
     try {
-      console.log('📡 Calling getITPTemplatesAction...')
-      const result = await getITPTemplatesAction()
+      console.log('📡 Trying getITPTemplatesAction first...')
+      let result = await getITPTemplatesAction()
       console.log('📊 getITPTemplatesAction result:', result)
+      
+      // If no templates found, try the API endpoint
+      if (result.success && (!result.data || result.data.length === 0)) {
+        console.log('🔄 No templates from action, trying API endpoint...')
+        result = await getITPTemplatesViaAPI()
+        console.log('🌐 API endpoint result:', result)
+      }
       
       if (result.success) {
         const templateData = result.data || []
