@@ -77,11 +77,12 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     const templateData = templatesWithAssignments.find((t: any) => t.assignmentId === assignmentId)
     if (!templateData || !templateData.itp_items) return { total: 0, completed: 0, passed: 0, failed: 0 }
     
+    const items = templateData.itp_items || []
     const relevantRecords = lot.conformance_records.filter((r: any) => 
-      templateData.itp_items.some((item: any) => item.id === r.itp_item_id)
+      items.some((item: any) => item.id === r.itp_item_id)
     )
     
-    const total = templateData.itp_items.length
+    const total = items.length
     // Only count records with actual results (not pending)
     const completed = relevantRecords.filter((r: any) => 
       r.result_pass_fail === 'PASS' || 
@@ -181,7 +182,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
               ...lot,
               itp_template: templateData,
               conformance_records: lot.conformance_records.filter((r: any) => 
-                templateData.itp_items.some((item: any) => item.id === r.itp_item_id)
+                templateData.itp_items?.some((item: any) => item.id === r.itp_item_id) || false
               ),
               currentAssignment: templateData.assignment
             }
