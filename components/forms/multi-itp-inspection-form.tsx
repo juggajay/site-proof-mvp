@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LotWithDetails } from '@/types/database'
+import { LotWithDetails, ITPTemplate, ITPItem } from '@/types/database'
 import { ClipboardList, Plus, AlertCircle } from 'lucide-react'
 import { InteractiveInspectionForm } from './interactive-inspection-form'
 import { CollapsibleInspectionForm } from './collapsible-inspection-form'
@@ -178,13 +178,19 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
         
         <div className="p-6">
           {(() => {
+            // Extract only the ITPTemplate properties, excluding assignment data
+            const { assignment, assignmentId, ...templateOnly } = templateData
+            
             const transformedLot = {
               ...lot,
-              itp_template: templateData,
+              itp_template: {
+                ...templateOnly,
+                itp_items: templateOnly.itp_items || []
+              } as ITPTemplate & { itp_items: ITPItem[] },
               conformance_records: lot.conformance_records.filter((r: any) => 
                 templateData.itp_items?.some((item: any) => item.id === r.itp_item_id) || false
               ),
-              currentAssignment: templateData.assignment
+              currentAssignment: assignment
             }
             console.log('🔄 Passing transformed lot to InteractiveInspectionForm:', {
               lotId: transformedLot.id,
