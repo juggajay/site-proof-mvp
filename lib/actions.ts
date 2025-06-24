@@ -638,11 +638,14 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
     
     console.log('assignITPToLotAction: Assigning template', itpTemplateId, 'to lot', lotId)
     
-    if (isSupabaseEnabled && supabase) {
+    const client = supabaseAdmin || supabase
+    
+    if (isSupabaseEnabled && client) {
       console.log('📊 Assigning ITP in Supabase...')
+      console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
       
       // First check if lot exists
-      const { data: lot, error: lotError } = await supabase
+      const { data: lot, error: lotError } = await client
         .from('lots')
         .select('*')
         .eq('id', lotId)
@@ -654,7 +657,7 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       }
       
       // Check if ITP template exists
-      const { data: template, error: templateError } = await supabase
+      const { data: template, error: templateError } = await client
         .from('itp_templates')
         .select('*')
         .eq('id', itpTemplateId)
@@ -668,20 +671,20 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       console.log('Found ITP template:', { id: template.id, name: template.name })
       
       // Check if already assigned
-      const { data: existingAssignment } = await supabase
-        .from('lot_itp_templates')
+      const { data: existingAssignment } = await client
+        .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotId)
-        .eq('itp_template_id', itpTemplateId)
+        .eq('template_id', itpTemplateId)
         .single()
       
       if (existingAssignment) {
         if (!existingAssignment.is_active) {
           // Reactivate if it was deactivated
-          const { error: reactivateError } = await supabase
-            .from('lot_itp_templates')
+          const { error: reactivateError } = await client
+            .from('lot_itp_assignments')
             .update({
-              is_active: true,
+              status: 'pending',
               updated_at: new Date().toISOString()
             })
             .eq('id', existingAssignment.id)
@@ -694,16 +697,19 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
         return { success: true, data: lot, message: 'ITP template already assigned' }
       }
       
-      // Create new assignment in junction table
-      console.log('Creating new ITP assignment in lot_itp_templates...')
-      const { data: newAssignment, error: assignError } = await supabase
-        .from('lot_itp_templates')
+      // Create new assignment in NEW junction table
+      console.log('Creating new ITP assignment in lot_itp_assignments...')
+      
+      // Handle user ID - mock auth returns integer, but Supabase expects UUID
+      const assignedByUserId = typeof user.id === 'number' ? null : String(user.id)
+      
+      const { data: newAssignment, error: assignError } = await client
+        .from('lot_itp_assignments')
         .insert({
           lot_id: lotId,
-          itp_template_id: itpTemplateId,
-          assigned_by: user.id,
-          is_active: true,
-          assigned_at: new Date().toISOString(),
+          template_id: itpTemplateId,
+          assigned_by: assignedByUserId,
+          status: 'pending',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -717,7 +723,7 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       
       // Update lot status if needed
       if (lot.status === 'pending') {
-        await supabase
+        await client
           .from('lots')
           .update({
             status: 'IN_PROGRESS',
@@ -727,7 +733,41 @@ export async function assignITPToLotAction(lotId: number | string, itpTemplateId
       }
       
       console.log('✅ ITP assigned in Supabase:', newAssignment)
+      
+      // Create inspection records for the template items
+      if (newAssignment) {
+        console.log('Creating inspection records for template items...')
+        const { data: templateItems } = await client
+          .from('itp_template_items')
+          .select('*')
+          .eq('template_id', itpTemplateId)
+          .order('sort_order')
+        
+        if (templateItems && templateItems.length > 0) {
+          const inspectionRecords = templateItems.map(item => ({
+            assignment_id: newAssignment.id,
+            template_item_id: item.id,
+            status: 'pending',
+            is_non_conforming: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }))
+          
+          const { error: recordError } = await client
+            .from('itp_inspection_records')
+            .insert(inspectionRecords)
+          
+          if (recordError) {
+            console.error('Failed to create inspection records:', recordError)
+            // Continue anyway - records can be created later
+          } else {
+            console.log(`✅ Created ${inspectionRecords.length} inspection records`)
+          }
+        }
+      }
+      
       revalidatePath(`/project/${lot.project_id}`)
+      revalidatePath(`/project/${lot.project_id}/lot/${lotId}`)
       return { success: true, data: lot, message: 'ITP assigned successfully' }
     } else {
       console.log('📝 Assigning ITP in mock data...')
@@ -797,8 +837,11 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
     console.log('assignMultipleITPsToLotAction: Assigning templates', itpTemplateIds, 'to lot', lotId)
     console.log('Template ID types:', itpTemplateIds.map(id => typeof id))
     
-    if (isSupabaseEnabled && supabase) {
+    const client = supabaseAdmin || supabase
+    
+    if (isSupabaseEnabled && client) {
       console.log('📊 Assigning multiple ITPs in Supabase...')
+      console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
       
       // Convert IDs to strings for UUID compatibility
       // Both lots.id and itp_templates.id are UUIDs in Supabase
@@ -806,7 +849,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       const templateIds = itpTemplateIds.map(id => String(id))
       
       // First check if lot exists
-      const { data: lot, error: lotError } = await supabase
+      const { data: lot, error: lotError } = await client
         .from('lots')
         .select('*')
         .eq('id', lotIdString)
@@ -818,7 +861,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       }
       
       // Verify all ITP templates exist
-      const { data: templates, error: templateError } = await supabase
+      const { data: templates, error: templateError } = await client
         .from('itp_templates')
         .select('*')
         .in('id', templateIds)
@@ -833,7 +876,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       console.log('Found ITP templates:', templates.map(t => ({ id: t.id, name: t.name })))
       
       // Get existing assignments
-      const { data: existingAssignments } = await supabase
+      const { data: existingAssignments } = await client
         .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotIdString)
@@ -846,7 +889,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       if (existingAssignments && existingAssignments.length > 0) {
         const inactiveAssignments = existingAssignments.filter(a => !a.is_active)
         if (inactiveAssignments.length > 0) {
-          const { error: reactivateError } = await supabase
+          const { error: reactivateError } = await client
             .from('lot_itp_assignments')
             .update({
               status: 'pending',
@@ -882,7 +925,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
           const template = templates.find(t => t.id === templateId)
           
           // Get existing assignments to determine sequence number
-          const { data: existingSeq } = await supabase
+          const { data: existingSeq } = await client
             .from('lot_itp_assignments')
             .select('sequence_number')
             .eq('lot_id', lotIdString)
@@ -908,7 +951,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
           
           console.log('Assignment to insert:', JSON.stringify(assignment, null, 2))
           
-          const { data: insertedData, error: assignError } = await supabase
+          const { data: insertedData, error: assignError } = await client
             .from('lot_itp_assignments')
             .insert(assignment)
             .select()
@@ -926,7 +969,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
             const assignmentId = insertedData[0].id
             
             // Get template items
-            const { data: templateItems } = await supabase
+            const { data: templateItems } = await client
               .from('itp_template_items')
               .select('*')
               .eq('template_id', templateId)
@@ -943,7 +986,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
                 updated_at: new Date().toISOString()
               }))
               
-              const { error: recordError } = await supabase
+              const { error: recordError } = await client
                 .from('itp_inspection_records')
                 .insert(inspectionRecords)
               
@@ -958,7 +1001,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       
       // Update lot status if needed
       if (lot.status === 'pending') {
-        await supabase
+        await client
           .from('lots')
           .update({
             status: 'IN_PROGRESS',
@@ -969,6 +1012,7 @@ export async function assignMultipleITPsToLotAction(lotId: number | string, itpT
       
       console.log('✅ Multiple ITPs assigned in Supabase')
       revalidatePath(`/project/${lot.project_id}`)
+      revalidatePath(`/project/${lot.project_id}/lot/${lotIdString}`)
       return { success: true, data: lot, message: `${templateIds.length} ITP(s) assigned successfully` }
     } else {
       console.log('📝 Assigning multiple ITPs in mock data...')
@@ -1085,20 +1129,26 @@ export async function removeITPFromLotAction(lotId: number | string, itpTemplate
 }
 
 export async function getLotByIdAction(lotId: number | string): Promise<APIResponse<LotWithDetails>> {
+  'use server'
+  
   try {
     await requireAuth()
     
     console.error('🚨 SERVER: getLotByIdAction - Looking for lot with ID:', lotId, 'Type:', typeof lotId)
+    console.log('🔍 getLotByIdAction called at:', new Date().toISOString())
     console.log('🔍 getLotByIdAction called with:', { lotId, type: typeof lotId })
     console.log('🔍 Supabase enabled:', isSupabaseEnabled)
     console.log('🔍 Supabase client exists:', !!supabase)
     
-    if (isSupabaseEnabled && supabase) {
+    const client = supabaseAdmin || supabase
+    
+    if (isSupabaseEnabled && client) {
       console.log('📊 Fetching lot from Supabase...')
+      console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
       console.log('📊 Lot ID to search:', lotId, 'Type:', typeof lotId)
       
       // First, let's check if the lot exists with a simple query
-      let { data: lotExists, error: checkError } = await supabase
+      let { data: lotExists, error: checkError } = await client
         .from('lots')
         .select('id, lot_number, project_id')
         .eq('id', lotId)
@@ -1110,7 +1160,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         console.log('📊 Initial query failed, trying alternative approaches...')
         
         // Try with explicit UUID casting
-        const { data: lotExists2, error: checkError2 } = await supabase
+        const { data: lotExists2, error: checkError2 } = await client
           .from('lots')
           .select('id, lot_number, project_id')
           .eq('id', String(lotId))
@@ -1123,7 +1173,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           lotExists = lotExists2
         } else {
           // Let's get all lots to debug
-          const { data: allLots, error: allLotsError } = await supabase
+          const { data: allLots, error: allLotsError } = await client
             .from('lots')
             .select('id, lot_number, project_id')
             .limit(10)
@@ -1148,7 +1198,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       console.log('📊 Using lot ID for full query:', lotIdToUse, 'Type:', typeof lotIdToUse)
       
       let lot: any
-      const { data: lotData, error: lotError } = await supabase
+      const { data: lotData, error: lotError } = await client
         .from('lots')
         .select(`
           *,
@@ -1162,7 +1212,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       if (lotError || !lot) {
         console.error('Lot not found in full query:', lotError)
         // Try without the joins as a fallback
-        const { data: simpleLot, error: simpleError } = await supabase
+        const { data: simpleLot, error: simpleError } = await client
           .from('lots')
           .select('*')
           .eq('id', lotIdToUse)
@@ -1175,7 +1225,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         
         // Manually fetch related data
         console.log('📊 Fetching related data separately...')
-        const projectResult = simpleLot.project_id ? await supabase
+        const projectResult = simpleLot.project_id ? await client
           .from('projects')
           .select('*')
           .eq('id', simpleLot.project_id)
@@ -1183,7 +1233,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         
         // Check for itp_id field (actual database schema uses itp_id, not itp_template_id)
         const itpId = simpleLot.itp_id
-        const itpResult = itpId ? await supabase
+        const itpResult = itpId ? await client
           .from('itps')
           .select('*')
           .eq('id', itpId)
@@ -1199,6 +1249,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       // Get ITP templates from junction table (lot_itp_templates)
       let itpTemplates: any[] = []
       
+      console.log('🔍 DEBUG: Initializing itpTemplates array:', itpTemplates)
       console.log('📊 Fetching ITP templates from junction table...')
       console.log('📊 Looking for lot_id:', lotId, 'Type:', typeof lotId)
       
@@ -1207,7 +1258,14 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       console.log('📊 Using lot ID for junction query:', lotIdForJunction, 'Original:', lotId)
       
       console.log('🔍 Querying lot_itp_assignments for lot:', lotIdForJunction)
-      const { data: lotItpTemplates, error: lotItpError } = await supabase
+      console.log('🔍 Query parameters:', {
+        table: 'lot_itp_assignments',
+        lot_id: lotIdForJunction,
+        lot_id_type: typeof lotIdForJunction,
+        status_filter: ['pending', 'in_progress', 'completed', 'approved']
+      })
+      
+      const { data: lotItpTemplates, error: lotItpError } = await client
         .from('lot_itp_assignments')
         .select('*')
         .eq('lot_id', lotIdForJunction)
@@ -1216,7 +1274,40 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       console.log('📊 lot_itp_assignments query result:', {
         count: lotItpTemplates?.length || 0,
         data: lotItpTemplates,
-        error: lotItpError
+        error: lotItpError,
+        raw_data: JSON.stringify(lotItpTemplates, null, 2)
+      })
+      
+      // Additional debugging - check without status filter
+      console.log('🔍 DEBUG: Checking lot_itp_assignments without status filter...')
+      const { data: allAssignments, error: allAssignmentsError } = await client
+        .from('lot_itp_assignments')
+        .select('*')
+        .eq('lot_id', lotIdForJunction)
+      
+      console.log('📊 All assignments (no status filter):', {
+        count: allAssignments?.length || 0,
+        data: allAssignments,
+        error: allAssignmentsError
+      })
+      
+      // Debug: Check all assignments in the table
+      console.log('🔍 DEBUG: Checking first 10 assignments in lot_itp_assignments table...')
+      const { data: sampleAssignments, error: sampleError } = await client
+        .from('lot_itp_assignments')
+        .select('*')
+        .limit(10)
+      
+      console.log('📊 Sample assignments from table:', {
+        count: sampleAssignments?.length || 0,
+        data: sampleAssignments?.map(a => ({
+          id: a.id,
+          lot_id: a.lot_id,
+          lot_id_type: typeof a.lot_id,
+          template_id: a.template_id,
+          status: a.status
+        })),
+        error: sampleError
       })
       
       if (lotItpError) {
@@ -1224,15 +1315,41 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       }
       
       console.log('📊 Found lot_itp_templates:', lotItpTemplates?.length || 0)
+      if (lotItpTemplates && lotItpTemplates.length > 0) {
+        console.log('📊 Assignment IDs:', lotItpTemplates.map(a => a.id))
+        console.log('📊 Template IDs:', lotItpTemplates.map(a => a.template_id))
+      }
       
       // Fetch each assigned template with its ITP instance and items
+      console.log('🔍 DEBUG: About to process templates. lotItpTemplates:', {
+        exists: !!lotItpTemplates,
+        length: lotItpTemplates?.length || 0,
+        templates: lotItpTemplates
+      })
+      
       if (lotItpTemplates && lotItpTemplates.length > 0) {
+        console.log('🔍 DEBUG: Starting template fetching loop for', lotItpTemplates.length, 'assignments')
+        
         for (const assignment of lotItpTemplates) {
-          const { data: template, error: templateError } = await supabase
+          console.log('🔍 DEBUG: Processing assignment:', {
+            assignment_id: assignment.id,
+            template_id: assignment.template_id,
+            template_id_type: typeof assignment.template_id,
+            status: assignment.status
+          })
+          
+          const { data: template, error: templateError } = await client
             .from('itp_templates')
             .select('*')
             .eq('id', assignment.template_id)
             .single()
+          
+          console.log('🔍 DEBUG: Template fetch result:', {
+            template_id: assignment.template_id,
+            found: !!template,
+            template_data: template,
+            error: templateError
+          })
           
           if (templateError) {
             console.error('Error fetching template:', templateError)
@@ -1244,16 +1361,23 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           
           // Fetch template items
           console.log('📊 Fetching template items for template:', assignment.template_id)
-          const { data: templateItems } = await supabase
+          const { data: templateItems, error: itemsError } = await client
             .from('itp_template_items')
             .select('*')
             .eq('template_id', assignment.template_id)
             .order('sort_order')
           
+          console.log('🔍 DEBUG: Template items fetch result:', {
+            template_id: assignment.template_id,
+            items_count: templateItems?.length || 0,
+            items_data: templateItems,
+            error: itemsError
+          })
+          
           items = templateItems || []
           
           // Fetch inspection records for this assignment
-          const { data: inspectionRecords } = await supabase
+          const { data: inspectionRecords } = await client
             .from('itp_inspection_records')
             .select('*')
             .eq('assignment_id', assignment.id)
@@ -1285,23 +1409,42 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
               }
             })
             
-            itpTemplates.push({
+            const templateToAdd = {
               ...template,
               itp_items: mappedItems,
               assignment: assignment, // Include the assignment details
               completion_percentage: assignment.status === 'completed' ? 100 : 
                                     inspectionRecords ? (inspectionRecords.filter((r: any) => r.status !== 'pending').length / items.length * 100) : 0
+            }
+            
+            console.log('🔍 DEBUG: Adding template to itpTemplates array:', {
+              template_id: template.id,
+              template_name: template.name,
+              items_count: mappedItems.length,
+              assignment_id: assignment.id,
+              assignment_status: assignment.status,
+              completion_percentage: templateToAdd.completion_percentage
             })
+            
+            itpTemplates.push(templateToAdd)
             console.log('✅ Added template from assignment:', template.name, 'Status:', assignment.status)
+            console.log('🔍 DEBUG: itpTemplates array length after add:', itpTemplates.length)
           }
         }
+        
+        console.log('🔍 DEBUG: Template fetching loop completed. itpTemplates array:', {
+          length: itpTemplates.length,
+          templates: itpTemplates.map(t => ({ id: t.id, name: t.name }))
+        })
+      } else {
+        console.log('🔍 DEBUG: No lotItpTemplates to process or empty array')
       }
       
       // FALLBACK: Check legacy itp_id field if no templates in junction table
       if (itpTemplates.length === 0 && lot.itp_id) {
         console.log('📊 No junction table templates found, checking legacy itp_id:', lot.itp_id)
         
-        const { data: legacyTemplate } = await supabase
+        const { data: legacyTemplate } = await client
           .from('itp_templates')
           .select('*')
           .eq('id', lot.itp_id)
@@ -1309,7 +1452,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         
         if (legacyTemplate) {
           // Fetch items separately from itp_template_items table
-          const { data: legacyItems } = await supabase
+          const { data: legacyItems } = await client
             .from('itp_template_items')
             .select('*')
             .eq('template_id', lot.itp_id)
@@ -1345,7 +1488,7 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       let conformanceRecords: any[] = []
       if (lotItpTemplates && lotItpTemplates.length > 0) {
         const assignmentIds = lotItpTemplates.map((a: any) => a.id)
-        const { data: inspectionRecords } = await supabase
+        const { data: inspectionRecords } = await client
           .from('itp_inspection_records')
           .select('*')
           .in('assignment_id', assignmentIds)
@@ -1365,6 +1508,31 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       }
       
       // Map to LotWithDetails format
+      console.log('🔍 DEBUG: Building final return object:', {
+        lot_id: lot.id,
+        itpTemplates_length: itpTemplates.length,
+        lotItpTemplates_length: lotItpTemplates?.length || 0,
+        primaryTemplate_exists: !!primaryTemplate,
+        conformanceRecords_length: conformanceRecords.length
+      })
+      
+      console.log('🔍 DEBUG: itpTemplates array content:', 
+        itpTemplates.map(t => ({
+          id: t.id,
+          name: t.name,
+          items_count: t.itp_items?.length || 0
+        }))
+      )
+      
+      console.log('🔍 DEBUG: lotItpTemplates (assignments) content:', 
+        lotItpTemplates?.map(a => ({
+          id: a.id,
+          lot_id: a.lot_id,
+          template_id: a.template_id,
+          status: a.status
+        })) || []
+      )
+      
       const lotWithDetails: LotWithDetails = {
         ...lot,
         project: lot.project,
@@ -1380,8 +1548,24 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
         lotId: lotWithDetails.id,
         itpTemplatesCount: lotWithDetails.itp_templates?.length,
         lotItpTemplatesCount: lotWithDetails.lot_itp_templates?.length,
-        hasItpTemplate: !!lotWithDetails.itp_template
+        lotItpAssignmentsCount: lotWithDetails.lot_itp_assignments?.length,
+        hasItpTemplate: !!lotWithDetails.itp_template,
+        assignments: lotWithDetails.lot_itp_assignments?.map((a: any) => ({
+          id: a.id,
+          template_id: a.template_id,
+          status: a.status
+        })),
+        templates: lotWithDetails.itp_templates?.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          itemsCount: t.itp_items?.length
+        }))
       })
+      
+      console.log('🔍 DEBUG: Final lotWithDetails object keys:', Object.keys(lotWithDetails))
+      console.log('🔍 DEBUG: lot_itp_assignments in final object:', lotWithDetails.lot_itp_assignments)
+      console.log('🔍 DEBUG: lot_itp_templates in final object:', lotWithDetails.lot_itp_templates)
+      
       return { success: true, data: lotWithDetails }
     } else {
       console.log('📝 Fetching lot from mock data...')

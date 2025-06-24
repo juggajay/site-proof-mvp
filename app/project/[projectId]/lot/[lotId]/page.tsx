@@ -1,5 +1,8 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { getLotByIdAction, getITPTemplatesAction, assignITPToLotAction, saveConformanceRecordAction } from '@/lib/actions'
@@ -11,6 +14,7 @@ import { InspectionChecklistForm } from '@/components/forms/inspection-checklist
 import { InteractiveInspectionForm } from '@/components/forms/interactive-inspection-form'
 import { MultiITPInspectionForm } from '@/components/forms/multi-itp-inspection-form'
 import { SiteDiaryTab } from '@/components/site-diary/site-diary-tab'
+import { DebugPanel } from '@/components/debug-panel'
 
 interface PageProps {
   params: {
@@ -39,7 +43,15 @@ export default function LotDetailPage({ params }: PageProps) {
       
       // Debug query
       const debugResult = await debugLotITPTemplates(lotId)
-      console.log('🔍 DEBUG: ITP Templates Query Results:', debugResult)
+      console.log('🔍 DEBUG: ITP Templates Query Results:', JSON.stringify(debugResult, null, 2))
+      if (debugResult.queries) {
+        console.log('   Basic query count:', debugResult.queries.basic?.count)
+        console.log('   With status filter count:', debugResult.queries.withStatusFilter?.count)
+        console.log('   Old table count:', debugResult.queries.oldTable?.count)
+        if (debugResult.queries.withStatusFilter?.data) {
+          console.log('   Assignments found:', debugResult.queries.withStatusFilter.data)
+        }
+      }
       
       // Get lot data
       const result = await getLotByIdAction(lotId)
@@ -56,8 +68,8 @@ export default function LotDetailPage({ params }: PageProps) {
           lotItpTemplates: result.data.lot_itp_templates
         })
         
-        // Set the lot data
-        setLot(result.data || null)
+        // Force state update with new object
+        setLot({ ...result.data })
       } else {
         setError(result.error || 'Failed to load lot')
       }
@@ -77,7 +89,11 @@ export default function LotDetailPage({ params }: PageProps) {
 
 
   const handleInspectionSaved = () => {
-    loadLotData()
+    console.log('🔄 handleInspectionSaved called - forcing refresh')
+    // Add a longer delay to ensure server processes the changes
+    setTimeout(() => {
+      loadLotData(true) // Force refresh after changes
+    }, 1000)
   }
 
   const getStatusColor = (status: string) => {
@@ -341,6 +357,7 @@ export default function LotDetailPage({ params }: PageProps) {
         {/* Tab Content */}
         {activeTab === 'inspections' ? (
           <MultiITPInspectionForm
+            key={`inspection-form-${lot.id}-${Date.now()}`}
             lot={lot}
             onInspectionSaved={handleInspectionSaved}
           />
@@ -349,6 +366,8 @@ export default function LotDetailPage({ params }: PageProps) {
         )}
       </div>
 
+      {/* Debug Panel */}
+      {lot && <DebugPanel lotId={lot.id} lotData={lot} />}
     </div>
   )
 }

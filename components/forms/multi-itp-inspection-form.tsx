@@ -24,11 +24,18 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   // Map assignments to templates with their inspection data
   const templatesWithAssignments = assignments.map((assignment: any) => {
     const template = templates.find((t: any) => t.id === assignment.template_id || t.id === assignment.itp_template_id)
-    return {
+    if (!template) {
+      console.log('⚠️ No template found for assignment:', {
+        assignmentId: assignment.id,
+        templateId: assignment.template_id || assignment.itp_template_id,
+        availableTemplates: templates.map(t => ({ id: t.id, name: t.name }))
+      })
+    }
+    return template ? {
       ...template,
       assignment,
       assignmentId: assignment.id
-    }
+    } : null
   }).filter(Boolean)
     
   console.log('📊 Templates analysis:', {
@@ -101,7 +108,10 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
 
   const handleITPAssigned = () => {
     setIsAssignModalOpen(false)
-    onInspectionSaved() // This will reload the lot data
+    // Add a small delay to ensure server cache is invalidated
+    setTimeout(() => {
+      onInspectionSaved() // This will reload the lot data
+    }, 500)
   }
 
   if (templatesWithAssignments.length === 0) {
