@@ -36,7 +36,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
       assignment,
       assignmentId: assignment.id
     } : null
-  }).filter(Boolean)
+  }).filter((item): item is NonNullable<typeof item> => item !== null)
     
   console.log('📊 Templates analysis:', {
     hasITPTemplates: !!lot.itp_templates,
