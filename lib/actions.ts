@@ -4525,11 +4525,11 @@ export async function deleteProjectAction(projectId: string | number): Promise<A
     const user = await requireAuth()
     console.log('🗑️ Deleting project:', projectId)
     
-    if (isSupabaseEnabled && supabase) {
-      console.log('🗑️ Deleting project from Supabase...')
+    if (isSupabaseEnabled && supabaseAdmin) {
+      console.log('🗑️ Deleting project from Supabase using admin client...')
       
       // Delete project (cascade will handle related records)
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('projects')
         .delete()
         .eq('id', projectId)
@@ -4576,11 +4576,11 @@ export async function deleteLotAction(lotId: string | number): Promise<APIRespon
     const user = await requireAuth()
     console.log('🗑️ Deleting lot:', lotId)
     
-    if (isSupabaseEnabled && supabase) {
-      console.log('🗑️ Deleting lot from Supabase...')
+    if (isSupabaseEnabled && supabaseAdmin) {
+      console.log('🗑️ Deleting lot from Supabase using admin client...')
       
       // Delete lot (cascade will handle related records)
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('lots')
         .delete()
         .eq('id', lotId)
@@ -4627,11 +4627,11 @@ export async function deleteITPTemplateAction(templateId: string | number): Prom
     const user = await requireAuth()
     console.log('🗑️ Deleting ITP template:', templateId)
     
-    if (isSupabaseEnabled && supabase) {
-      console.log('🗑️ Deleting ITP template from Supabase...')
+    if (isSupabaseEnabled && supabaseAdmin) {
+      console.log('🗑️ Deleting ITP template from Supabase using admin client...')
       
       // Check if template is assigned to any lots
-      const { data: assignments, error: checkError } = await supabase
+      const { data: assignments, error: checkError } = await supabaseAdmin
         .from('lot_itp_assignments')
         .select('id')
         .eq('template_id', templateId)
@@ -4647,7 +4647,7 @@ export async function deleteITPTemplateAction(templateId: string | number): Prom
       }
       
       // Delete template (cascade will handle template items)
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('itp_templates')
         .delete()
         .eq('id', templateId)
@@ -4700,10 +4700,10 @@ export async function deleteDailyReportAction(reportId: string | number): Promis
     const user = await requireAuth()
     console.log('🗑️ Deleting daily report:', reportId)
     
-    if (isSupabaseEnabled && supabase) {
-      console.log('🗑️ Deleting daily report from Supabase...')
+    if (isSupabaseEnabled && supabaseAdmin) {
+      console.log('🗑️ Deleting daily report from Supabase using admin client...')
       
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('daily_reports')
         .delete()
         .eq('id', reportId)
@@ -4740,18 +4740,18 @@ export async function removeITPAssignmentAction(lotId: string | number, template
     const user = await requireAuth()
     console.log('🗑️ Removing ITP assignment:', { lotId, templateId })
     
-    if (isSupabaseEnabled && supabase) {
-      console.log('🗑️ Removing ITP assignment from Supabase...')
+    if (isSupabaseEnabled && supabaseAdmin) {
+      console.log('🗑️ Removing ITP assignment from Supabase using admin client...')
       
       // For new system - delete from lot_itp_assignments
-      const { error: newSystemError } = await supabase
+      const { error: newSystemError } = await supabaseAdmin
         .from('lot_itp_assignments')
         .delete()
         .eq('lot_id', lotId)
         .eq('template_id', templateId)
       
       // For old system - update lot to remove template
-      const { error: oldSystemError } = await supabase
+      const { error: oldSystemError } = await supabaseAdmin
         .from('lots')
         .update({ itp_template_id: null })
         .eq('id', lotId)
