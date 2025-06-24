@@ -4525,8 +4525,13 @@ export async function deleteProjectAction(projectId: string | number): Promise<A
     const user = await requireAuth()
     console.log('🗑️ Deleting project:', projectId)
     
-    if (isSupabaseEnabled && supabaseAdmin) {
+    if (isSupabaseEnabled) {
       console.log('🗑️ Deleting project from Supabase using admin client...')
+      
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not available')
+        return { success: false, error: 'Database admin access not configured' }
+      }
       
       // Delete project (cascade will handle related records)
       const { error } = await supabaseAdmin
@@ -4576,8 +4581,13 @@ export async function deleteLotAction(lotId: string | number): Promise<APIRespon
     const user = await requireAuth()
     console.log('🗑️ Deleting lot:', lotId)
     
-    if (isSupabaseEnabled && supabaseAdmin) {
+    if (isSupabaseEnabled) {
       console.log('🗑️ Deleting lot from Supabase using admin client...')
+      
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not available')
+        return { success: false, error: 'Database admin access not configured' }
+      }
       
       // Delete lot (cascade will handle related records)
       const { error } = await supabaseAdmin
@@ -4627,8 +4637,13 @@ export async function deleteITPTemplateAction(templateId: string | number): Prom
     const user = await requireAuth()
     console.log('🗑️ Deleting ITP template:', templateId)
     
-    if (isSupabaseEnabled && supabaseAdmin) {
+    if (isSupabaseEnabled) {
       console.log('🗑️ Deleting ITP template from Supabase using admin client...')
+      
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not available')
+        return { success: false, error: 'Database admin access not configured' }
+      }
       
       // Check if template is assigned to any lots
       const { data: assignments, error: checkError } = await supabaseAdmin
@@ -4700,8 +4715,13 @@ export async function deleteDailyReportAction(reportId: string | number): Promis
     const user = await requireAuth()
     console.log('🗑️ Deleting daily report:', reportId)
     
-    if (isSupabaseEnabled && supabaseAdmin) {
+    if (isSupabaseEnabled) {
       console.log('🗑️ Deleting daily report from Supabase using admin client...')
+      
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not available')
+        return { success: false, error: 'Database admin access not configured' }
+      }
       
       const { error } = await supabaseAdmin
         .from('daily_reports')
@@ -4740,8 +4760,13 @@ export async function removeITPAssignmentAction(lotId: string | number, template
     const user = await requireAuth()
     console.log('🗑️ Removing ITP assignment:', { lotId, templateId })
     
-    if (isSupabaseEnabled && supabaseAdmin) {
+    if (isSupabaseEnabled) {
       console.log('🗑️ Removing ITP assignment from Supabase using admin client...')
+      
+      if (!supabaseAdmin) {
+        console.error('Supabase admin client not available')
+        return { success: false, error: 'Database admin access not configured' }
+      }
       
       // For new system - delete from lot_itp_assignments
       const { error: newSystemError } = await supabaseAdmin
