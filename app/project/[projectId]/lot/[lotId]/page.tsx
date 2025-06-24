@@ -367,7 +367,7 @@ export default function LotDetailPage({ params }: PageProps) {
       </div>
 
       {/* Debug Panel */}
-      {lot && <DebugPanel lotId={lot.id} lotData={lot} />}
+      {lot && <DebugPanel lotId={String(lot.id)} lotData={lot} />}
     </div>
   )
 }
