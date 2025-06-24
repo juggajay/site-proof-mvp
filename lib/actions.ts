@@ -1938,9 +1938,11 @@ export async function saveConformanceRecordAction(
     
     // Try to detect if this assignment exists in Supabase first
     let shouldUseMockData = isMockData
-    if (isSupabaseEnabled && supabase && !isMockData) {
+    const client = supabaseAdmin || supabase
+    
+    if (isSupabaseEnabled && client && !isMockData) {
       // Check if this assignment actually exists in Supabase
-      const { data: assignmentCheck, error: assignmentCheckError } = await supabase
+      const { data: assignmentCheck, error: assignmentCheckError } = await client
         .from('lot_itp_assignments')
         .select('id')
         .eq('id', String(assignmentId))
@@ -1952,8 +1954,9 @@ export async function saveConformanceRecordAction(
       }
     }
     
-    if (isSupabaseEnabled && supabase && !shouldUseMockData) {
+    if (isSupabaseEnabled && client && !shouldUseMockData) {
       console.log('📊 Saving inspection record in Supabase...')
+      console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
       
       // Convert numeric IDs to strings for Supabase (which uses UUIDs)
       const assignmentIdStr = String(assignmentId)
@@ -1962,7 +1965,7 @@ export async function saveConformanceRecordAction(
       console.log('📊 Checking for existing record with IDs:', { assignmentIdStr, templateItemIdStr })
       
       // Verify this is a valid template item
-      const { data: templateItemCheck } = await supabase
+      const { data: templateItemCheck } = await client
         .from('itp_template_items')
         .select('id, inspection_type')
         .eq('id', templateItemIdStr)
@@ -1974,7 +1977,7 @@ export async function saveConformanceRecordAction(
       }
       
       // Check if inspection record exists
-      const { data: existing, error: existingError } = await supabase
+      const { data: existing, error: existingError } = await client
         .from('itp_inspection_records')
         .select('id')
         .eq('assignment_id', assignmentIdStr)
@@ -2019,7 +2022,7 @@ export async function saveConformanceRecordAction(
       let result;
       if (existing) {
         // Update existing record
-        const { data: updated, error } = await supabase
+        const { data: updated, error } = await client
           .from('itp_inspection_records')
           .update(recordData)
           .eq('id', existing.id)
@@ -2034,7 +2037,7 @@ export async function saveConformanceRecordAction(
         result = updated
       } else {
         // Insert new record
-        const { data: inserted, error } = await supabase
+        const { data: inserted, error } = await client
           .from('itp_inspection_records')
           .insert({
             ...recordData,
@@ -2055,7 +2058,7 @@ export async function saveConformanceRecordAction(
       console.log('✅ Inspection record saved in Supabase')
       
       // Get the lot ID for revalidation
-      const { data: assignment } = await supabase
+      const { data: assignment } = await client
         .from('lot_itp_assignments')
         .select('lot_id')
         .eq('id', assignmentIdStr)

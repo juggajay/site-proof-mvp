@@ -137,6 +137,14 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
 
           // Use assignment ID if available, otherwise fall back to lot ID for backward compatibility
           const assignmentId = lot.currentAssignment?.id || lot.id
+          console.log('🔍 Save debug:', {
+            assignmentId,
+            assignmentObject: lot.currentAssignment,
+            itemId: item.id,
+            itemIdType: typeof item.id,
+            lotId: lot.id,
+            data
+          })
           return saveConformanceRecordAction(assignmentId, item.id, data)
         }
         return null
