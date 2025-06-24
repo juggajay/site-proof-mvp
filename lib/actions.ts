@@ -1940,6 +1940,81 @@ export async function saveConformanceRecordAction(
     let shouldUseMockData = isMockData
     const client = supabaseAdmin || supabase
     
+    // If we have numeric IDs, we're dealing with the OLD ITP system
+    if (isSupabaseEnabled && client && (isNumericAssignmentId || isNumericItemId)) {
+      console.log('📊 Detected OLD ITP system - will save to conformance_records table')
+      
+      // For old system, assignmentId is actually the lot_id
+      const lotId = String(assignmentId)
+      const itpItemId = Number(templateItemId)
+      
+      console.log('📊 Saving to conformance_records:', { lotId, itpItemId, data })
+      
+      // Check if record exists
+      const { data: existing, error: existingError } = await client
+        .from('conformance_records')
+        .select('id')
+        .eq('lot_id', lotId)
+        .eq('itp_item_id', itpItemId)
+        .single()
+      
+      if (existingError && existingError.code !== 'PGRST116') {
+        console.error('Error checking existing conformance record:', existingError)
+      }
+      
+      const conformanceData = {
+        lot_id: lotId,
+        itp_item_id: itpItemId,
+        result_pass_fail: data.result_pass_fail,
+        result_numeric: data.result_numeric,
+        result_text: data.result_text || data.comments,
+        comments: data.comments,
+        is_non_conformance: data.result_pass_fail === 'FAIL',
+        corrective_action: data.corrective_action,
+        inspector_id: user.id,
+        inspection_date: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      let result
+      if (existing) {
+        // Update existing record
+        const { data: updated, error } = await client
+          .from('conformance_records')
+          .update(conformanceData)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        
+        if (error) {
+          console.error('Supabase UPDATE error (conformance_records):', error)
+          return { success: false, error: `Update failed: ${error.message}` }
+        }
+        result = updated
+      } else {
+        // Insert new record
+        const { data: inserted, error } = await client
+          .from('conformance_records')
+          .insert({
+            ...conformanceData,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+        
+        if (error) {
+          console.error('Supabase INSERT error (conformance_records):', error)
+          return { success: false, error: `Insert failed: ${error.message}` }
+        }
+        result = inserted
+      }
+      
+      console.log('✅ Saved to conformance_records (OLD system):', result)
+      revalidatePath(`/project`)
+      return { success: true }
+    }
+    
+    // NEW ITP SYSTEM - only if we have UUID-like IDs
     if (isSupabaseEnabled && client && !isMockData) {
       // Check if this assignment actually exists in Supabase
       const { data: assignmentCheck, error: assignmentCheckError } = await client
@@ -1955,7 +2030,7 @@ export async function saveConformanceRecordAction(
     }
     
     if (isSupabaseEnabled && client && !shouldUseMockData) {
-      console.log('📊 Saving inspection record in Supabase...')
+      console.log('📊 Saving inspection record in NEW ITP system...')
       console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
       
       // Convert numeric IDs to strings for Supabase (which uses UUIDs)

@@ -135,17 +135,21 @@ export function SimplifiedInspectionForm({ lot, onInspectionSaved }: SimplifiedI
             itemTableSource: 'itp_template_items' // These items come from template definitions
           })
 
-          // Use assignment ID if available, otherwise fall back to lot ID for backward compatibility
-          const assignmentId = lot.currentAssignment?.id || lot.id
+          // For old ITP system (numeric item IDs), use lot ID
+          // For new ITP system (UUID item IDs), use assignment ID
+          const isOldSystem = typeof item.id === 'number' || !isNaN(Number(item.id))
+          const idToUse = isOldSystem ? lot.id : (lot.currentAssignment?.id || lot.id)
+          
           console.log('🔍 Save debug:', {
-            assignmentId,
+            isOldSystem,
+            idToUse,
             assignmentObject: lot.currentAssignment,
             itemId: item.id,
             itemIdType: typeof item.id,
             lotId: lot.id,
             data
           })
-          return saveConformanceRecordAction(assignmentId, item.id, data)
+          return saveConformanceRecordAction(idToUse, item.id, data)
         }
         return null
       }).filter(Boolean)
