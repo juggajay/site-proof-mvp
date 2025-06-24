@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { getITPTemplatesAction, assignMultipleITPsToLotAction } from '@/lib/actions'
 import { getITPTemplatesViaAPI } from '@/lib/actions-client-fix'
 import { ITPTemplate } from '@/types/database'
-import { X, ClipboardList, CheckCircle2, Check } from 'lucide-react'
+import { X, ClipboardList } from 'lucide-react'
+import { ITPTemplateCard } from '@/components/ui/itp-template-card'
 
 interface AssignITPModalProps {
   isOpen: boolean
@@ -72,24 +73,35 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
     setIsLoading(true)
     setError(null)
 
+    // Optimistically update the UI immediately
+    const selectedTemplates = templates.filter(t => selectedTemplateIds.includes(t.id))
+    
+    // Close modal and trigger UI update immediately (optimistic update)
+    onITPAssigned()
+    
     try {
       console.log('Assigning ITPs:', selectedTemplateIds, 'to lot:', lotId)
       const result = await assignMultipleITPsToLotAction(lotId, selectedTemplateIds)
       console.log('Assignment result:', result)
       
-      if (result.success) {
-        console.log('✅ ITPs assigned successfully')
-        onITPAssigned()
-      } else {
+      if (!result.success) {
+        // If assignment failed, we need to revert the optimistic update
         console.error('❌ Failed to assign ITPs:', result.error)
         const errorMessage = result.error || 'Failed to assign ITP templates - unknown error'
+        
+        // Reopen the modal with error message
         setError(errorMessage)
+        setIsLoading(false)
+        // Note: Parent component should handle reverting the optimistic update
+      } else {
+        console.log('✅ ITPs assigned successfully')
+        // Success - optimistic update was correct
       }
     } catch (error) {
       console.error('Unexpected error assigning ITPs:', error)
       setError('An unexpected error occurred')
-    } finally {
       setIsLoading(false)
+      // Note: Parent component should handle reverting the optimistic update
     }
   }
 
@@ -160,54 +172,13 @@ export function AssignITPModal({ isOpen, onClose, onITPAssigned, lotId, assigned
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {templates.map((template) => (
-                  <div
+                  <ITPTemplateCard
                     key={template.id}
-                    className={`relative rounded-lg border p-4 ${
-                      assignedTemplateIds.includes(template.id)
-                        ? 'border-green-300 bg-green-50 cursor-default'
-                        : selectedTemplateIds.includes(template.id)
-                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600 cursor-pointer hover:bg-blue-100'
-                          : 'border-gray-300 cursor-pointer hover:bg-gray-50'
-                    }`}
-                    onClick={() => {
-                      if (!assignedTemplateIds.includes(template.id)) {
-                        toggleTemplateSelection(template.id)
-                      }
-                    }}
-                  >
-                    <div className="flex items-start">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium text-gray-900">{template.name}</h4>
-                          {assignedTemplateIds.includes(template.id) ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          ) : selectedTemplateIds.includes(template.id) ? (
-                            <div className="flex items-center justify-center w-5 h-5 rounded border-2 border-blue-600 bg-blue-600">
-                              <Check className="h-3 w-3 text-white" />
-                            </div>
-                          ) : (
-                            <div className="w-5 h-5 rounded border-2 border-gray-300" />
-                          )}
-                        </div>
-                        {template.description && (
-                          <p className="mt-1 text-sm text-gray-500">{template.description}</p>
-                        )}
-                        <div className="mt-2 flex items-center space-x-4">
-                          {template.category && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {template.category}
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-500">v{template.version}</span>
-                          {assignedTemplateIds.includes(template.id) && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Assigned
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    template={template}
+                    isAssigned={assignedTemplateIds.includes(template.id)}
+                    isSelected={selectedTemplateIds.includes(template.id)}
+                    onClick={() => toggleTemplateSelection(template.id)}
+                  />
                 ))}
               </div>
             )}

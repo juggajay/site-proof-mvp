@@ -16,6 +16,7 @@ interface MultiITPInspectionFormProps {
 export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspectionFormProps) {
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [optimisticTemplates, setOptimisticTemplates] = useState<ITPTemplate[]>([])
 
   // Get assignments from the new system
   const assignments = lot.lot_itp_assignments || lot.lot_itp_templates || []
@@ -108,10 +109,8 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
 
   const handleITPAssigned = () => {
     setIsAssignModalOpen(false)
-    // Add a small delay to ensure server cache is invalidated
-    setTimeout(() => {
-      onInspectionSaved() // This will reload the lot data
-    }, 500)
+    // Immediately refresh data without delay - optimistic update already shows the change
+    onInspectionSaved()
   }
 
   if (templatesWithAssignments.length === 0) {

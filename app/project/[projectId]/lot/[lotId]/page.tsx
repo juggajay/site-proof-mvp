@@ -90,10 +90,8 @@ export default function LotDetailPage({ params }: PageProps) {
 
   const handleInspectionSaved = () => {
     console.log('🔄 handleInspectionSaved called - forcing refresh')
-    // Add a longer delay to ensure server processes the changes
-    setTimeout(() => {
-      loadLotData(true) // Force refresh after changes
-    }, 1000)
+    // Immediately refresh without delay
+    loadLotData(true)
   }
 
   const getStatusColor = (status: string) => {
