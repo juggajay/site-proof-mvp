@@ -2,16 +2,28 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { getITPTemplatesAction } from '@/lib/actions'
+import { getITPTemplatesAction, deleteITPTemplateAction } from '@/lib/actions'
 import { ITPTemplate } from '@/types/database'
 import Link from 'next/link'
-import { ArrowLeft, Plus, ClipboardList, Settings, Eye } from 'lucide-react'
+import { ArrowLeft, Plus, ClipboardList, Settings, Eye, Trash2 } from 'lucide-react'
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
+import toast from 'react-hot-toast'
 
 export default function TemplatesPage() {
   const { user, loading } = useAuth()
   const [templates, setTemplates] = useState<ITPTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    templateId: string | number | null
+    templateName: string
+  }>({
+    isOpen: false,
+    templateId: null,
+    templateName: ''
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -42,6 +54,35 @@ export default function TemplatesPage() {
       case 'plumbing': return 'bg-green-100 text-green-800'
       case 'mechanical': return 'bg-purple-100 text-purple-800'
       default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const handleDeleteClick = (template: ITPTemplate) => {
+    setDeleteDialog({
+      isOpen: true,
+      templateId: template.id,
+      templateName: template.name
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.templateId) return
+
+    setIsDeleting(true)
+    try {
+      const result = await deleteITPTemplateAction(deleteDialog.templateId)
+      if (result.success) {
+        toast.success('Template deleted successfully')
+        setTemplates(templates.filter(t => t.id !== deleteDialog.templateId))
+        setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })
+      } else {
+        toast.error(result.error || 'Failed to delete template')
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      toast.error('Failed to delete template')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -127,6 +168,13 @@ export default function TemplatesPage() {
                       <button className="text-gray-400 hover:text-gray-600">
                         <Settings className="h-4 w-4" />
                       </button>
+                      <button 
+                        onClick={() => handleDeleteClick(template)}
+                        className="text-gray-400 hover:text-red-600 transition-colors"
+                        title="Delete template"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -168,6 +216,16 @@ export default function TemplatesPage() {
           </div>
         )}
       </div>
+
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete ITP Template"
+        message="Are you sure you want to delete this template? You cannot delete templates that are assigned to lots."
+        itemName={deleteDialog.templateName}
+        isDeleting={isDeleting}
+      />
     </div>
   )
 }

@@ -2,15 +2,27 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { getProjectsAction } from '@/lib/actions'
+import { getProjectsAction, deleteProjectAction } from '@/lib/actions'
 import { Project } from '@/types/database'
 import Link from 'next/link'
-import { Plus, FolderOpen, Calendar, MapPin, Users } from 'lucide-react'
+import { Plus, FolderOpen, Calendar, MapPin, Users, Trash2 } from 'lucide-react'
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
+import toast from 'react-hot-toast'
 
 export default function ProjectsPage() {
   const { user, loading } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    projectId: string | number | null
+    projectName: string
+  }>({
+    isOpen: false,
+    projectId: null,
+    projectName: ''
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -28,6 +40,37 @@ export default function ProjectsPage() {
       console.error('Error loading projects:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleDeleteClick = (e: React.MouseEvent, project: Project) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDeleteDialog({
+      isOpen: true,
+      projectId: project.id,
+      projectName: project.name
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.projectId) return
+
+    setIsDeleting(true)
+    try {
+      const result = await deleteProjectAction(deleteDialog.projectId)
+      if (result.success) {
+        toast.success('Project deleted successfully')
+        setProjects(projects.filter(p => p.id !== deleteDialog.projectId))
+        setDeleteDialog({ isOpen: false, projectId: null, projectName: '' })
+      } else {
+        toast.error(result.error || 'Failed to delete project')
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      toast.error('Failed to delete project')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -86,22 +129,32 @@ export default function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((project) => (
-              <Link key={project.id} href={`/project/${project.id}`}>
-                <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium text-gray-900 truncate">
-                        {project.name}
-                      </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        project.status === 'active' ? 'bg-green-100 text-green-800' :
-                        project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                        project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {project.status?.replace('_', ' ') || 'Unknown'}
-                      </span>
-                    </div>
+              <div key={project.id} className="relative">
+                <Link href={`/project/${project.id}`}>
+                  <div className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-medium text-gray-900 truncate pr-2">
+                          {project.name}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            project.status === 'active' ? 'bg-green-100 text-green-800' :
+                            project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {project.status?.replace('_', ' ') || 'Unknown'}
+                          </span>
+                          <button
+                            onClick={(e) => handleDeleteClick(e, project)}
+                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            title="Delete project"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
 
                     {project.project_number && (
                       <p className="text-sm text-gray-500 mb-2">
@@ -129,10 +182,21 @@ export default function ProjectsPage() {
                   </div>
                 </div>
               </Link>
+            </div>
             ))}
           </div>
         )}
       </div>
+
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, projectId: null, projectName: '' })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Project"
+        message="Are you sure you want to delete this project? This will also delete all associated lots, inspections, and reports."
+        itemName={deleteDialog.projectName}
+        isDeleting={isDeleting}
+      />
     </div>
   )
 }

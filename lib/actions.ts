@@ -4517,3 +4517,287 @@ export async function getProjectMaterialCostsAction(
     return { success: false, error: 'Failed to fetch material costs' }
   }
 }
+
+// ==================== DELETE ACTIONS ====================
+
+export async function deleteProjectAction(projectId: string | number): Promise<APIResponse> {
+  try {
+    const user = await requireAuth()
+    console.log('🗑️ Deleting project:', projectId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('🗑️ Deleting project from Supabase...')
+      
+      // Delete project (cascade will handle related records)
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId)
+      
+      if (error) {
+        console.error('Supabase delete error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Project deleted from Supabase')
+      revalidatePath('/projects')
+      return { success: true, message: 'Project deleted successfully' }
+    } else {
+      console.log('🗑️ Deleting project from mock data...')
+      
+      // Remove from mock data
+      const index = mockProjects.findIndex(p => compareIds(p.id, projectId))
+      if (index !== -1) {
+        mockProjects.splice(index, 1)
+        
+        // Also remove related lots
+        const lotIndices = mockLots
+          .map((lot, idx) => compareIds(lot.project_id, projectId) ? idx : -1)
+          .filter(idx => idx !== -1)
+          .reverse() // Remove from end to start to avoid index issues
+        
+        lotIndices.forEach(idx => mockLots.splice(idx, 1))
+        
+        console.log('✅ Project and related lots deleted from mock data')
+        revalidatePath('/projects')
+        return { success: true, message: 'Project deleted successfully' }
+      }
+      
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    console.error('Delete project error:', error)
+    return { success: false, error: 'Failed to delete project' }
+  }
+}
+
+export async function deleteLotAction(lotId: string | number): Promise<APIResponse> {
+  try {
+    const user = await requireAuth()
+    console.log('🗑️ Deleting lot:', lotId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('🗑️ Deleting lot from Supabase...')
+      
+      // Delete lot (cascade will handle related records)
+      const { error } = await supabase
+        .from('lots')
+        .delete()
+        .eq('id', lotId)
+      
+      if (error) {
+        console.error('Supabase delete error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Lot deleted from Supabase')
+      revalidatePath('/project')
+      return { success: true, message: 'Lot deleted successfully' }
+    } else {
+      console.log('🗑️ Deleting lot from mock data...')
+      
+      // Remove from mock data
+      const index = mockLots.findIndex(l => compareIds(l.id, lotId))
+      if (index !== -1) {
+        mockLots.splice(index, 1)
+        
+        // Also remove related conformance records
+        const recordIndices = mockConformanceRecords
+          .map((record, idx) => compareIds(record.lot_id, lotId) ? idx : -1)
+          .filter(idx => idx !== -1)
+          .reverse()
+        
+        recordIndices.forEach(idx => mockConformanceRecords.splice(idx, 1))
+        
+        console.log('✅ Lot and related records deleted from mock data')
+        revalidatePath('/project')
+        return { success: true, message: 'Lot deleted successfully' }
+      }
+      
+      return { success: false, error: 'Lot not found' }
+    }
+  } catch (error) {
+    console.error('Delete lot error:', error)
+    return { success: false, error: 'Failed to delete lot' }
+  }
+}
+
+export async function deleteITPTemplateAction(templateId: string | number): Promise<APIResponse> {
+  try {
+    const user = await requireAuth()
+    console.log('🗑️ Deleting ITP template:', templateId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('🗑️ Deleting ITP template from Supabase...')
+      
+      // Check if template is assigned to any lots
+      const { data: assignments, error: checkError } = await supabase
+        .from('lot_itp_assignments')
+        .select('id')
+        .eq('template_id', templateId)
+        .limit(1)
+      
+      if (checkError) {
+        console.error('Check error:', checkError)
+        return { success: false, error: checkError.message }
+      }
+      
+      if (assignments && assignments.length > 0) {
+        return { success: false, error: 'Cannot delete template that is assigned to lots' }
+      }
+      
+      // Delete template (cascade will handle template items)
+      const { error } = await supabase
+        .from('itp_templates')
+        .delete()
+        .eq('id', templateId)
+      
+      if (error) {
+        console.error('Supabase delete error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ ITP template deleted from Supabase')
+      revalidatePath('/settings/itp-templates')
+      return { success: true, message: 'ITP template deleted successfully' }
+    } else {
+      console.log('🗑️ Deleting ITP template from mock data...')
+      
+      // Check if template is assigned
+      const assignedLot = mockLots.find(l => l.itp_template_id && compareIds(l.itp_template_id, templateId))
+      if (assignedLot) {
+        return { success: false, error: 'Cannot delete template that is assigned to lots' }
+      }
+      
+      // Remove from mock data
+      const templateIndex = mockITPTemplates.findIndex(t => compareIds(t.id, templateId))
+      if (templateIndex !== -1) {
+        mockITPTemplates.splice(templateIndex, 1)
+        
+        // Also remove related items (ITPItems use itp_id to reference the template)
+        const itemIndices = mockITPItems
+          .map((item, idx) => compareIds(item.itp_id, templateId) ? idx : -1)
+          .filter(idx => idx !== -1)
+          .reverse()
+        
+        itemIndices.forEach(idx => mockITPItems.splice(idx, 1))
+        
+        console.log('✅ ITP template and items deleted from mock data')
+        revalidatePath('/settings/itp-templates')
+        return { success: true, message: 'ITP template deleted successfully' }
+      }
+      
+      return { success: false, error: 'ITP template not found' }
+    }
+  } catch (error) {
+    console.error('Delete ITP template error:', error)
+    return { success: false, error: 'Failed to delete ITP template' }
+  }
+}
+
+export async function deleteDailyReportAction(reportId: string | number): Promise<APIResponse> {
+  try {
+    const user = await requireAuth()
+    console.log('🗑️ Deleting daily report:', reportId)
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('🗑️ Deleting daily report from Supabase...')
+      
+      const { error } = await supabase
+        .from('daily_reports')
+        .delete()
+        .eq('id', reportId)
+      
+      if (error) {
+        console.error('Supabase delete error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      console.log('✅ Daily report deleted from Supabase')
+      revalidatePath('/project')
+      return { success: true, message: 'Daily report deleted successfully' }
+    } else {
+      console.log('🗑️ Deleting daily report from mock data...')
+      
+      const index = mockDailyReports.findIndex(r => compareIds(r.id, reportId))
+      if (index !== -1) {
+        mockDailyReports.splice(index, 1)
+        console.log('✅ Daily report deleted from mock data')
+        revalidatePath('/project')
+        return { success: true, message: 'Daily report deleted successfully' }
+      }
+      
+      return { success: false, error: 'Daily report not found' }
+    }
+  } catch (error) {
+    console.error('Delete daily report error:', error)
+    return { success: false, error: 'Failed to delete daily report' }
+  }
+}
+
+export async function removeITPAssignmentAction(lotId: string | number, templateId: string | number): Promise<APIResponse> {
+  try {
+    const user = await requireAuth()
+    console.log('🗑️ Removing ITP assignment:', { lotId, templateId })
+    
+    if (isSupabaseEnabled && supabase) {
+      console.log('🗑️ Removing ITP assignment from Supabase...')
+      
+      // For new system - delete from lot_itp_assignments
+      const { error: newSystemError } = await supabase
+        .from('lot_itp_assignments')
+        .delete()
+        .eq('lot_id', lotId)
+        .eq('template_id', templateId)
+      
+      // For old system - update lot to remove template
+      const { error: oldSystemError } = await supabase
+        .from('lots')
+        .update({ itp_template_id: null })
+        .eq('id', lotId)
+        .eq('itp_template_id', templateId)
+      
+      if (newSystemError && oldSystemError) {
+        console.error('Supabase delete errors:', { newSystemError, oldSystemError })
+        return { success: false, error: 'Failed to remove ITP assignment' }
+      }
+      
+      console.log('✅ ITP assignment removed from Supabase')
+      revalidatePath(`/project`)
+      return { success: true, message: 'ITP assignment removed successfully' }
+    } else {
+      console.log('🗑️ Removing ITP assignment from mock data...')
+      
+      // Update lot to remove template
+      const lot = mockLots.find(l => compareIds(l.id, lotId))
+      if (lot && lot.itp_template_id && compareIds(lot.itp_template_id, templateId)) {
+        lot.itp_template_id = undefined
+        
+        // Remove related conformance records
+        const recordIndices = mockConformanceRecords
+          .map((record, idx) => {
+            if (compareIds(record.lot_id, lotId)) {
+              const item = mockITPItems.find(i => compareIds(i.id, record.itp_item_id))
+              if (item && compareIds(item.itp_id, templateId)) {
+                return idx
+              }
+            }
+            return -1
+          })
+          .filter(idx => idx !== -1)
+          .reverse()
+        
+        recordIndices.forEach(idx => mockConformanceRecords.splice(idx, 1))
+        
+        console.log('✅ ITP assignment removed from mock data')
+        revalidatePath(`/project`)
+        return { success: true, message: 'ITP assignment removed successfully' }
+      }
+      
+      return { success: false, error: 'Assignment not found' }
+    }
+  } catch (error) {
+    console.error('Remove ITP assignment error:', error)
+    return { success: false, error: 'Failed to remove ITP assignment' }
+  }
+}

@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { getProjectByIdAction, getLotByIdAction, debugDatabaseAction } from '@/lib/actions'
+import { getProjectByIdAction, getLotByIdAction, debugDatabaseAction, deleteLotAction } from '@/lib/actions'
 import { ProjectWithDetails, Lot } from '@/types/database'
 import Link from 'next/link'
-import { ArrowLeft, Plus, MapPin, Calendar, User, Building, Settings, FileText, AlertCircle, BookOpen, DollarSign } from 'lucide-react'
+import { ArrowLeft, Plus, MapPin, Calendar, User, Building, Settings, FileText, AlertCircle, BookOpen, DollarSign, Trash2 } from 'lucide-react'
 import { CreateLotModal } from '@/components/modals/create-lot-modal'
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
+import toast from 'react-hot-toast'
 
 interface PageProps {
   params: {
@@ -20,6 +22,16 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const [isCreateLotModalOpen, setIsCreateLotModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    lotId: string | number | null
+    lotNumber: string
+  }>({
+    isOpen: false,
+    lotId: null,
+    lotNumber: ''
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const projectId = params.projectId
 
@@ -55,6 +67,35 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const handleLotCreated = () => {
     setIsCreateLotModalOpen(false)
     loadProjectData()
+  }
+
+  const handleDeleteLot = (lot: Lot) => {
+    setDeleteDialog({
+      isOpen: true,
+      lotId: lot.id,
+      lotNumber: lot.lot_number
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.lotId) return
+
+    setIsDeleting(true)
+    try {
+      const result = await deleteLotAction(deleteDialog.lotId)
+      if (result.success) {
+        toast.success('Lot deleted successfully')
+        loadProjectData()
+        setDeleteDialog({ isOpen: false, lotId: null, lotNumber: '' })
+      } else {
+        toast.error(result.error || 'Failed to delete lot')
+      }
+    } catch (error) {
+      console.error('Error deleting lot:', error)
+      toast.error('Failed to delete lot')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleDebugDatabase = async () => {
@@ -338,9 +379,18 @@ export default function ProjectDetailPage({ params }: PageProps) {
                   <div key={lot.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-lg font-medium text-gray-900">Lot {lot.lot_number}</h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLotStatusColor(lot.status)}`}>
-                        {lot.status?.replace('_', ' ') || 'pending'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getLotStatusColor(lot.status)}`}>
+                          {lot.status?.replace('_', ' ') || 'pending'}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteLot(lot)}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Delete lot"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="space-y-2 mb-4">
@@ -483,12 +533,21 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         {new Date(lot.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/project/${projectId}/lot/${lot.id}`}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors min-h-[44px] min-w-[44px] justify-center"
-                        >
-                          View
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/project/${projectId}/lot/${lot.id}`}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors min-h-[44px] min-w-[44px] justify-center"
+                          >
+                            View
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteLot(lot)}
+                            className="inline-flex items-center p-2 text-sm text-gray-400 hover:text-red-600 transition-colors"
+                            title="Delete lot"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -506,6 +565,17 @@ export default function ProjectDetailPage({ params }: PageProps) {
         onClose={() => setIsCreateLotModalOpen(false)}
         onLotCreated={handleLotCreated}
         projectId={projectId}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, lotId: null, lotNumber: '' })}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Lot"
+        message="Are you sure you want to delete this lot? This will also delete all associated inspections and reports."
+        itemName={`Lot ${deleteDialog.lotNumber}`}
+        isDeleting={isDeleting}
       />
     </div>
   )
