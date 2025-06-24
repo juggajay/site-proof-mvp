@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import { LotWithDetails, ITPTemplate, ITPItem } from '@/types/database'
-import { ClipboardList, Plus, AlertCircle } from 'lucide-react'
+import { ClipboardList, Plus, AlertCircle, X } from 'lucide-react'
 import { InteractiveInspectionForm } from './interactive-inspection-form'
 import { CollapsibleInspectionForm } from './collapsible-inspection-form'
 import { SimplifiedInspectionForm } from './simplified-inspection-form'
 import { AssignITPModal } from '@/components/modals/assign-itp-modal'
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
+import { removeITPAssignmentAction } from '@/lib/actions'
+import toast from 'react-hot-toast'
 
 interface MultiITPInspectionFormProps {
   lot: LotWithDetails
@@ -17,6 +20,16 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [optimisticTemplates, setOptimisticTemplates] = useState<ITPTemplate[]>([])
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean
+    templateId: string | number | null
+    templateName: string
+  }>({
+    isOpen: false,
+    templateId: null,
+    templateName: ''
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Get assignments from the new system
   const assignments = lot.lot_itp_assignments || lot.lot_itp_templates || []
@@ -113,6 +126,35 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     onInspectionSaved()
   }
 
+  const handleDeleteClick = (template: any) => {
+    setDeleteDialog({
+      isOpen: true,
+      templateId: template.id,
+      templateName: template.name
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.templateId) return
+
+    setIsDeleting(true)
+    try {
+      const result = await removeITPAssignmentAction(lot.id, deleteDialog.templateId)
+      if (result.success) {
+        toast.success('ITP assignment removed successfully')
+        setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })
+        onInspectionSaved()
+      } else {
+        toast.error(result.error || 'Failed to remove ITP assignment')
+      }
+    } catch (error) {
+      console.error('Error removing ITP assignment:', error)
+      toast.error('Failed to remove ITP assignment')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   if (templatesWithAssignments.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg">
@@ -179,6 +221,13 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
                 </p>
               </div>
               <button
+                onClick={() => handleDeleteClick(templateData)}
+                className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 min-h-[44px] touch-manipulation"
+                title="Remove ITP assignment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => setIsAssignModalOpen(true)}
                 className="inline-flex items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 min-h-[44px] touch-manipulation"
               >
@@ -226,6 +275,16 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
           onITPAssigned={handleITPAssigned}
           lotId={lot.id}
           assignedTemplateIds={templatesWithAssignments.map((t: any) => t.id)}
+        />
+        
+        <DeleteConfirmationDialog
+          isOpen={deleteDialog.isOpen}
+          onClose={() => setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })}
+          onConfirm={handleDeleteConfirm}
+          title="Remove ITP Assignment"
+          message="Are you sure you want to remove this ITP template from the lot? All inspection data for this template will be removed."
+          itemName={deleteDialog.templateName}
+          isDeleting={isDeleting}
         />
       </div>
     )
@@ -281,6 +340,16 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
                     `}>
                       {completionPercentage}%
                     </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteClick(template)
+                      }}
+                      className="ml-2 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Remove ITP assignment"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </button>
@@ -324,6 +393,16 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
         onITPAssigned={handleITPAssigned}
         lotId={lot.id}
         assignedTemplateIds={templates.map(t => t.id)}
+      />
+      
+      <DeleteConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })}
+        onConfirm={handleDeleteConfirm}
+        title="Remove ITP Assignment"
+        message="Are you sure you want to remove this ITP template from the lot? All inspection data for this template will be removed."
+        itemName={deleteDialog.templateName}
+        isDeleting={isDeleting}
       />
     </div>
   )
