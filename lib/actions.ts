@@ -1222,8 +1222,8 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
               }
               
               lotExists = textLot
-            } else if (uuidLot) {
-              lotExists = uuidLot
+            } else if (uuidLot && typeof uuidLot === 'object' && uuidLot !== null) {
+              lotExists = uuidLot as { id: any; lot_number: any; project_id: any; }
             } else {
               return { success: false, error: `Lot not found. ID: ${lotId}. Checked ${allLots?.length || 0} lots.` }
             }
@@ -4970,16 +4970,7 @@ export async function getTomorrowNotesAction(
 }
 
 // Placeholder actions for simplified diary tabs
-export async function getSubcontractorsAction(): Promise<APIResponse<any[]>> {
-  try {
-    await requireAuth()
-    // TODO: Implement actual subcontractor fetching from labour resources
-    return { success: true, data: [] }
-  } catch (error) {
-    console.error('Get subcontractors error:', error)
-    return { success: false, error: 'Failed to fetch subcontractors' }
-  }
-}
+// Note: getSubcontractorsAction is already defined above
 
 export async function saveDailyLabourAction(
   projectId: string,

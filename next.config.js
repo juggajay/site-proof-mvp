@@ -13,9 +13,7 @@ const nextConfig = {
     return config
   },
   // Force dynamic rendering
-  experimental: {
-    appDir: true,
-  },
+  experimental: {},
   // Disable build optimization in dev
   productionBrowserSourceMaps: false,
   reactStrictMode: true,

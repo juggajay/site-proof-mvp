@@ -3,26 +3,13 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Plus, Clock, Users, Building, Save, Trash2 } from 'lucide-react'
-import { ProjectWithDetails } from '@/types/database'
+import { ProjectWithDetails, Subcontractor, SubcontractorEmployee } from '@/types/database'
 import { getSubcontractorsAction, saveDailyLabourAction } from '@/lib/actions'
 import toast from 'react-hot-toast'
 
 interface LabourTabProps {
   project: ProjectWithDetails
   selectedDate: Date
-}
-
-interface Subcontractor {
-  id: string
-  name: string
-  employees: Employee[]
-}
-
-interface Employee {
-  id: string
-  name: string
-  trade: string
-  hourly_rate: number
 }
 
 interface LabourEntry {
@@ -73,20 +60,21 @@ export function LabourTab({ project, selectedDate }: LabourTabProps) {
     const subcontractor = subcontractors.find(s => s.id === selectedSubcontractor)
     if (!subcontractor) return
 
-    // Add all employees from the selected subcontractor
-    const newEntries = subcontractor.employees.map(employee => ({
-      id: `${Date.now()}-${employee.id}`,
+    // For now, add a placeholder entry for the subcontractor
+    // TODO: Implement employee fetching
+    const newEntry = {
+      id: `${Date.now()}-${subcontractor.id}`,
       subcontractor_id: subcontractor.id,
-      subcontractor_name: subcontractor.name,
-      employee_id: employee.id,
-      employee_name: employee.name,
-      trade: employee.trade,
+      subcontractor_name: subcontractor.company_name,
+      employee_id: '',
+      employee_name: '',
+      trade: '',
       hours_worked: 0,
       notes: '',
       is_one_day_company: false
-    }))
+    }
 
-    setLabourEntries([...labourEntries, ...newEntries])
+    setLabourEntries([...labourEntries, newEntry])
     setSelectedSubcontractor('')
   }
 
@@ -175,7 +163,7 @@ export function LabourTab({ project, selectedDate }: LabourTabProps) {
             <option value="">Select a company...</option>
             {subcontractors.map(sub => (
               <option key={sub.id} value={sub.id}>
-                {sub.name} ({sub.employees.length} employees)
+                {sub.company_name}
               </option>
             ))}
             <option value="one-day">--- Add One-Day Company ---</option>
