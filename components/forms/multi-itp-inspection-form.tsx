@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LotWithDetails, ITPTemplate, ITPItem } from '@/types/database'
 import { ClipboardList, Plus, AlertCircle, X } from 'lucide-react'
 import { InteractiveInspectionForm } from './interactive-inspection-form'
@@ -17,6 +17,7 @@ interface MultiITPInspectionFormProps {
 }
 
 export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspectionFormProps) {
+  
   const [activeTemplateId, setActiveTemplateId] = useState<string | number | null>(null)
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [optimisticTemplates, setOptimisticTemplates] = useState<ITPTemplate[]>([])
@@ -30,6 +31,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     templateName: ''
   })
   const [isDeleting, setIsDeleting] = useState(false)
+  
 
   // Get assignments from the new system
   const assignments = lot.lot_itp_assignments || lot.lot_itp_templates || []
@@ -39,11 +41,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   const templatesWithAssignments = assignments.map((assignment: any) => {
     const template = templates.find((t: any) => t.id === assignment.template_id || t.id === assignment.itp_template_id)
     if (!template) {
-      console.log('⚠️ No template found for assignment:', {
-        assignmentId: assignment.id,
-        templateId: assignment.template_id || assignment.itp_template_id,
-        availableTemplates: templates.map(t => ({ id: t.id, name: t.name }))
-      })
+      return null
     }
     return template ? {
       ...template,
@@ -51,45 +49,6 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
       assignmentId: assignment.id
     } : null
   }).filter((item): item is NonNullable<typeof item> => item !== null)
-    
-  console.log('📊 Templates analysis:', {
-    hasITPTemplates: !!lot.itp_templates,
-    itpTemplatesLength: lot.itp_templates?.length || 0,
-    hasITPTemplate: !!lot.itp_template,
-    hasLotITPAssignments: !!lot.lot_itp_assignments,
-    lotITPAssignmentsLength: lot.lot_itp_assignments?.length || 0,
-    finalTemplatesCount: templates.length,
-    templates: templatesWithAssignments.map((t: any) => ({ 
-      id: t?.id, 
-      name: t?.name,
-      assignmentId: t?.assignmentId,
-      status: t?.assignment?.status,
-      itemsCount: t?.itp_items?.length || 0,
-      items: t?.itp_items?.map((item: any) => ({
-        id: item.id,
-        description: item.description
-      }))
-    })),
-    assignments: assignments.length,
-    rawAssignments: assignments,
-    rawTemplates: templates
-  })
-  
-  console.log('🎨 MultiITPInspectionForm - lot data:', {
-    lotId: lot.id,
-    hasTemplate: !!lot.itp_template,
-    templateName: lot.itp_template?.name,
-    templateItems: lot.itp_template?.itp_items,
-    itemsLength: lot.itp_template?.itp_items?.length
-  })
-  
-  console.log('📊 MultiITPInspectionForm - Initial data:', {
-    lotId: lot.id,
-    hasTemplate: !!lot.itp_template,
-    templateId: lot.itp_template?.id,
-    itpItemsCount: lot.itp_template?.itp_items?.length,
-    templatesCount: templates.length
-  })
   
   // Set active template on mount
   if (!activeTemplateId && templatesWithAssignments.length > 0) {
@@ -127,9 +86,10 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   }
 
   const handleDeleteClick = (template: any) => {
+    const templateIdToDelete = template.id || template.template_id
     setDeleteDialog({
       isOpen: true,
-      templateId: template.id,
+      templateId: templateIdToDelete,
       templateName: template.name
     })
   }
@@ -140,6 +100,7 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
     setIsDeleting(true)
     try {
       const result = await removeITPAssignmentAction(lot.id, deleteDialog.templateId)
+      
       if (result.success) {
         toast.success('ITP assignment removed successfully')
         setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })
@@ -148,7 +109,6 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
         toast.error(result.error || 'Failed to remove ITP assignment')
       }
     } catch (error) {
-      console.error('Error removing ITP assignment:', error)
       toast.error('Failed to remove ITP assignment')
     } finally {
       setIsDeleting(false)
@@ -192,15 +152,6 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
   // Single template - show without tabs
   if (templatesWithAssignments.length === 1) {
     const templateData = templatesWithAssignments[0]
-    console.log('🎨 Single template mode:', {
-      templateId: templateData.id,
-      assignmentId: templateData.assignmentId,
-      templateName: templateData.name,
-      status: templateData.assignment?.status,
-      hasItems: !!templateData.itp_items,
-      itemsLength: templateData.itp_items?.length,
-      items: templateData.itp_items
-    })
     
     const stats = getTemplateStats(templateData.assignmentId)
     const completionPercentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
@@ -224,8 +175,10 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
                 onClick={() => handleDeleteClick(templateData)}
                 className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 min-h-[44px] touch-manipulation"
                 title="Remove ITP assignment"
+                type="button"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 mr-1" />
+                <span className="text-xs">Remove</span>
               </button>
               <button
                 onClick={() => setIsAssignModalOpen(true)}
@@ -254,12 +207,6 @@ export function MultiITPInspectionForm({ lot, onInspectionSaved }: MultiITPInspe
               ),
               currentAssignment: assignment
             }
-            console.log('🔄 Passing transformed lot to InteractiveInspectionForm:', {
-              lotId: transformedLot.id,
-              templateId: transformedLot.itp_template?.id,
-              itemsCount: transformedLot.itp_template?.itp_items?.length,
-              conformanceRecordsCount: transformedLot.conformance_records?.length
-            })
             return (
               <SimplifiedInspectionForm
                 lot={transformedLot}

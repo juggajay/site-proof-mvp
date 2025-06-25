@@ -1131,30 +1131,38 @@ export async function removeITPFromLotAction(lotId: number | string, itpTemplate
 export async function getLotByIdAction(lotId: number | string): Promise<APIResponse<LotWithDetails>> {
   'use server'
   
+  console.log('🔍 [SERVER] getLotByIdAction - Starting with lot ID:', lotId, 'Type:', typeof lotId)
+  
   try {
     await requireAuth()
     
-    console.error('🚨 SERVER: getLotByIdAction - Looking for lot with ID:', lotId, 'Type:', typeof lotId)
-    console.log('🔍 getLotByIdAction called at:', new Date().toISOString())
-    console.log('🔍 getLotByIdAction called with:', { lotId, type: typeof lotId })
-    console.log('🔍 Supabase enabled:', isSupabaseEnabled)
-    console.log('🔍 Supabase client exists:', !!supabase)
+    console.log('🔍 [SERVER] getLotByIdAction - Looking for lot with ID:', lotId, 'Type:', typeof lotId)
+    console.log('🔍 [SERVER] getLotByIdAction called at:', new Date().toISOString())
+    console.log('🔍 [SERVER] Supabase enabled:', isSupabaseEnabled)
+    console.log('🔍 [SERVER] Supabase client exists:', !!supabase)
+    console.log('🔍 [SERVER] Supabase admin client exists:', !!supabaseAdmin)
     
     const client = supabaseAdmin || supabase
     
     if (isSupabaseEnabled && client) {
-      console.log('📊 Fetching lot from Supabase...')
-      console.log('🔑 Using client:', supabaseAdmin ? 'admin' : 'regular')
-      console.log('📊 Lot ID to search:', lotId, 'Type:', typeof lotId)
+      console.log('🔍 [SERVER] Fetching lot from Supabase...')
+      console.log('🔍 [SERVER] Using client:', supabaseAdmin ? 'admin' : 'regular')
+      console.log('🔍 [SERVER] Lot ID to search:', lotId, 'Type:', typeof lotId)
       
       // First, let's check if the lot exists with a simple query
+      console.log('🔍 [SERVER] Executing lot existence check query...')
       let { data: lotExists, error: checkError } = await client
         .from('lots')
         .select('id, lot_number, project_id')
         .eq('id', lotId)
         .single()
       
-      console.log('📊 Lot existence check:', { lotExists, checkError })
+      console.log('🔍 [SERVER] Lot existence check result:', { 
+        hasData: !!lotExists, 
+        hasError: !!checkError,
+        data: lotExists,
+        error: checkError 
+      })
       
       if (checkError) {
         console.log('📊 Initial query failed, trying alternative approaches...')
@@ -1172,13 +1180,16 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
           // Success with string cast, continue with this approach
           lotExists = lotExists2
         } else {
-          // Let's get all lots to debug
+          // Let's get all lots to debug (increased limit to find more lots)
+          console.log('📊 Fetching all lots for debugging...')
           const { data: allLots, error: allLotsError } = await client
             .from('lots')
             .select('id, lot_number, project_id')
-            .limit(10)
+            .limit(100)
           
-          console.log('📊 All lots for debugging:', allLots)
+          console.log('📊 All lots query error:', allLotsError)
+          console.log('📊 All lots count:', allLots?.length || 0)
+          console.log('📊 First 5 lots for debugging:', allLots?.slice(0, 5))
           console.log('📊 Looking for ID:', lotId, 'in', allLots?.map(l => ({ id: l.id, type: typeof l.id })))
           
           // Try to find the lot manually
@@ -1187,7 +1198,35 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
             console.log('📊 Found lot manually:', foundLot)
             lotExists = foundLot
           } else {
-            return { success: false, error: `Lot not found. ID: ${lotId}` }
+            console.log('📊 Lot not found in manual search. Total lots checked:', allLots?.length || 0)
+            console.log('📊 Lot IDs searched:', allLots?.map(l => l.id).join(', '))
+            
+            // Try one more time with explicit UUID type casting
+            console.log('📊 Attempting final query with explicit UUID casting...')
+            const { data: uuidLot, error: uuidError } = await client
+              .rpc('get_lot_by_uuid', { lot_uuid: lotId })
+              .single()
+            
+            if (uuidError) {
+              console.log('📊 UUID query error:', uuidError)
+              console.log('📊 Final attempt: direct query with text type...')
+              const { data: textLot, error: textError } = await client
+                .from('lots')
+                .select('id, lot_number, project_id')
+                .filter('id', 'eq', lotId)
+                .single()
+              
+              if (textError || !textLot) {
+                console.log('📊 Text query error:', textError)
+                return { success: false, error: `Lot not found. ID: ${lotId}. Checked ${allLots?.length || 0} lots.` }
+              }
+              
+              lotExists = textLot
+            } else if (uuidLot) {
+              lotExists = uuidLot
+            } else {
+              return { success: false, error: `Lot not found. ID: ${lotId}. Checked ${allLots?.length || 0} lots.` }
+            }
           }
         }
       }
@@ -1637,7 +1676,10 @@ export async function getLotByIdAction(lotId: number | string): Promise<APIRespo
       return { success: true, data: lotWithDetails }
     }
   } catch (error) {
-    return { success: false, error: 'Failed to fetch lot details' }
+    console.error('🚨 [SERVER] getLotByIdAction error:', error)
+    console.error('🚨 [SERVER] Error type:', typeof error)
+    console.error('🚨 [SERVER] Error message:', error instanceof Error ? error.message : String(error))
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch lot details' }
   }
 }
 
@@ -4579,29 +4621,49 @@ export async function deleteProjectAction(projectId: string | number): Promise<A
 export async function deleteLotAction(lotId: string | number): Promise<APIResponse> {
   try {
     const user = await requireAuth()
-    console.log('🗑️ Deleting lot:', lotId)
+    console.log('🗑️ [SERVER] Deleting lot:', lotId, 'User:', user?.email)
     
     if (isSupabaseEnabled) {
-      console.log('🗑️ Deleting lot from Supabase using admin client...')
+      console.log('🗑️ [SERVER] Deleting lot from Supabase using admin client...')
+      console.log('🗑️ [SERVER] Admin client available:', !!supabaseAdmin)
       
       if (!supabaseAdmin) {
-        console.error('Supabase admin client not available')
+        console.error('🗑️ [SERVER] Supabase admin client not available')
         return { success: false, error: 'Database admin access not configured' }
       }
       
+      // Get lot data before deleting to revalidate the correct project path
+      console.log('🗑️ [SERVER] Fetching lot data before deletion...')
+      const { data: lot, error: fetchError } = await supabaseAdmin
+        .from('lots')
+        .select('project_id')
+        .eq('id', lotId)
+        .single()
+      
+      if (fetchError) {
+        console.error('🗑️ [SERVER] Supabase fetch error:', fetchError)
+        return { success: false, error: fetchError.message }
+      }
+      
+      console.log('🗑️ [SERVER] Lot data fetched, project_id:', lot.project_id)
+      
       // Delete lot (cascade will handle related records)
+      console.log('🗑️ [SERVER] Executing delete operation...')
       const { error } = await supabaseAdmin
         .from('lots')
         .delete()
         .eq('id', lotId)
       
       if (error) {
-        console.error('Supabase delete error:', error)
+        console.error('🗑️ [SERVER] Supabase delete error:', error)
         return { success: false, error: error.message }
       }
       
-      console.log('✅ Lot deleted from Supabase')
-      revalidatePath('/project')
+      console.log('🗑️ [SERVER] ✅ Lot deleted from Supabase successfully')
+      console.log('🗑️ [SERVER] Revalidating paths...')
+      revalidatePath(`/project/${lot.project_id}`)
+      revalidatePath('/projects')
+      console.log('🗑️ [SERVER] Cache paths revalidated')
       return { success: true, message: 'Lot deleted successfully' }
     } else {
       console.log('🗑️ Deleting lot from mock data...')
@@ -4609,6 +4671,9 @@ export async function deleteLotAction(lotId: string | number): Promise<APIRespon
       // Remove from mock data
       const index = mockLots.findIndex(l => compareIds(l.id, lotId))
       if (index !== -1) {
+        const lot = mockLots[index]
+        const projectId = lot.project_id
+        
         mockLots.splice(index, 1)
         
         // Also remove related conformance records
@@ -4620,7 +4685,8 @@ export async function deleteLotAction(lotId: string | number): Promise<APIRespon
         recordIndices.forEach(idx => mockConformanceRecords.splice(idx, 1))
         
         console.log('✅ Lot and related records deleted from mock data')
-        revalidatePath('/project')
+        revalidatePath(`/project/${projectId}`)
+        revalidatePath('/projects')
         return { success: true, message: 'Lot deleted successfully' }
       }
       
@@ -4635,17 +4701,19 @@ export async function deleteLotAction(lotId: string | number): Promise<APIRespon
 export async function deleteITPTemplateAction(templateId: string | number): Promise<APIResponse> {
   try {
     const user = await requireAuth()
-    console.log('🗑️ Deleting ITP template:', templateId)
+    console.log('🗑️ [SERVER] Deleting ITP template:', templateId, 'User:', user?.email)
     
     if (isSupabaseEnabled) {
-      console.log('🗑️ Deleting ITP template from Supabase using admin client...')
+      console.log('🗑️ [SERVER] Deleting ITP template from Supabase using admin client...')
+      console.log('🗑️ [SERVER] Admin client available:', !!supabaseAdmin)
       
       if (!supabaseAdmin) {
-        console.error('Supabase admin client not available')
+        console.error('🗑️ [SERVER] Supabase admin client not available')
         return { success: false, error: 'Database admin access not configured' }
       }
       
       // Check if template is assigned to any lots
+      console.log('🗑️ [SERVER] Checking if template is assigned to lots...')
       const { data: assignments, error: checkError } = await supabaseAdmin
         .from('lot_itp_assignments')
         .select('id')
@@ -4653,27 +4721,33 @@ export async function deleteITPTemplateAction(templateId: string | number): Prom
         .limit(1)
       
       if (checkError) {
-        console.error('Check error:', checkError)
+        console.error('🗑️ [SERVER] Check error:', checkError)
         return { success: false, error: checkError.message }
       }
       
+      console.log('🗑️ [SERVER] Assignment check result - assignments found:', assignments?.length || 0)
+      
       if (assignments && assignments.length > 0) {
+        console.log('🗑️ [SERVER] Template is assigned to lots, cannot delete')
         return { success: false, error: 'Cannot delete template that is assigned to lots' }
       }
       
       // Delete template (cascade will handle template items)
+      console.log('🗑️ [SERVER] Executing template delete operation...')
       const { error } = await supabaseAdmin
         .from('itp_templates')
         .delete()
         .eq('id', templateId)
       
       if (error) {
-        console.error('Supabase delete error:', error)
+        console.error('🗑️ [SERVER] Supabase delete error:', error)
         return { success: false, error: error.message }
       }
       
-      console.log('✅ ITP template deleted from Supabase')
-      revalidatePath('/settings/itp-templates')
+      console.log('🗑️ [SERVER] ✅ ITP template deleted from Supabase successfully')
+      console.log('🗑️ [SERVER] Revalidating /templates path...')
+      revalidatePath('/templates')
+      console.log('🗑️ [SERVER] Template cache path revalidated')
       return { success: true, message: 'ITP template deleted successfully' }
     } else {
       console.log('🗑️ Deleting ITP template from mock data...')
@@ -4698,7 +4772,7 @@ export async function deleteITPTemplateAction(templateId: string | number): Prom
         itemIndices.forEach(idx => mockITPItems.splice(idx, 1))
         
         console.log('✅ ITP template and items deleted from mock data')
-        revalidatePath('/settings/itp-templates')
+        revalidatePath('/templates')
         return { success: true, message: 'ITP template deleted successfully' }
       }
       
@@ -4758,22 +4832,28 @@ export async function deleteDailyReportAction(reportId: string | number): Promis
 export async function removeITPAssignmentAction(lotId: string | number, templateId: string | number): Promise<APIResponse> {
   try {
     const user = await requireAuth()
-    console.log('🗑️ Removing ITP assignment:', { lotId, templateId })
     
     if (isSupabaseEnabled) {
-      console.log('🗑️ Removing ITP assignment from Supabase using admin client...')
       
       if (!supabaseAdmin) {
-        console.error('Supabase admin client not available')
         return { success: false, error: 'Database admin access not configured' }
       }
       
       // For new system - delete from lot_itp_assignments
-      const { error: newSystemError } = await supabaseAdmin
+      
+      // First check if the assignment exists
+      const { data: existingAssignments, error: checkError } = await supabaseAdmin
+        .from('lot_itp_assignments')
+        .select('*')
+        .eq('lot_id', lotId)
+        .eq('template_id', templateId)
+      
+      const { data: deletedData, error: newSystemError } = await supabaseAdmin
         .from('lot_itp_assignments')
         .delete()
         .eq('lot_id', lotId)
         .eq('template_id', templateId)
+        .select()
       
       // For old system - update lot to remove template
       const { error: oldSystemError } = await supabaseAdmin
@@ -4783,16 +4863,13 @@ export async function removeITPAssignmentAction(lotId: string | number, template
         .eq('itp_template_id', templateId)
       
       if (newSystemError && oldSystemError) {
-        console.error('Supabase delete errors:', { newSystemError, oldSystemError })
         return { success: false, error: 'Failed to remove ITP assignment' }
       }
       
-      console.log('✅ ITP assignment removed from Supabase')
+      revalidatePath(`/project/*/lot/${lotId}`)
       revalidatePath(`/project`)
       return { success: true, message: 'ITP assignment removed successfully' }
     } else {
-      console.log('🗑️ Removing ITP assignment from mock data...')
-      
       // Update lot to remove template
       const lot = mockLots.find(l => compareIds(l.id, lotId))
       if (lot && lot.itp_template_id && compareIds(lot.itp_template_id, templateId)) {
@@ -4814,7 +4891,6 @@ export async function removeITPAssignmentAction(lotId: string | number, template
         
         recordIndices.forEach(idx => mockConformanceRecords.splice(idx, 1))
         
-        console.log('✅ ITP assignment removed from mock data')
         revalidatePath(`/project`)
         return { success: true, message: 'ITP assignment removed successfully' }
       }
@@ -4824,5 +4900,150 @@ export async function removeITPAssignmentAction(lotId: string | number, template
   } catch (error) {
     console.error('Remove ITP assignment error:', error)
     return { success: false, error: 'Failed to remove ITP assignment' }
+  }
+}
+
+// Tomorrow's Notes Actions
+export async function saveTomorrowNoteAction(
+  projectId: string,
+  noteContent: string,
+  targetDate: string
+): Promise<APIResponse<void>> {
+  try {
+    const user = await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { error } = await supabase
+        .from('tomorrow_notes')
+        .insert({
+          project_id: projectId,
+          note_content: noteContent,
+          target_date: targetDate,
+          created_by: user.id
+        })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true }
+    } else {
+      // Mock implementation
+      return { success: true }
+    }
+  } catch (error) {
+    console.error('Save tomorrow note error:', error)
+    return { success: false, error: 'Failed to save note' }
+  }
+}
+
+export async function getTomorrowNotesAction(
+  projectId: string,
+  targetDate: string
+): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    
+    if (isSupabaseEnabled && supabase) {
+      const { data, error } = await supabase
+        .from('tomorrow_notes')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('target_date', targetDate)
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Supabase error:', error)
+        return { success: false, error: error.message }
+      }
+      
+      return { success: true, data: data || [] }
+    } else {
+      // Mock implementation
+      return { success: true, data: [] }
+    }
+  } catch (error) {
+    console.error('Get tomorrow notes error:', error)
+    return { success: false, error: 'Failed to fetch notes' }
+  }
+}
+
+// Placeholder actions for simplified diary tabs
+export async function getSubcontractorsAction(): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    // TODO: Implement actual subcontractor fetching from labour resources
+    return { success: true, data: [] }
+  } catch (error) {
+    console.error('Get subcontractors error:', error)
+    return { success: false, error: 'Failed to fetch subcontractors' }
+  }
+}
+
+export async function saveDailyLabourAction(
+  projectId: string,
+  date: string,
+  entries: any[]
+): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    // TODO: Implement actual labour saving
+    return { success: true }
+  } catch (error) {
+    console.error('Save daily labour error:', error)
+    return { success: false, error: 'Failed to save labour entries' }
+  }
+}
+
+export async function getPlantEquipmentAction(): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    // TODO: Implement actual plant equipment fetching from resources
+    return { success: true, data: [] }
+  } catch (error) {
+    console.error('Get plant equipment error:', error)
+    return { success: false, error: 'Failed to fetch equipment' }
+  }
+}
+
+export async function saveDailyPlantAction(
+  projectId: string,
+  date: string,
+  entries: any[]
+): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    // TODO: Implement actual plant saving
+    return { success: true }
+  } catch (error) {
+    console.error('Save daily plant error:', error)
+    return { success: false, error: 'Failed to save plant entries' }
+  }
+}
+
+export async function getMaterialsAction(): Promise<APIResponse<any[]>> {
+  try {
+    await requireAuth()
+    // TODO: Implement actual materials fetching from resources
+    return { success: true, data: [] }
+  } catch (error) {
+    console.error('Get materials error:', error)
+    return { success: false, error: 'Failed to fetch materials' }
+  }
+}
+
+export async function saveDailyMaterialsAction(
+  projectId: string,
+  date: string,
+  entries: any[]
+): Promise<APIResponse<void>> {
+  try {
+    await requireAuth()
+    // TODO: Implement actual materials saving
+    return { success: true }
+  } catch (error) {
+    console.error('Save daily materials error:', error)
+    return { success: false, error: 'Failed to save material entries' }
   }
 }

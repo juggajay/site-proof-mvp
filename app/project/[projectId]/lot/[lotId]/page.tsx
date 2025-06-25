@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+// Force rebuild: ${Date.now()}
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
@@ -193,7 +194,7 @@ export default function LotDetailPage({ params }: PageProps) {
                 <ArrowLeft className="h-6 w-6" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Lot {lot.lot_number}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">LOT {lot.lot_number}</h1>
                 <p className="text-sm text-gray-500">{lot.project.name}</p>
               </div>
             </div>

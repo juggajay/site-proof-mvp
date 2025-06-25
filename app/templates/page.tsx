@@ -33,14 +33,21 @@ export default function TemplatesPage() {
 
   const loadTemplates = async () => {
     try {
+      console.log('🔄 [TEMPLATE RELOAD] Starting template data reload')
+      console.log('🔄 [TEMPLATE RELOAD] Current templates count:', templates.length)
       const result = await getITPTemplatesAction()
+      console.log('🔄 [TEMPLATE RELOAD] getITPTemplatesAction result:', result)
+      
       if (result.success) {
+        console.log('🔄 [TEMPLATE RELOAD] Templates loaded successfully, count:', result.data?.length || 0)
         setTemplates(result.data || [])
+        setError(null) // Clear any previous errors
       } else {
+        console.error('🔄 [TEMPLATE RELOAD] Failed to load templates:', result.error)
         setError(result.error || 'Failed to load templates')
       }
     } catch (error) {
-      console.error('Error loading templates:', error)
+      console.error('🔄 [TEMPLATE RELOAD] Exception during template reload:', error)
       setError('An unexpected error occurred')
     } finally {
       setIsLoading(false)
@@ -68,20 +75,32 @@ export default function TemplatesPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteDialog.templateId) return
 
+    console.log('🗑️ [TEMPLATE DELETE] Starting delete operation for template:', deleteDialog.templateId)
     setIsDeleting(true)
     try {
+      console.log('🗑️ [TEMPLATE DELETE] Calling deleteITPTemplateAction...')
       const result = await deleteITPTemplateAction(deleteDialog.templateId)
+      console.log('🗑️ [TEMPLATE DELETE] deleteITPTemplateAction result:', result)
+      
       if (result.success) {
+        console.log('🗑️ [TEMPLATE DELETE] Delete successful, showing success toast')
         toast.success('Template deleted successfully')
-        setTemplates(templates.filter(t => t.id !== deleteDialog.templateId))
+        
+        console.log('🗑️ [TEMPLATE DELETE] Reloading templates...')
+        await loadTemplates()
+        console.log('🗑️ [TEMPLATE DELETE] Templates reloaded, closing dialog')
+        
         setDeleteDialog({ isOpen: false, templateId: null, templateName: '' })
+        console.log('🗑️ [TEMPLATE DELETE] Delete operation completed successfully')
       } else {
+        console.error('🗑️ [TEMPLATE DELETE] Delete failed:', result.error)
         toast.error(result.error || 'Failed to delete template')
       }
     } catch (error) {
-      console.error('Error deleting template:', error)
+      console.error('🗑️ [TEMPLATE DELETE] Exception during delete:', error)
       toast.error('Failed to delete template')
     } finally {
+      console.log('🗑️ [TEMPLATE DELETE] Setting isDeleting to false')
       setIsDeleting(false)
     }
   }

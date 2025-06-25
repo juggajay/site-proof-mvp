@@ -61,7 +61,8 @@ export default function ProjectsPage() {
       const result = await deleteProjectAction(deleteDialog.projectId)
       if (result.success) {
         toast.success('Project deleted successfully')
-        setProjects(projects.filter(p => p.id !== deleteDialog.projectId))
+        // Reload projects from server to ensure UI is in sync
+        await loadProjects()
         setDeleteDialog({ isOpen: false, projectId: null, projectName: '' })
       } else {
         toast.error(result.error || 'Failed to delete project')
