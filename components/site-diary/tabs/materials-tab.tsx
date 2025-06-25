@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { Plus, Package, Save, Trash2 } from 'lucide-react'
-import { ProjectWithDetails } from '@/types/database'
-import { getMaterialsAction, saveDailyMaterialsAction } from '@/lib/actions'
+import { Plus, Package, Building, Save, Trash2, FileText } from 'lucide-react'
+import { ProjectWithDetails, Company, MaterialProfile } from '@/types/database'
+import { getCompaniesAction, getMaterialProfilesAction, saveDailyMaterialsAction } from '@/lib/actions'
 import toast from 'react-hot-toast'
 
 interface MaterialsTabProps {
@@ -12,67 +12,139 @@ interface MaterialsTabProps {
   selectedDate: Date
 }
 
-interface Material {
-  id: string
-  name: string
-  category: string
-  unit: string
-  supplier?: string
-}
-
 interface MaterialEntry {
   id: string
-  material_id: string
+  company_id: string
+  company_name: string
+  material_profile_id?: string
   material_name: string
+  material_category?: string
   quantity: number
   unit: string
-  supplier: string
   docket_number: string
   notes: string
+  is_one_off: boolean
 }
 
 export function MaterialsTab({ project, selectedDate }: MaterialsTabProps) {
-  const [materials, setMaterials] = useState<Material[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [materialProfiles, setMaterialProfiles] = useState<MaterialProfile[]>([])
   const [materialEntries, setMaterialEntries] = useState<MaterialEntry[]>([])
-  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
+  const [selectedCompany, setSelectedCompany] = useState<string>('')
+  const [showOneOffMaterial, setShowOneOffMaterial] = useState(false)
+  const [oneOffSupplierName, setOneOffSupplierName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false)
 
   useEffect(() => {
-    loadMaterials()
+    loadCompanies()
   }, [])
 
-  const loadMaterials = async () => {
+  const loadCompanies = async () => {
     try {
-      const result = await getMaterialsAction()
+      // Get all companies that might be material suppliers
+      const result = await getCompaniesAction('both')
       if (result.success && result.data) {
-        setMaterials(result.data)
+        setCompanies(result.data)
       }
     } catch (error) {
-      console.error('Error loading materials:', error)
-      toast.error('Failed to load materials')
+      console.error('Error loading companies:', error)
+      toast.error('Failed to load suppliers')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleAddMaterial = () => {
-    const selected = materials.find(m => m.id === selectedMaterial)
-    if (!selected) return
+  const handleAddCompany = async () => {
+    if (selectedCompany === 'one-off') {
+      setShowOneOffMaterial(true)
+      return
+    }
+
+    const company = companies.find(c => c.id === selectedCompany)
+    if (!company) return
+
+    setIsLoadingMaterials(true)
+    try {
+      // Fetch all material profiles and filter by supplier
+      const result = await getMaterialProfilesAction()
+      if (result.success && result.data) {
+        const companyMaterials = result.data.filter(profile => 
+          profile.supplier === company.company_name
+        )
+        
+        if (companyMaterials.length === 0) {
+          // If no specific materials found, create a generic entry for this supplier
+          const newEntry: MaterialEntry = {
+            id: `generic-${Date.now()}-${company.id}`,
+            company_id: company.id,
+            company_name: company.company_name,
+            material_name: '',
+            material_category: '',
+            quantity: 0,
+            unit: '',
+            docket_number: '',
+            notes: '',
+            is_one_off: true // Allow editing since no preset materials
+          }
+          setMaterialEntries([...materialEntries, newEntry])
+          setSelectedCompany('')
+          toast.success(`Added entry for ${company.company_name}`)
+        } else {
+          // Add all materials from the selected supplier
+          const newEntries = companyMaterials.map(profile => ({
+            id: `${Date.now()}-${profile.id}`,
+            company_id: company.id,
+            company_name: company.company_name,
+            material_profile_id: profile.id,
+            material_name: profile.material_name,
+            material_category: profile.material_category || '',
+            quantity: 0,
+            unit: profile.default_unit,
+            docket_number: '',
+            notes: '',
+            is_one_off: false
+          }))
+
+          setMaterialEntries([...materialEntries, ...newEntries])
+          setSelectedCompany('')
+          toast.success(`Added ${companyMaterials.length} materials from ${company.company_name}`)
+        }
+      } else {
+        toast.error(result.error || 'Failed to fetch materials')
+      }
+    } catch (error) {
+      console.error('Error fetching materials:', error)
+      toast.error('Failed to fetch materials')
+    } finally {
+      setIsLoadingMaterials(false)
+    }
+  }
+
+  const handleAddOneOffMaterial = () => {
+    if (!oneOffSupplierName.trim()) {
+      toast.error('Please enter supplier name')
+      return
+    }
 
     const newEntry: MaterialEntry = {
-      id: `${Date.now()}-${selected.id}`,
-      material_id: selected.id,
-      material_name: selected.name,
+      id: `one-off-${Date.now()}`,
+      company_id: 'one-off',
+      company_name: oneOffSupplierName,
+      material_name: '',
+      material_category: '',
       quantity: 0,
-      unit: selected.unit,
-      supplier: selected.supplier || '',
+      unit: '',
       docket_number: '',
-      notes: ''
+      notes: '',
+      is_one_off: true
     }
 
     setMaterialEntries([...materialEntries, newEntry])
-    setSelectedMaterial('')
+    setOneOffSupplierName('')
+    setShowOneOffMaterial(false)
+    toast.success('Added one-off material entry')
   }
 
   const handleUpdateEntry = (entryId: string, field: keyof MaterialEntry, value: any) => {
@@ -107,115 +179,201 @@ export function MaterialsTab({ project, selectedDate }: MaterialsTabProps) {
     }
   }
 
+  const groupedEntries = materialEntries.reduce((acc, entry) => {
+    const key = entry.company_name
+    if (!acc[key]) {
+      acc[key] = []
+    }
+    acc[key].push(entry)
+    return acc
+  }, {} as Record<string, MaterialEntry[]>)
+
   if (isLoading) {
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Loading materials...</p>
+        <p className="text-gray-600">Loading suppliers...</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Add Material Section */}
+      {/* Add Supplier Section */}
       <div className="bg-gray-50 rounded-lg p-4">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Add Material Delivery</h3>
         
         <div className="flex items-center space-x-4">
           <select
-            value={selectedMaterial}
-            onChange={(e) => setSelectedMaterial(e.target.value)}
+            value={selectedCompany}
+            onChange={(e) => setSelectedCompany(e.target.value)}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">Select material...</option>
-            {materials.map(material => (
-              <option key={material.id} value={material.id}>
-                {material.name} ({material.category})
+            <option value="">Select a supplier...</option>
+            {companies.map(company => (
+              <option key={company.id} value={company.id}>
+                {company.company_name}
               </option>
             ))}
+            <option value="one-off">--- Add One-Off Supplier ---</option>
           </select>
           
           <button
-            onClick={handleAddMaterial}
-            disabled={!selectedMaterial}
+            onClick={handleAddCompany}
+            disabled={!selectedCompany || isLoadingMaterials}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add
+            {isLoadingMaterials ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Add
+              </>
+            )}
           </button>
         </div>
+
+        {/* One-Off Supplier Input */}
+        {showOneOffMaterial && (
+          <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">One-Off Supplier</h4>
+            <div className="flex items-center space-x-4">
+              <input
+                type="text"
+                value={oneOffSupplierName}
+                onChange={(e) => setOneOffSupplierName(e.target.value)}
+                placeholder="Supplier name"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                onClick={handleAddOneOffMaterial}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => {
+                  setShowOneOffMaterial(false)
+                  setOneOffSupplierName('')
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Material Entries */}
-      {materialEntries.length === 0 ? (
+      {Object.entries(groupedEntries).length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Package className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-sm font-medium text-gray-900">No Materials Added</h3>
           <p className="mt-2 text-sm text-gray-500">
-            Add material deliveries for {format(selectedDate, 'MMMM d, yyyy')}
+            Select a supplier above to add material deliveries for {format(selectedDate, 'MMMM d, yyyy')}
           </p>
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <h4 className="text-sm font-medium text-gray-900">Material Deliveries</h4>
-            </div>
-            
-            <div className="p-4 space-y-4">
-              {materialEntries.map((entry) => (
-                <div key={entry.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <h5 className="text-sm font-medium text-gray-900">{entry.material_name}</h5>
-                    <button
-                      onClick={() => handleRemoveEntry(entry.id)}
-                      className="text-red-600 hover:text-red-700 p-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="number"
-                        value={entry.quantity}
-                        onChange={(e) => handleUpdateEntry(entry.id, 'quantity', parseFloat(e.target.value) || 0)}
-                        placeholder="Quantity"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <span className="text-sm text-gray-500">{entry.unit}</span>
+          {Object.entries(groupedEntries).map(([companyName, entries]) => (
+            <div key={companyName} className="bg-white rounded-lg border border-gray-200">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                  <Building className="h-4 w-4 mr-2" />
+                  {companyName}
+                </h4>
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {entries.map((entry) => (
+                  <div key={entry.id} className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-start space-x-4">
+                      {entry.is_one_off ? (
+                        <>
+                          <input
+                            type="text"
+                            value={entry.material_name}
+                            onChange={(e) => handleUpdateEntry(entry.id, 'material_name', e.target.value)}
+                            placeholder="Material name"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <input
+                            type="text"
+                            value={entry.material_category}
+                            onChange={(e) => handleUpdateEntry(entry.id, 'material_category', e.target.value)}
+                            placeholder="Category (e.g., Concrete)"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </>
+                      ) : (
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{entry.material_name}</p>
+                          {entry.material_category && (
+                            <p className="text-xs text-gray-500">{entry.material_category}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={() => handleRemoveEntry(entry.id)}
+                        className="text-red-600 hover:text-red-700 p-1"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                     
-                    <input
-                      type="text"
-                      value={entry.docket_number}
-                      onChange={(e) => handleUpdateEntry(entry.id, 'docket_number', e.target.value)}
-                      placeholder="Docket number"
-                      className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    
-                    <input
-                      type="text"
-                      value={entry.supplier}
-                      onChange={(e) => handleUpdateEntry(entry.id, 'supplier', e.target.value)}
-                      placeholder="Supplier"
-                      className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    
-                    <input
-                      type="text"
-                      value={entry.notes}
-                      onChange={(e) => handleUpdateEntry(entry.id, 'notes', e.target.value)}
-                      placeholder="Notes..."
-                      className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="number"
+                          value={entry.quantity}
+                          onChange={(e) => handleUpdateEntry(entry.id, 'quantity', parseFloat(e.target.value) || 0)}
+                          placeholder="Quantity"
+                          step="0.1"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        {entry.is_one_off ? (
+                          <input
+                            type="text"
+                            value={entry.unit}
+                            onChange={(e) => handleUpdateEntry(entry.id, 'unit', e.target.value)}
+                            placeholder="Unit"
+                            className="w-20 px-2 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-500 min-w-[50px]">{entry.unit}</span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={entry.docket_number}
+                          onChange={(e) => handleUpdateEntry(entry.id, 'docket_number', e.target.value)}
+                          placeholder="Docket number"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      
+                      <input
+                        type="text"
+                        value={entry.notes}
+                        onChange={(e) => handleUpdateEntry(entry.id, 'notes', e.target.value)}
+                        placeholder="Notes..."
+                        className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
           
           {/* Save Button */}
           <div className="flex justify-end">
