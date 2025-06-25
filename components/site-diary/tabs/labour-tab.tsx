@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Plus, Clock, Users, Building, Save, Trash2 } from 'lucide-react'
 import { ProjectWithDetails, Subcontractor, SubcontractorEmployee } from '@/types/database'
-import { getSubcontractorsAction, saveDailyLabourAction } from '@/lib/actions'
+import { getSubcontractorsAction, getSubcontractorEmployeesAction, saveDailyLabourAction } from '@/lib/actions'
 import toast from 'react-hot-toast'
 
 interface LabourTabProps {
@@ -32,6 +32,7 @@ export function LabourTab({ project, selectedDate }: LabourTabProps) {
   const [oneDayCompanyName, setOneDayCompanyName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isAddingEmployees, setIsAddingEmployees] = useState(false)
 
   useEffect(() => {
     loadSubcontractors()
@@ -51,7 +52,7 @@ export function LabourTab({ project, selectedDate }: LabourTabProps) {
     }
   }
 
-  const handleAddCompany = () => {
+  const handleAddCompany = async () => {
     if (selectedSubcontractor === 'one-day') {
       setShowOneDayCompany(true)
       return
@@ -60,22 +61,43 @@ export function LabourTab({ project, selectedDate }: LabourTabProps) {
     const subcontractor = subcontractors.find(s => s.id === selectedSubcontractor)
     if (!subcontractor) return
 
-    // For now, add a placeholder entry for the subcontractor
-    // TODO: Implement employee fetching
-    const newEntry = {
-      id: `${Date.now()}-${subcontractor.id}`,
-      subcontractor_id: subcontractor.id,
-      subcontractor_name: subcontractor.company_name,
-      employee_id: '',
-      employee_name: '',
-      trade: '',
-      hours_worked: 0,
-      notes: '',
-      is_one_day_company: false
-    }
+    setIsAddingEmployees(true)
+    try {
+      // Fetch employees for this subcontractor
+      const result = await getSubcontractorEmployeesAction(subcontractor.id)
+      if (result.success && result.data) {
+        const employees = result.data
+        
+        if (employees.length === 0) {
+          toast.error('No active employees found for this company')
+          return
+        }
 
-    setLabourEntries([...labourEntries, newEntry])
-    setSelectedSubcontractor('')
+        // Add all employees from the selected subcontractor
+        const newEntries = employees.map(employee => ({
+          id: `${Date.now()}-${employee.id}`,
+          subcontractor_id: subcontractor.id,
+          subcontractor_name: subcontractor.company_name,
+          employee_id: employee.id,
+          employee_name: employee.employee_name,
+          trade: employee.role || '',
+          hours_worked: 0,
+          notes: '',
+          is_one_day_company: false
+        }))
+
+        setLabourEntries([...labourEntries, ...newEntries])
+        setSelectedSubcontractor('')
+        toast.success(`Added ${employees.length} employees from ${subcontractor.company_name}`)
+      } else {
+        toast.error(result.error || 'Failed to fetch employees')
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error)
+      toast.error('Failed to fetch employees')
+    } finally {
+      setIsAddingEmployees(false)
+    }
   }
 
   const handleAddOneDayCompany = () => {
@@ -171,11 +193,20 @@ export function LabourTab({ project, selectedDate }: LabourTabProps) {
           
           <button
             onClick={handleAddCompany}
-            disabled={!selectedSubcontractor}
+            disabled={!selectedSubcontractor || isAddingEmployees}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add
+            {isAddingEmployees ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Add
+              </>
+            )}
           </button>
         </div>
 
